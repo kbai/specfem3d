@@ -185,13 +185,13 @@
 ! -----------------
 
 ! mesh parameters
-  integer, dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB_VAL) :: ibool
+  integer, dimension(:,:,:,:), allocatable :: ibool
 
-  real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB_VAL) :: &
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: &
         xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz,jacobian
-  real(kind=CUSTOM_REAL), dimension(NGLOB_AB_VAL) :: xstore,ystore,zstore
+  real(kind=CUSTOM_REAL), dimension(:), allocatable :: xstore,ystore,zstore
 
-  real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB_VAL) :: &
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: &
         kappastore,mustore
 
 ! material properties in case of a fully anisotropic material
@@ -201,26 +201,26 @@
         c36store,c44store,c45store,c46store,c55store,c56store,c66store
 
 ! flag for sediments
-  logical not_fully_in_bedrock(NSPEC_AB_VAL)
-  logical, dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB_VAL) :: flag_sediments
+  logical, dimension(:), allocatable :: not_fully_in_bedrock
+  logical, dimension(:,:,:,:), allocatable :: flag_sediments
 
 ! Stacey
-  real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB_VAL) :: rho_vp,rho_vs
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: rho_vp,rho_vs
 
 ! local to global mapping
-  integer, dimension(NSPEC_AB_VAL) :: idoubling
+  integer, dimension(:), allocatable :: idoubling
 
 ! mass matrix
-  real(kind=CUSTOM_REAL), dimension(NGLOB_AB_VAL) :: rmass
+  real(kind=CUSTOM_REAL), dimension(:), allocatable :: rmass
 
 ! additional mass matrix for ocean load
 ! ocean load mass matrix is always allocated statically even if no oceans
-  real(kind=CUSTOM_REAL), dimension(NGLOB_AB_VAL) :: rmass_ocean_load
-  logical, dimension(NGLOB_AB_VAL) :: updated_dof_ocean_load
+  real(kind=CUSTOM_REAL), dimension(:), allocatable :: rmass_ocean_load
+  logical, dimension(:), allocatable :: updated_dof_ocean_load
   real(kind=CUSTOM_REAL) additional_term,force_normal_comp
 
 ! displacement, velocity, acceleration
-  real(kind=CUSTOM_REAL), dimension(NDIM,NGLOB_AB_VAL) :: displ,veloc,accel
+  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: displ,veloc,accel
 
   real(kind=CUSTOM_REAL) xixl,xiyl,xizl,etaxl,etayl,etazl,gammaxl,gammayl,gammazl,jacobianl
   real(kind=CUSTOM_REAL) duxdxl,duxdyl,duxdzl,duydxl,duydyl,duydzl,duzdxl,duzdyl,duzdzl
@@ -567,8 +567,37 @@
 
 ! start reading the databases
 
+! allocate arrays for storing the databases
+  allocate(ibool(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(xix(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(xiy(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(xiz(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(etax(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(etay(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(etaz(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(gammax(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(gammay(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(gammaz(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(jacobian(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(xstore(NGLOB_AB))
+  allocate(ystore(NGLOB_AB))
+  allocate(zstore(NGLOB_AB))
+  allocate(kappastore(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(mustore(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(not_fully_in_bedrock(NSPEC_AB))
+  allocate(flag_sediments(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(rho_vp(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(rho_vs(NGLLX,NGLLY,NGLLZ,NSPEC_AB))
+  allocate(idoubling(NSPEC_AB))
+  allocate(rmass(NGLOB_AB))
+  allocate(rmass_ocean_load(NGLOB_AB))
+  allocate(updated_dof_ocean_load(NGLOB_AB))
+  allocate(displ(NDIM,NGLOB_AB))
+  allocate(veloc(NDIM,NGLOB_AB))
+  allocate(accel(NDIM,NGLOB_AB))
+
 ! read arrays created by the mesher
-  call read_arrays_solver(myrank,xstore,ystore,zstore, &
+  call read_arrays_solver(myrank,NSPEC_AB,NGLOB_AB,xstore,ystore,zstore, &
             xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz,jacobian, &
             flag_sediments,not_fully_in_bedrock,rho_vp,rho_vs,ANISOTROPY, &
             c11store,c12store,c13store,c14store,c15store,c16store,c22store, &
@@ -577,7 +606,7 @@
             kappastore,mustore,ibool,idoubling,rmass,rmass_ocean_load,LOCAL_PATH,OCEANS)
 
 ! check that the number of points in this slice is correct
-  if(minval(ibool(:,:,:,:)) /= 1 .or. maxval(ibool(:,:,:,:)) /= NGLOB_AB_VAL) &
+  if(minval(ibool(:,:,:,:)) /= 1 .or. maxval(ibool(:,:,:,:)) /= NGLOB_AB) &
       call exit_MPI(myrank,'incorrect global numbering: iboolmax does not equal NGLOB')
 
 ! read 2-D addressing for summation between slices with MPI

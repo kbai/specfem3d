@@ -439,6 +439,17 @@
   real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ) :: dvxdxl,dvxdyl,dvxdzl,dvydxl,dvydyl,dvydzl,dvzdxl,dvzdyl,dvzdzl
   real(kind=CUSTOM_REAL), dimension(:,:,:,:),allocatable::  div, curl_x, curl_y, curl_z
 
+! for assembling in case of external mesh
+  integer :: ninterfaces_ext_mesh
+  integer :: max_nibool_interfaces_ext_mesh
+  integer, dimension(:), allocatable :: my_neighbours_ext_mesh
+  integer, dimension(:), allocatable :: nibool_interfaces_ext_mesh
+  integer, dimension(:,:), allocatable :: ibool_interfaces_ext_mesh
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: buffer_send_vector_ext_mesh
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: buffer_recv_vector_ext_mesh
+  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: buffer_send_scalar_ext_mesh
+  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: buffer_recv_scalar_ext_mesh
+
 ! ************** PROGRAM STARTS HERE **************
 
 ! sizeprocs returns number of processes started
@@ -486,6 +497,19 @@
 
 ! get the base pathname for output files
   call get_value_string(OUTPUT_FILES, 'OUTPUT_FILES', 'OUTPUT_FILES')
+
+! info about external mesh simulation
+! nlegoff -- should be put in compute_parameters and read_parameter_file for clarity
+  if (USE_EXTERNAL_MESH) then
+    NPROC = sizeprocs
+    DT = DT_ext_mesh
+    NSTEP = NSTEP_ext_mesh
+    call create_name_database(prname,myrank,LOCAL_PATH)
+    open(unit=27,file=prname(1:len_trim(prname))//'.bin',status='old',action='read',form='unformatted')
+    read(27) NSPEC_AB
+    read(27) NGLOB_AB
+    close(27)
+  endif
 
 ! open main output file, only written to by process 0
   if(myrank == 0 .and. IMAIN /= ISTANDARD_OUTPUT) &
@@ -540,6 +564,9 @@
 ! check that we have at least one source
   if(NSOURCES < 1) call exit_MPI(myrank,'need at least one source')
 
+! info on the addressing scheme that is not used in case of an external mesh simulation
+  if (.not. USE_EXTERNAL_MESH) then
+
 ! open file with global slice number addressing
   if(myrank == 0) then
     open(unit=IIN,file=trim(OUTPUT_FILES)//'/addressing.txt',status='old',action='read')
@@ -564,6 +591,8 @@
 
 ! define maximum size for message buffers
   NPOIN2DMAX_XY = max(NPOIN2DMAX_XMIN_XMAX,NPOIN2DMAX_YMIN_YMAX)
+
+  endif ! end of (.not. USE_EXTERNAL_MESH)
 
 ! start reading the databases
 
@@ -596,6 +625,49 @@
   allocate(veloc(NDIM,NGLOB_AB))
   allocate(accel(NDIM,NGLOB_AB))
 
+! info about external mesh simulation
+! nlegoff -- should be put in read_arrays_solver and read_arrays_buffer_solver for clarity
+  if (USE_EXTERNAL_MESH) then
+    call create_name_database(prname,myrank,LOCAL_PATH)
+    open(unit=27,file=prname(1:len_trim(prname))//'external_mesh.bin',status='old',action='read',form='unformatted')
+    read(27) NSPEC_AB
+    read(27) NGLOB_AB
+    read(27) xix
+    read(27) xiy
+    read(27) xiz
+    read(27) etax
+    read(27) etay
+    read(27) etaz
+    read(27) gammax
+    read(27) gammay
+    read(27) gammaz
+    read(27) jacobian
+    read(27) kappastore
+    read(27) mustore
+    read(27) rmass
+    read(27) ibool
+    read(27) xstore
+    read(27) ystore
+    read(27) zstore
+
+    read(27) ninterfaces_ext_mesh
+    read(27) max_nibool_interfaces_ext_mesh
+    allocate(my_neighbours_ext_mesh(ninterfaces_ext_mesh))
+    allocate(nibool_interfaces_ext_mesh(ninterfaces_ext_mesh))
+    allocate(ibool_interfaces_ext_mesh(max_nibool_interfaces_ext_mesh,ninterfaces_ext_mesh))
+    read(27) my_neighbours_ext_mesh
+    read(27) nibool_interfaces_ext_mesh
+    read(27) ibool_interfaces_ext_mesh
+
+    allocate(buffer_send_vector_ext_mesh(NDIM,max_nibool_interfaces_ext_mesh,ninterfaces_ext_mesh))
+    allocate(buffer_recv_vector_ext_mesh(NDIM,max_nibool_interfaces_ext_mesh,ninterfaces_ext_mesh))
+    allocate(buffer_send_scalar_ext_mesh(max_nibool_interfaces_ext_mesh,ninterfaces_ext_mesh))
+    allocate(buffer_recv_scalar_ext_mesh(max_nibool_interfaces_ext_mesh,ninterfaces_ext_mesh))
+
+    close(27)
+
+  else
+    
 ! read arrays created by the mesher
   call read_arrays_solver(myrank,NSPEC_AB,NGLOB_AB,xstore,ystore,zstore, &
             xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz,jacobian, &
@@ -614,6 +686,8 @@
      iboolright_xi,iboolleft_eta,iboolright_eta, &
      npoin2D_xi,npoin2D_eta, &
      NPOIN2DMAX_XMIN_XMAX,NPOIN2DMAX_YMIN_YMAX,LOCAL_PATH)
+
+  endif ! end of (USE_EXTERNAL_MESH)
 
 ! $$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 

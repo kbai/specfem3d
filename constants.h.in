@@ -116,6 +116,18 @@
   character(len=150), parameter :: LOCAL_PATH_Q = '/ibrixfs1/scratch/lqy/DATABASES_MPI_Q/'
 
 !------------------------------------------------------
+! nlegoff -- Variables that should be read/computed elsewhere.
+!            Temporary declared here.
+!------------------------------------------------------
+! whether or not an external mesh is used (provided by CUBIT for example)
+  logical, parameter :: USE_EXTERNAL_MESH = .false.
+
+! deltat
+  integer, parameter :: DT_ext_mesh = 100
+! NSTEP
+  double precision, parameter :: NSTEP_ext_mesh = 0.001d0
+
+!------------------------------------------------------
 !----------- do not modify anything below -------------
 !------------------------------------------------------
 

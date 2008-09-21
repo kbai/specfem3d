@@ -449,6 +449,10 @@
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: buffer_recv_vector_ext_mesh
   real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: buffer_send_scalar_ext_mesh
   real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: buffer_recv_scalar_ext_mesh
+  integer, dimension(:), allocatable :: request_send_scalar_ext_mesh
+  integer, dimension(:), allocatable :: request_recv_scalar_ext_mesh
+  integer, dimension(:), allocatable :: request_send_vector_ext_mesh
+  integer, dimension(:), allocatable :: request_recv_vector_ext_mesh
 
 ! ************** PROGRAM STARTS HERE **************
 
@@ -505,7 +509,7 @@
     DT = DT_ext_mesh
     NSTEP = NSTEP_ext_mesh
     call create_name_database(prname,myrank,LOCAL_PATH)
-    open(unit=27,file=prname(1:len_trim(prname))//'.bin',status='old',action='read',form='unformatted')
+    open(unit=27,file=prname(1:len_trim(prname))//'external_mesh.bin',status='old',action='read',form='unformatted')
     read(27) NSPEC_AB
     read(27) NGLOB_AB
     close(27)
@@ -663,7 +667,10 @@
     allocate(buffer_recv_vector_ext_mesh(NDIM,max_nibool_interfaces_ext_mesh,ninterfaces_ext_mesh))
     allocate(buffer_send_scalar_ext_mesh(max_nibool_interfaces_ext_mesh,ninterfaces_ext_mesh))
     allocate(buffer_recv_scalar_ext_mesh(max_nibool_interfaces_ext_mesh,ninterfaces_ext_mesh))
-
+    allocate(request_send_vector_ext_mesh(ninterfaces_ext_mesh))
+    allocate(request_recv_vector_ext_mesh(ninterfaces_ext_mesh))
+    allocate(request_send_scalar_ext_mesh(ninterfaces_ext_mesh))
+    allocate(request_recv_scalar_ext_mesh(ninterfaces_ext_mesh))
     close(27)
 
   else
@@ -722,6 +729,7 @@
   if (ATTENUATION .and. ((SIMULATION_TYPE == 1 .and. SAVE_FORWARD) .or. SIMULATION_TYPE == 3)) &
            call create_name_database(prname_Q,myrank,LOCAL_PATH_Q)
 
+  if (.not. USE_EXTERNAL_MESH) then
 ! boundary parameters
   open(unit=27,file=prname(1:len_trim(prname))//'ibelm.bin',status='old',action='read',form='unformatted')
   read(27) ibelm_xmin
@@ -873,7 +881,8 @@
       endif
 
   endif
-
+  
+  endif ! end of (.not. USE_EXTERNAL_MESH)
 
 ! $$$$$$$$$$$$$$$$$$$$$$$$ SOURCES $$$$$$$$$$$$$$$$$
 
@@ -1208,10 +1217,19 @@
   call sync_all()
 
 ! the mass matrix needs to be assembled with MPI here once and for all
+  if (USE_EXTERNAL_MESH) then
+    call assemble_MPI_scalar_ext_mesh(NPROC,NGLOB_AB,rmass, &
+         buffer_send_scalar_ext_mesh,buffer_recv_scalar_ext_mesh, &
+         ninterfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+         nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,my_neighbours_ext_mesh, &
+         request_send_scalar_ext_mesh,request_recv_scalar_ext_mesh &
+         )
+  else
   call assemble_MPI_scalar(rmass,iproc_xi,iproc_eta,addressing, &
             iboolleft_xi,iboolright_xi,iboolleft_eta,iboolright_eta, &
             buffer_send_faces_scalar,buffer_received_faces_scalar,npoin2D_xi,npoin2D_eta, &
             NPROC_XI,NPROC_ETA,NPOIN2DMAX_XMIN_XMAX,NPOIN2DMAX_YMIN_YMAX,NPOIN2DMAX_XY)
+  endif
 
   if(myrank == 0) write(IMAIN,*) 'end assembling MPI mass matrix'
 
@@ -2595,10 +2613,19 @@
 
 
 ! assemble all the contributions between slices using MPI
+  if (USE_EXTERNAL_MESH) then
+    call assemble_MPI_vector_ext_mesh(NPROC,NGLOB_AB,accel, &
+         buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
+         ninterfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+         nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,my_neighbours_ext_mesh, &
+         request_send_vector_ext_mesh,request_recv_vector_ext_mesh &
+         )
+  else
   call assemble_MPI_vector(accel,iproc_xi,iproc_eta,addressing, &
             iboolleft_xi,iboolright_xi,iboolleft_eta,iboolright_eta, &
             buffer_send_faces_vector,buffer_received_faces_vector,npoin2D_xi,npoin2D_eta, &
             NPROC_XI,NPROC_ETA,NPOIN2DMAX_XMIN_XMAX,NPOIN2DMAX_YMIN_YMAX,NPOIN2DMAX_XY)
+  endif
   if (SIMULATION_TYPE == 3) call assemble_MPI_vector(b_accel,iproc_xi,iproc_eta,addressing, &
           iboolleft_xi,iboolright_xi,iboolleft_eta,iboolright_eta, &
           buffer_send_faces_vector,buffer_received_faces_vector,npoin2D_xi,npoin2D_eta, &

@@ -124,8 +124,17 @@
 
 ! deltat
   integer, parameter :: DT_ext_mesh = 0.001d0
+
 ! NSTEP
   double precision, parameter :: NSTEP_ext_mesh = 100
+
+! number of nodes per element as provided by the external mesh
+  integer, parameter :: ESIZE = 8
+
+! geometry tolerance parameter to calculate number of independent grid points
+! sensitive to actual size of model, assumes reference sphere of radius 1
+! this is an absolute value for normalized coordinates in the Earth
+  double precision, parameter :: SMALLVAL_TOL = 1.d-10
 
 !------------------------------------------------------
 !----------- do not modify anything below -------------

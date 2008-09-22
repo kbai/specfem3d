@@ -123,9 +123,9 @@
   logical, parameter :: USE_EXTERNAL_MESH = .false.
 
 ! deltat
-  integer, parameter :: DT_ext_mesh = 100
+  integer, parameter :: DT_ext_mesh = 0.001d0
 ! NSTEP
-  double precision, parameter :: NSTEP_ext_mesh = 0.001d0
+  double precision, parameter :: NSTEP_ext_mesh = 100
 
 !------------------------------------------------------
 !----------- do not modify anything below -------------

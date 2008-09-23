@@ -253,7 +253,7 @@
          itag, &
          request_send_vector_ext_mesh(iinterface) &
          )
-    call irecv_cr(buffer_send_vector_ext_mesh(:,1:nibool_interfaces_ext_mesh(iinterface),iinterface), &
+    call irecv_cr(buffer_recv_vector_ext_mesh(:,1:nibool_interfaces_ext_mesh(iinterface),iinterface), &
          NDIM*nibool_interfaces_ext_mesh(iinterface), &
          my_neighbours_ext_mesh(iinterface), &
          itag, &
@@ -270,7 +270,7 @@
   do iinterface = 1, ninterfaces_ext_mesh
     do ipoin = 1, nibool_interfaces_ext_mesh(iinterface)
       array_val(:,ibool_interfaces_ext_mesh(ipoin,iinterface)) = &
-           array_val(:,ibool_interfaces_ext_mesh(ipoin,iinterface)) + buffer_send_vector_ext_mesh(:,ipoin,iinterface)
+           array_val(:,ibool_interfaces_ext_mesh(ipoin,iinterface)) + buffer_recv_vector_ext_mesh(:,ipoin,iinterface)
     enddo
   enddo
 

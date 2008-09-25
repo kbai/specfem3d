@@ -460,6 +460,60 @@
 !----
 !
 
+  subroutine issend_i(sendbuf, sendcount, dest, sendtag, req)
+
+  implicit none
+
+! standard include of the MPI library
+  include 'mpif.h'
+
+  include "constants.h"
+  include "precision.h"
+
+  integer sendcount, dest, sendtag, req
+  integer, dimension(sendcount) :: sendbuf
+
+! MPI status of messages to be received
+  integer msg_status(MPI_STATUS_SIZE)
+
+  integer ier
+
+  call MPI_ISSEND(sendbuf(1),sendcount,MPI_INTEGER,dest,sendtag, &
+                  MPI_COMM_WORLD,req,ier)
+
+  end subroutine issend_i
+
+!
+!----
+!
+
+  subroutine irecv_i(recvbuf, recvcount, dest, recvtag, req)
+
+  implicit none
+
+! standard include of the MPI library
+  include 'mpif.h'
+
+  include "constants.h"
+  include "precision.h"
+
+  integer recvcount, dest, recvtag, req
+  integer, dimension(recvcount) :: recvbuf
+
+! MPI status of messages to be received
+  integer msg_status(MPI_STATUS_SIZE)
+
+  integer ier
+
+  call MPI_IRECV(recvbuf(1),recvcount,MPI_INTEGER,dest,recvtag, &
+                  MPI_COMM_WORLD,req,ier)
+
+  end subroutine irecv_i
+
+!
+!----
+!
+
   subroutine wait_req(req)
 
   implicit none

@@ -920,7 +920,8 @@
   open(unit=IIN,file=rec_filename,status='old',action='read')
   do irec = 1,nrec
     read(IIN,*) station_name,network_name,stlat,stlon,stele,stbur
-    if(stlat >= LATITUDE_MIN .and. stlat <= LATITUDE_MAX .and. stlon >= LONGITUDE_MIN .and. stlon <= LONGITUDE_MAX) &
+    if((stlat >= LATITUDE_MIN .and. stlat <= LATITUDE_MAX .and. stlon >= LONGITUDE_MIN .and. stlon <= LONGITUDE_MAX) &
+         .or. USE_EXTERNAL_MESH) &
       nrec_filtered = nrec_filtered + 1
   enddo
   close(IIN)
@@ -938,7 +939,8 @@
 
   do irec = 1,nrec
     read(IIN,*) station_name,network_name,stlat,stlon,stele,stbur
-    if(stlat >= LATITUDE_MIN .and. stlat <= LATITUDE_MAX .and. stlon >= LONGITUDE_MIN .and. stlon <= LONGITUDE_MAX) &
+    if((stlat >= LATITUDE_MIN .and. stlat <= LATITUDE_MAX .and. stlon >= LONGITUDE_MIN .and. stlon <= LONGITUDE_MAX) &
+         .or. USE_EXTERNAL_MESH) &
       write(IOUT,*) station_name(1:len_trim(station_name)),' ',network_name(1:len_trim(network_name)),' ', &
               sngl(stlat),' ',sngl(stlon), ' ', sngl(stele), ' ', sngl(stbur)
   enddo

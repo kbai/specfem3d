@@ -454,6 +454,14 @@
   integer, dimension(:), allocatable :: request_send_vector_ext_mesh
   integer, dimension(:), allocatable :: request_recv_vector_ext_mesh
 
+! for detecting surface receivers and source in case of external mesh
+  integer, dimension(:), allocatable :: valence_external_mesh
+  logical, dimension(:), allocatable :: iglob_is_surface_external_mesh
+  logical, dimension(:), allocatable :: ispec_is_surface_external_mesh
+  integer, dimension(:,:), allocatable :: buffer_send_scalar_i_ext_mesh
+  integer, dimension(:,:), allocatable :: buffer_recv_scalar_i_ext_mesh
+  integer :: ii,jj,kk
+
 ! ************** PROGRAM STARTS HERE **************
 
 ! sizeprocs returns number of processes started
@@ -884,6 +892,82 @@
   
   endif ! end of (.not. USE_EXTERNAL_MESH)
 
+! detecting surface points/elements (based on valence check on NGLL points) for external mesh
+  allocate(valence_external_mesh(NGLOB_AB))
+  allocate(ispec_is_surface_external_mesh(NSPEC_AB))
+  allocate(iglob_is_surface_external_mesh(NGLOB_AB))
+
+  if (.not. RECEIVERS_CAN_BE_BURIED_EXT_MESH) then
+  valence_external_mesh(:) = 0
+  ispec_is_surface_external_mesh(:) = .false.
+  iglob_is_surface_external_mesh(:) = .false.
+  do ispec = 1, NSPEC_AB
+    do k = 1, NGLLZ
+    do j = 1, NGLLY
+    do i = 1, NGLLX
+      iglob = ibool(i,j,k,ispec)
+      valence_external_mesh(iglob) = valence_external_mesh(iglob) + 1
+
+    enddo
+    enddo
+    enddo
+    
+  enddo 
+ 
+  allocate(buffer_send_scalar_i_ext_mesh(max_nibool_interfaces_ext_mesh,ninterfaces_ext_mesh))
+  allocate(buffer_recv_scalar_i_ext_mesh(max_nibool_interfaces_ext_mesh,ninterfaces_ext_mesh))
+
+  call assemble_MPI_scalar_i_ext_mesh(NPROC,NGLOB_AB,valence_external_mesh, &
+       buffer_send_scalar_i_ext_mesh,buffer_recv_scalar_i_ext_mesh, &
+       ninterfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+       nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,my_neighbours_ext_mesh, &
+       request_send_scalar_ext_mesh,request_recv_scalar_ext_mesh &
+       )
+  
+  do ispec = 1, NSPEC_AB
+    do k = 1, NGLLZ
+    do j = 1, NGLLY
+    do i = 1, NGLLX
+      if ( &
+           (k == 1 .or. k == NGLLZ) .and. (j /= 1 .and. j /= NGLLY) .and. (i /= 1 .and. i /= NGLLX) .or. &
+           (j == 1 .or. j == NGLLY) .and. (k /= 1 .and. k /= NGLLZ) .and. (i /= 1 .and. i /= NGLLX) .or. &
+           (i == 1 .or. i == NGLLX) .and. (k /= 1 .and. k /= NGLLZ) .and. (j /= 1 .and. j /= NGLLY) &
+           ) then
+        iglob = ibool(i,j,k,ispec)
+        if (valence_external_mesh(iglob) == 1) then
+          ispec_is_surface_external_mesh(ispec) = .true.
+          if (k == 1 .or. k == NGLLZ) then
+            do jj = 1, NGLLY
+            do ii = 1, NGLLX
+              iglob_is_surface_external_mesh(ibool(ii,jj,k,ispec)) = .true.
+            enddo
+            enddo
+          endif
+          if (j == 1 .or. j == NGLLY) then
+            do kk = 1, NGLLZ
+            do ii = 1, NGLLX
+              iglob_is_surface_external_mesh(ibool(ii,j,kk,ispec)) = .true.
+            enddo
+            enddo
+          endif
+          if (i == 1 .or. i == NGLLX) then
+            do kk = 1, NGLLZ
+            do jj = 1, NGLLY
+              iglob_is_surface_external_mesh(ibool(i,jj,kk,ispec)) = .true.
+            enddo
+            enddo
+          endif
+        endif
+
+      endif
+    enddo
+    enddo
+    enddo
+   
+  enddo
+
+  endif ! 
+
 ! $$$$$$$$$$$$$$$$$$$$$$$$ SOURCES $$$$$$$$$$$$$$$$$
 
 ! read topography and bathymetry file
@@ -1021,7 +1105,9 @@
             xi_receiver,eta_receiver,gamma_receiver,station_name,network_name,nu, &
             NPROC,utm_x_source(1),utm_y_source(1), &
             TOPOGRAPHY,itopo_bathy,UTM_PROJECTION_ZONE,SUPPRESS_UTM_PROJECTION, &
-            NX_TOPO,NY_TOPO,ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO)
+            NX_TOPO,NY_TOPO,ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO, &
+            iglob_is_surface_external_mesh,ispec_is_surface_external_mesh &
+)
 
 
 !###################### SOURCE ARRAYS ################
@@ -2721,6 +2807,22 @@
     irec = number_receiver_global(irec_local)
 
 ! perform the general interpolation using Lagrange polynomials
+    if(FASTER_RECEIVERS_POINTS_ONLY) then
+
+      iglob = ibool(nint(xi_receiver(irec)),nint(eta_receiver(irec)), &
+           nint(gamma_receiver(irec)),ispec_selected_rec(irec))
+      dxd = dble(displ(1,iglob))
+      dyd = dble(displ(2,iglob))
+      dzd = dble(displ(3,iglob))
+      vxd = dble(veloc(1,iglob))
+      vyd = dble(veloc(2,iglob))
+      vzd = dble(veloc(3,iglob))
+      axd = dble(accel(1,iglob))
+      ayd = dble(accel(2,iglob))
+      azd = dble(accel(3,iglob))
+     
+    else
+
     dxd = ZERO
     dyd = ZERO
     dzd = ZERO
@@ -2762,6 +2864,8 @@
           enddo
         enddo
       enddo
+
+      
 
     else if (SIMULATION_TYPE == 2) then
 
@@ -2832,7 +2936,7 @@
       enddo
     endif
 
-
+    endif ! end of if(FASTER_RECEIVERS_POINTS_ONLY)
 
 ! store North, East and Vertical components
 

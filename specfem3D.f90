@@ -301,6 +301,7 @@
   real(kind=CUSTOM_REAL) stf_used
   real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: sourcearray
   real(kind=CUSTOM_REAL), dimension(:,:,:,:,:), allocatable :: sourcearrays
+  double precision, dimension(:,:,:), allocatable :: nu_source
 !ADJOINT
   character(len=150) adj_source_file
   real(kind=CUSTOM_REAL), dimension(:,:,:,:,:), allocatable :: adj_sourcearray
@@ -1021,6 +1022,7 @@
   allocate(hdur_gaussian(NSOURCES))
   allocate(utm_x_source(NSOURCES))
   allocate(utm_y_source(NSOURCES))
+  allocate(nu_source(3,3,NSOURCES))
 
 ! locate sources in the mesh
   call locate_source(ibool,NSOURCES,myrank,NSPEC_AB,NGLOB_AB, &
@@ -1032,7 +1034,9 @@
           LATITUDE_MIN,LATITUDE_MAX,LONGITUDE_MIN,LONGITUDE_MAX,Z_DEPTH_BLOCK, &
           TOPOGRAPHY,itopo_bathy,UTM_PROJECTION_ZONE, &
           PRINT_SOURCE_TIME_FUNCTION,SUPPRESS_UTM_PROJECTION, &
-          NX_TOPO,NY_TOPO,ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO)
+          NX_TOPO,NY_TOPO,ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO, &
+          nu_source,iglob_is_surface_external_mesh,ispec_is_surface_external_mesh &
+          )
 
   if(minval(t_cmt) /= 0.) call exit_MPI(myrank,'one t_cmt must be zero, others must be positive')
 
@@ -2613,6 +2617,27 @@
 
   do isource = 1,NSOURCES
 
+  if(FASTER_SOURCES_POINTS_ONLY) then
+
+!   add the source (only if this proc carries the source)
+    if(myrank == islice_selected_source(isource)) then
+      iglob = ibool(nint(xi_source(isource)), &
+           nint(eta_source(isource)), &
+           nint(gamma_source(isource)), &
+           ispec_selected_source(isource))
+      
+      t0 = 1.2d0/hdur(isource)
+      
+      ! we use nu_source(:,3) here because we want a source normal to the surface.
+      ! This is the expression of a Ricker; should be changed according maybe to the Par_file.
+      accel(:,iglob) = accel(:,iglob) + &
+           nu_source(:,3,isource) * (1.-2.*PI*PI*hdur*hdur*(dble(it-1)*DT-t0)*(dble(it-1)*DT-t0)) * &
+           exp(-PI*PI*hdur*hdur*(dble(it-1)*DT-t0)*(dble(it-1)*DT-t0))
+
+    endif
+
+    else
+
 !   add the source (only if this proc carries the source)
     if(myrank == islice_selected_source(isource)) then
 
@@ -2636,6 +2661,8 @@
       enddo
 
     endif
+
+  endif ! end of if(FASTER_SOURCES_POINTS_ONLY)
 
   enddo
 

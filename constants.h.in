@@ -124,9 +124,11 @@
 
 ! no lagrange interpolation on seismograms (we take the value on one NGLL point)
   logical, parameter :: FASTER_RECEIVERS_POINTS_ONLY = .false.
+  logical, parameter :: FASTER_SOURCES_POINTS_ONLY = .false.
 
 ! the receivers can be located inside the model 
   logical, parameter :: RECEIVERS_CAN_BE_BURIED_EXT_MESH = .true.
+  logical, parameter :: SOURCES_CAN_BE_BURIED_EXT_MESH = .true.
 
 ! deltat
   double precision, parameter :: DT_ext_mesh = 0.001d0

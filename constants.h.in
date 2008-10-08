@@ -130,6 +130,10 @@
   logical, parameter :: RECEIVERS_CAN_BE_BURIED_EXT_MESH = .true.
   logical, parameter :: SOURCES_CAN_BE_BURIED_EXT_MESH = .true.
 
+!
+  logical, parameter :: EXTERNAL_MESH_MOVIE_SURFACE = .false.
+  logical, parameter :: EXTERNAL_MESH_CREATE_SHAKEMAP = .false.
+
 ! deltat
   double precision, parameter :: DT_ext_mesh = 0.001d0
 

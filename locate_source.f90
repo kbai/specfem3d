@@ -167,13 +167,14 @@
 ! loop on all the sources
   do isource = 1,NSOURCES
 
+  if (.not. USE_EXTERNAL_MESH) then
 ! check that the current source is inside the model
   if(lat(isource) < LATITUDE_MIN .or. lat(isource) > LATITUDE_MAX .or. long(isource) < LONGITUDE_MIN &
        .or. long(isource) > LONGITUDE_MAX)  call exit_MPI(myrank,'the current source is outside the model')
 
   if(depth(isource) >= dabs(Z_DEPTH_BLOCK/1000.d0)) &
     call exit_MPI(myrank,'the current source is below the bottom of the model')
-
+  endif
 !
 ! r -> z, theta -> -y, phi -> x
 !

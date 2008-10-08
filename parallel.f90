@@ -191,6 +191,33 @@
 !----
 !
 
+  subroutine gatherv_all_cr(sendbuf, sendcnt, recvbuf, recvcount, recvoffset,recvcounttot, NPROC)
+
+  implicit none
+
+! standard include of the MPI library
+  include 'mpif.h'
+
+  include "constants.h"
+  include "precision.h"
+
+  integer sendcnt,recvcounttot,NPROC
+  integer, dimension(NPROC) :: recvcount,recvoffset
+  real(kind=CUSTOM_REAL), dimension(sendcnt) :: sendbuf
+  real(kind=CUSTOM_REAL), dimension(recvcounttot) :: recvbuf
+
+  integer ier
+
+  call MPI_GATHERV(sendbuf,sendcnt,CUSTOM_MPI_TYPE, &
+                  recvbuf,recvcount,recvoffset,CUSTOM_MPI_TYPE, &
+                  0,MPI_COMM_WORLD,ier)
+
+  end subroutine gatherv_all_cr
+
+!
+!----
+!
+
   subroutine init()
 
   implicit none

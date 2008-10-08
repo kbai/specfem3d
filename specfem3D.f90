@@ -462,9 +462,9 @@
   integer, dimension(:,:), allocatable :: buffer_send_scalar_i_ext_mesh
   integer, dimension(:,:), allocatable :: buffer_recv_scalar_i_ext_mesh
   integer :: nfaces_surface_external_mesh
-  integer :: nfaces_surface_glob_external_mesh
-  integer,dimension(:),allocatable :: nfaces_perproc_surface_external_mesh
-  integer,dimension(:),allocatable :: faces_surface_offset_external_mesh
+  integer :: nfaces_surface_glob_ext_mesh
+  integer,dimension(:),allocatable :: nfaces_perproc_surface_ext_mesh
+  integer,dimension(:),allocatable :: faces_surface_offset_ext_mesh
   integer,dimension(:,:),allocatable :: faces_surface_external_mesh
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: store_val_x_external_mesh
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: store_val_y_external_mesh
@@ -1015,10 +1015,10 @@
       endif
     enddo
 
-    allocate(nfaces_perproc_surface_external_mesh(NPROC))
+    allocate(nfaces_perproc_surface_ext_mesh(NPROC))
     if (nfaces_surface_external_mesh == 0) then
       if (USE_HIGHRES_FOR_MOVIES) then
-      allocate(faces_surface_offset_external_mesh(1))
+      allocate(faces_surface_offset_ext_mesh(1))
       allocate(faces_surface_external_mesh(NGLLX*NGLLY,1))
       allocate(store_val_x_external_mesh(NGLLX*NGLLY*1))
       allocate(store_val_y_external_mesh(NGLLX*NGLLY*1))
@@ -1027,7 +1027,7 @@
       allocate(store_val_uy_external_mesh(NGLLX*NGLLY*1))
       allocate(store_val_uz_external_mesh(NGLLX*NGLLY*1))
       else 
-      allocate(faces_surface_offset_external_mesh(1))
+      allocate(faces_surface_offset_ext_mesh(1))
       allocate(faces_surface_external_mesh(NGNOD2D,1))
       allocate(store_val_x_external_mesh(NGNOD2D*1))
       allocate(store_val_y_external_mesh(NGNOD2D*1))
@@ -1038,7 +1038,7 @@
       endif
     else
       if (USE_HIGHRES_FOR_MOVIES) then
-      allocate(faces_surface_offset_external_mesh(nfaces_surface_external_mesh))
+      allocate(faces_surface_offset_ext_mesh(nfaces_surface_external_mesh))
       allocate(faces_surface_external_mesh(NGLLX*NGLLY,nfaces_surface_external_mesh))
       allocate(store_val_x_external_mesh(NGLLX*NGLLY*nfaces_surface_external_mesh))
       allocate(store_val_y_external_mesh(NGLLX*NGLLY*nfaces_surface_external_mesh))
@@ -1047,7 +1047,7 @@
       allocate(store_val_uy_external_mesh(NGLLX*NGLLY*nfaces_surface_external_mesh))
       allocate(store_val_uz_external_mesh(NGLLX*NGLLY*nfaces_surface_external_mesh))
       else
-      allocate(faces_surface_offset_external_mesh(nfaces_surface_external_mesh))
+      allocate(faces_surface_offset_ext_mesh(nfaces_surface_external_mesh))
       allocate(faces_surface_external_mesh(NGNOD2D,nfaces_surface_external_mesh))
       allocate(store_val_x_external_mesh(NGNOD2D*nfaces_surface_external_mesh))
       allocate(store_val_y_external_mesh(NGNOD2D*nfaces_surface_external_mesh))
@@ -1057,32 +1057,32 @@
       allocate(store_val_uz_external_mesh(NGNOD2D*nfaces_surface_external_mesh))
       endif
     endif
-    call sum_all_i(nfaces_surface_external_mesh,nfaces_surface_glob_external_mesh)
+    call sum_all_i(nfaces_surface_external_mesh,nfaces_surface_glob_ext_mesh)
     if (USE_HIGHRES_FOR_MOVIES) then
-    allocate(store_val_x_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_external_mesh))
-    allocate(store_val_y_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_external_mesh))
-    allocate(store_val_z_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_external_mesh))
-    allocate(store_val_ux_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_external_mesh))
-    allocate(store_val_uy_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_external_mesh))
-    allocate(store_val_uz_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_external_mesh))
+    allocate(store_val_x_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_ext_mesh))
+    allocate(store_val_y_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_ext_mesh))
+    allocate(store_val_z_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_ext_mesh))
+    allocate(store_val_ux_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_ext_mesh))
+    allocate(store_val_uy_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_ext_mesh))
+    allocate(store_val_uz_all_external_mesh(NGLLX*NGLLY*nfaces_surface_glob_ext_mesh))
     else
-    allocate(store_val_x_all_external_mesh(NGNOD2D*nfaces_surface_glob_external_mesh))
-    allocate(store_val_y_all_external_mesh(NGNOD2D*nfaces_surface_glob_external_mesh))
-    allocate(store_val_z_all_external_mesh(NGNOD2D*nfaces_surface_glob_external_mesh))
-    allocate(store_val_ux_all_external_mesh(NGNOD2D*nfaces_surface_glob_external_mesh))
-    allocate(store_val_uy_all_external_mesh(NGNOD2D*nfaces_surface_glob_external_mesh))
-    allocate(store_val_uz_all_external_mesh(NGNOD2D*nfaces_surface_glob_external_mesh))
+    allocate(store_val_x_all_external_mesh(NGNOD2D*nfaces_surface_glob_ext_mesh))
+    allocate(store_val_y_all_external_mesh(NGNOD2D*nfaces_surface_glob_ext_mesh))
+    allocate(store_val_z_all_external_mesh(NGNOD2D*nfaces_surface_glob_ext_mesh))
+    allocate(store_val_ux_all_external_mesh(NGNOD2D*nfaces_surface_glob_ext_mesh))
+    allocate(store_val_uy_all_external_mesh(NGNOD2D*nfaces_surface_glob_ext_mesh))
+    allocate(store_val_uz_all_external_mesh(NGNOD2D*nfaces_surface_glob_ext_mesh))
     endif
-    call gather_all_i(nfaces_surface_external_mesh,1,nfaces_perproc_surface_external_mesh,1,NPROC)
+    call gather_all_i(nfaces_surface_external_mesh,1,nfaces_perproc_surface_ext_mesh,1,NPROC)
     
-    faces_surface_offset_external_mesh(1) = 0
+    faces_surface_offset_ext_mesh(1) = 0
     do i = 2, NPROC
-      faces_surface_offset_external_mesh(i) = sum(nfaces_perproc_surface_external_mesh(1:i-1))
+      faces_surface_offset_ext_mesh(i) = sum(nfaces_perproc_surface_ext_mesh(1:i-1))
     enddo
     if (USE_HIGHRES_FOR_MOVIES) then
-    faces_surface_offset_external_mesh(:) = faces_surface_offset_external_mesh(:)*NGLLX*NGLLY
+    faces_surface_offset_ext_mesh(:) = faces_surface_offset_ext_mesh(:)*NGLLX*NGLLY
     else
-    faces_surface_offset_external_mesh(:) = faces_surface_offset_external_mesh(:)*NGNOD2D
+    faces_surface_offset_ext_mesh(:) = faces_surface_offset_ext_mesh(:)*NGNOD2D
     endif
 
     nfaces_surface_external_mesh = 0
@@ -1201,8 +1201,8 @@
     enddo
 
     if (myrank == 0) then
-      print *, nfaces_perproc_surface_external_mesh
-      print *, nfaces_surface_glob_external_mesh
+      print *, nfaces_perproc_surface_ext_mesh
+      print *, nfaces_surface_glob_ext_mesh
  
     endif
 
@@ -3457,42 +3457,42 @@ accel(:,iglob) = accel(:,iglob) + &
     if (it == NSTEP) then
     if (USE_HIGHRES_FOR_MOVIES) then
     call gatherv_all_cr(store_val_x_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_x_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_x_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     call gatherv_all_cr(store_val_y_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_y_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_y_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     call gatherv_all_cr(store_val_z_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_z_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_z_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     call gatherv_all_cr(store_val_ux_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_ux_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_ux_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     call gatherv_all_cr(store_val_uy_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_uy_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_uy_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     call gatherv_all_cr(store_val_uz_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_uz_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_uz_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     else
     call gatherv_all_cr(store_val_x_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_x_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_x_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     call gatherv_all_cr(store_val_y_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_y_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_y_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     call gatherv_all_cr(store_val_z_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_z_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_z_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     call gatherv_all_cr(store_val_ux_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_ux_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_ux_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     call gatherv_all_cr(store_val_uy_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_uy_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_uy_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     call gatherv_all_cr(store_val_uz_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_uz_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_uz_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     endif
 
     if(myrank == 0) then
@@ -3551,42 +3551,42 @@ accel(:,iglob) = accel(:,iglob) + &
     
     if (USE_HIGHRES_FOR_MOVIES) then
     call gatherv_all_cr(store_val_x_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_x_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_x_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     call gatherv_all_cr(store_val_y_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_y_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_y_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     call gatherv_all_cr(store_val_z_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_z_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_z_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     call gatherv_all_cr(store_val_ux_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_ux_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_ux_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     call gatherv_all_cr(store_val_uy_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_uy_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_uy_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     call gatherv_all_cr(store_val_uz_external_mesh,nfaces_surface_external_mesh*NGLLX*NGLLY,&
-         store_val_uz_all_external_mesh,nfaces_perproc_surface_external_mesh*NGLLX*NGLLY,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGLLX*NGLLY,NPROC)
+         store_val_uz_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGLLX*NGLLY,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGLLX*NGLLY,NPROC)
     else
     call gatherv_all_cr(store_val_x_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_x_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_x_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     call gatherv_all_cr(store_val_y_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_y_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_y_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     call gatherv_all_cr(store_val_z_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_z_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_z_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     call gatherv_all_cr(store_val_ux_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_ux_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_ux_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     call gatherv_all_cr(store_val_uy_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_uy_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_uy_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     call gatherv_all_cr(store_val_uz_external_mesh,nfaces_surface_external_mesh*NGNOD2D,&
-         store_val_uz_all_external_mesh,nfaces_perproc_surface_external_mesh*NGNOD2D,faces_surface_offset_external_mesh,&
-         nfaces_surface_glob_external_mesh*NGNOD2D,NPROC)
+         store_val_uz_all_external_mesh,nfaces_perproc_surface_ext_mesh*NGNOD2D,faces_surface_offset_ext_mesh,&
+         nfaces_surface_glob_ext_mesh*NGNOD2D,NPROC)
     endif
 
     if(myrank == 0) then

@@ -127,7 +127,7 @@
   logical, parameter :: FASTER_SOURCES_POINTS_ONLY = .false.
 
 ! the receivers can be located inside the model 
-  logical, parameter :: RECEIVERS_CAN_BE_BURIED_EXT_MESH = .true.
+  logical, parameter :: RECVS_CAN_BE_BURIED_EXT_MESH = .true.
   logical, parameter :: SOURCES_CAN_BE_BURIED_EXT_MESH = .true.
 
 !

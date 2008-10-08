@@ -916,7 +916,7 @@
   allocate(ispec_is_surface_external_mesh(NSPEC_AB))
   allocate(iglob_is_surface_external_mesh(NGLOB_AB))
 
-  if (.not. RECEIVERS_CAN_BE_BURIED_EXT_MESH) then
+  if (.not. RECVS_CAN_BE_BURIED_EXT_MESH) then
   valence_external_mesh(:) = 0
   ispec_is_surface_external_mesh(:) = .false.
   iglob_is_surface_external_mesh(:) = .false.

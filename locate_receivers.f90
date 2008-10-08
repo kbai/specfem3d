@@ -321,7 +321,7 @@
 
             iglob = ibool(i,j,k,ispec)
             
-            if (USE_EXTERNAL_MESH .and. (.not. RECEIVERS_CAN_BE_BURIED_EXT_MESH)) then
+            if (USE_EXTERNAL_MESH .and. (.not. RECVS_CAN_BE_BURIED_EXT_MESH)) then
               if ((.not. iglob_is_surface_external_mesh(iglob)) .or. (.not. ispec_is_surface_external_mesh(ispec))) then
                 cycle
               endif
@@ -360,7 +360,7 @@
       enddo
 
 ! get normal to the face of the hexaedra if receiver is on the surface
-  if (USE_EXTERNAL_MESH .and. (.not. RECEIVERS_CAN_BE_BURIED_EXT_MESH)) then
+  if (USE_EXTERNAL_MESH .and. (.not. RECVS_CAN_BE_BURIED_EXT_MESH)) then
     pt0_ix = -1
     pt0_iy = -1
     pt0_iz = -1
@@ -493,7 +493,7 @@
       nu(3,2,irec) = v_vector(3)
       nu(3,3,irec) = w_vector(3)
 
-  endif ! of if (USE_EXTERNAL_MESH .and. (.not. RECEIVERS_CAN_BE_BURIED_EXT_MESH))
+  endif ! of if (USE_EXTERNAL_MESH .and. (.not. RECVS_CAN_BE_BURIED_EXT_MESH))
 
 ! end of loop on all the stations
   enddo

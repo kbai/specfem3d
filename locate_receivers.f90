@@ -478,6 +478,7 @@
     v_vector(3) = w_vector(1)*u_vector(2) - w_vector(2)*u_vector(1)
 
 ! build rotation matrice nu for seismograms
+    if (EXT_MESH_RECV_NORMAL) then
 !     East (u)
       nu(1,1,irec) = u_vector(1)
       nu(1,2,irec) = v_vector(1)
@@ -492,6 +493,22 @@
       nu(3,1,irec) = u_vector(3)
       nu(3,2,irec) = v_vector(3)
       nu(3,3,irec) = w_vector(3)
+      else
+!     East
+      nu(1,1,irec) = 1.d0
+      nu(1,2,irec) = 0.d0
+      nu(1,3,irec) = 0.d0
+
+!     North
+      nu(2,1,irec) = 0.d0
+      nu(2,2,irec) = 1.d0
+      nu(2,3,irec) = 0.d0
+
+!     Vertical
+      nu(3,1,irec) = 0.d0
+      nu(3,2,irec) = 0.d0
+      nu(3,3,irec) = 1.d0
+      endif
 
   endif ! of if (USE_EXTERNAL_MESH .and. (.not. RECVS_CAN_BE_BURIED_EXT_MESH))
 

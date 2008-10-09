@@ -130,6 +130,9 @@
   logical, parameter :: RECVS_CAN_BE_BURIED_EXT_MESH = .true.
   logical, parameter :: SOURCES_CAN_BE_BURIED_EXT_MESH = .true.
 
+! the seismograms are normal to surface
+  logical, parameter :: EXT_MESH_RECV_NORMAL = .false.
+
 !
   logical, parameter :: EXTERNAL_MESH_MOVIE_SURFACE = .false.
   logical, parameter :: EXTERNAL_MESH_CREATE_SHAKEMAP = .false.

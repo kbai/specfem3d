@@ -3379,12 +3379,12 @@ accel(:,iglob) = accel(:,iglob) + &
              displ(2,faces_surface_external_mesh(ipoin,ispec))**2 + &
              displ(3,faces_surface_external_mesh(ipoin,ispec))**2))
         store_val_uy_external_mesh(NGLLX*NGLLY*(ispec-1)+ipoin) = &
-             max(store_val_ux_external_mesh(NGLLX*NGLLY*(ispec-1)+ipoin), &
+             max(store_val_uy_external_mesh(NGLLX*NGLLY*(ispec-1)+ipoin), &
              sqrt(veloc(1,faces_surface_external_mesh(ipoin,ispec))**2 + &
              veloc(2,faces_surface_external_mesh(ipoin,ispec))**2 + &
              veloc(3,faces_surface_external_mesh(ipoin,ispec))**2))
         store_val_uz_external_mesh(NGLLX*NGLLY*(ispec-1)+ipoin) = &
-             max(store_val_ux_external_mesh(NGLLX*NGLLY*(ispec-1)+ipoin), &
+             max(store_val_uz_external_mesh(NGLLX*NGLLY*(ispec-1)+ipoin), &
              sqrt(accel(1,faces_surface_external_mesh(ipoin,ispec))**2 + &
              accel(2,faces_surface_external_mesh(ipoin,ispec))**2 + &
              accel(3,faces_surface_external_mesh(ipoin,ispec))**2))

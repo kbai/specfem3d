@@ -356,6 +356,12 @@
     enddo
   enddo
       
+! wait for communications completion (send)
+  do iinterface = 1, ninterfaces_ext_mesh
+    call wait_req(request_send_scalar_ext_mesh(iinterface))
+  enddo
+
+
   endif
 
   end subroutine assemble_MPI_scalar_i_ext_mesh

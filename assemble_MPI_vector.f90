@@ -247,13 +247,13 @@
 
 ! send messages
   do iinterface = 1, ninterfaces_ext_mesh
-    call issend_cr(buffer_send_vector_ext_mesh(:,1:nibool_interfaces_ext_mesh(iinterface),iinterface), &
+    call issend_cr(buffer_send_vector_ext_mesh(1,1,iinterface), &
          NDIM*nibool_interfaces_ext_mesh(iinterface), &
          my_neighbours_ext_mesh(iinterface), &
          itag, &
          request_send_vector_ext_mesh(iinterface) &
          )
-    call irecv_cr(buffer_recv_vector_ext_mesh(:,1:nibool_interfaces_ext_mesh(iinterface),iinterface), &
+    call irecv_cr(buffer_recv_vector_ext_mesh(1,1,iinterface), &
          NDIM*nibool_interfaces_ext_mesh(iinterface), &
          my_neighbours_ext_mesh(iinterface), &
          itag, &

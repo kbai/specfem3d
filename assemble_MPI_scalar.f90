@@ -329,13 +329,13 @@
 
 ! send messages
   do iinterface = 1, ninterfaces_ext_mesh
-    call issend_i(buffer_send_scalar_ext_mesh(1:nibool_interfaces_ext_mesh(iinterface),iinterface), &
+    call issend_i(buffer_send_scalar_ext_mesh(1,iinterface), &
          nibool_interfaces_ext_mesh(iinterface), &
          my_neighbours_ext_mesh(iinterface), &
          itag, &
          request_send_scalar_ext_mesh(iinterface) &
          )
-    call irecv_i(buffer_recv_scalar_ext_mesh(1:nibool_interfaces_ext_mesh(iinterface),iinterface), &
+    call irecv_i(buffer_recv_scalar_ext_mesh(1,iinterface), &
          nibool_interfaces_ext_mesh(iinterface), &
          my_neighbours_ext_mesh(iinterface), &
          itag, &

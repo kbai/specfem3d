@@ -480,6 +480,10 @@
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: store_val_uz_all_external_mesh
   integer :: ii,jj,kk
 
+! for communications overlapping
+  logical, dimension(:), allocatable :: ispec_is_inner_ext_mesh
+  logical, dimension(:), allocatable :: iglob_is_inner_ext_mesh
+
 ! ************** PROGRAM STARTS HERE **************
 
 ! sizeprocs returns number of processes started
@@ -698,6 +702,28 @@
     allocate(request_send_scalar_ext_mesh(ninterfaces_ext_mesh))
     allocate(request_recv_scalar_ext_mesh(ninterfaces_ext_mesh))
     close(27)
+
+! locate inner and outer elements
+    allocate(ispec_is_inner_ext_mesh(NSPEC_AB))  
+    allocate(iglob_is_inner_ext_mesh(NGLOB_AB))
+    ispec_is_inner_ext_mesh(:) = .true.
+    iglob_is_inner_ext_mesh(:) = .true.
+    do iinterface = 1, ninterfaces_ext_mesh
+      do i = 1, nibool_interfaces_ext_mesh(iinterface)
+        iglob = ibool_interfaces_ext_mesh(i,iinterface)
+        iglob_is_inner_ext_mesh(iglob) = .false.
+      enddo
+    enddo
+    do ispec = 1, NSPEC_AB
+      do k = 1, NGLLZ
+        do j = 1, NGLLY
+          do i = 1, NGLLX
+            iglob = ibool(i,j,k,ispec)
+            ispec_is_inner_ext_mesh(ispec) = iglob_is_inner_ext_mesh(iglob) .and. ispec_is_inner_ext_mesh(ispec)
+          enddo
+        enddo
+      enddo 
+    enddo
 
   else
     

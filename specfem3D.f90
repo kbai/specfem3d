@@ -483,6 +483,7 @@
 ! for communications overlapping
   logical, dimension(:), allocatable :: ispec_is_inner_ext_mesh
   logical, dimension(:), allocatable :: iglob_is_inner_ext_mesh
+  integer :: iinterface
 
 ! ************** PROGRAM STARTS HERE **************
 
@@ -1042,9 +1043,9 @@
     enddo
 
     allocate(nfaces_perproc_surface_ext_mesh(NPROC))
+    allocate(faces_surface_offset_ext_mesh(NPROC))
     if (nfaces_surface_external_mesh == 0) then
       if (USE_HIGHRES_FOR_MOVIES) then
-      allocate(faces_surface_offset_ext_mesh(1))
       allocate(faces_surface_external_mesh(NGLLX*NGLLY,1))
       allocate(store_val_x_external_mesh(NGLLX*NGLLY*1))
       allocate(store_val_y_external_mesh(NGLLX*NGLLY*1))
@@ -1053,7 +1054,6 @@
       allocate(store_val_uy_external_mesh(NGLLX*NGLLY*1))
       allocate(store_val_uz_external_mesh(NGLLX*NGLLY*1))
       else 
-      allocate(faces_surface_offset_ext_mesh(1))
       allocate(faces_surface_external_mesh(NGNOD2D,1))
       allocate(store_val_x_external_mesh(NGNOD2D*1))
       allocate(store_val_y_external_mesh(NGNOD2D*1))
@@ -1064,7 +1064,6 @@
       endif
     else
       if (USE_HIGHRES_FOR_MOVIES) then
-      allocate(faces_surface_offset_ext_mesh(nfaces_surface_external_mesh))
       allocate(faces_surface_external_mesh(NGLLX*NGLLY,nfaces_surface_external_mesh))
       allocate(store_val_x_external_mesh(NGLLX*NGLLY*nfaces_surface_external_mesh))
       allocate(store_val_y_external_mesh(NGLLX*NGLLY*nfaces_surface_external_mesh))
@@ -1073,7 +1072,6 @@
       allocate(store_val_uy_external_mesh(NGLLX*NGLLY*nfaces_surface_external_mesh))
       allocate(store_val_uz_external_mesh(NGLLX*NGLLY*nfaces_surface_external_mesh))
       else
-      allocate(faces_surface_offset_ext_mesh(nfaces_surface_external_mesh))
       allocate(faces_surface_external_mesh(NGNOD2D,nfaces_surface_external_mesh))
       allocate(store_val_x_external_mesh(NGNOD2D*nfaces_surface_external_mesh))
       allocate(store_val_y_external_mesh(NGNOD2D*nfaces_surface_external_mesh))

@@ -1235,6 +1235,11 @@
       write(IMAIN,*)
     endif
 
+  else
+    NX_TOPO = 1
+    NY_TOPO = 1
+    allocate(itopo_bathy(NX_TOPO,NY_TOPO))
+
   endif
 
 ! write source and receiver VTK files for Paraview

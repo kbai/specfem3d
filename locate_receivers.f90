@@ -289,6 +289,8 @@
 ! examine top of the elements only (receivers always at the surface)
 !      k = NGLLZ
 
+      ispec_selected_rec(irec) = 0
+
       do ispec=1,NSPEC_AB
 
 ! define the interval in which we look for points
@@ -359,8 +361,13 @@
 ! end of loop on all the spectral elements in current slice
       enddo
 
+  if (ispec_selected_rec(irec) == 0) then
+    final_distance(irec) = HUGEVAL
+  endif
+
 ! get normal to the face of the hexaedra if receiver is on the surface
-  if (USE_EXTERNAL_MESH .and. (.not. RECVS_CAN_BE_BURIED_EXT_MESH)) then
+  if (USE_EXTERNAL_MESH .and. (.not. RECVS_CAN_BE_BURIED_EXT_MESH) .and. &
+       .not. (ispec_selected_rec(irec) == 0)) then
     pt0_ix = -1
     pt0_iy = -1
     pt0_iz = -1

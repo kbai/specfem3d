@@ -272,6 +272,8 @@
 ! set distance to huge initial value
   distmin = HUGEVAL
 
+  ispec_selected_source(isource) = 0
+
   do ispec=1,NSPEC_AB
 
 
@@ -343,8 +345,13 @@
 ! end of loop on all the elements in current slice
   enddo
 
+  if (ispec_selected_source(isource) == 0) then
+    final_distance_source(isource) = HUGEVAL
+  endif
+
 ! get normal to the face of the hexaedra if receiver is on the surface
-  if (USE_EXTERNAL_MESH .and. (.not. SOURCES_CAN_BE_BURIED_EXT_MESH)) then
+  if (USE_EXTERNAL_MESH .and. (.not. SOURCES_CAN_BE_BURIED_EXT_MESH) .and. &
+       .not. (ispec_selected_source(isource) == 0)) then
     pt0_ix = -1
     pt0_iy = -1
     pt0_iz = -1

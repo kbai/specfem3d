@@ -847,9 +847,9 @@
 
 ! define geometrical tolerance based upon typical size of the model
     SMALLVALTOL = 1.d-10 * dabs(UTM_X_MAX - UTM_X_MIN)
-    print *, UTM_X_MAX
-    print *, UTM_X_MIN
-    print *, SMALLVALTOL
+    print *, 'UTM_X_MAX', UTM_X_MAX
+    print *, 'UTM_X_MIN', UTM_X_MIN
+    print *, 'SMALLVALTOL', SMALLVALTOL
 
 ! dynamically allocate arrays
   allocate(ind(npointot))
@@ -892,17 +892,14 @@
   if(j == 1) then
     do i=2,npointot
       if(dabs(xp(i)-xp(i-1)) > SMALLVALTOL) ifseg(i)=.true.
-      !ifseg(i)=.true.
     enddo
   else if(j == 2) then
     do i=2,npointot
       if(dabs(yp(i)-yp(i-1)) > SMALLVALTOL) ifseg(i)=.true.
-      !ifseg(i)=.true.
     enddo
   else
     do i=2,npointot
       if(dabs(zp(i)-zp(i-1)) > SMALLVALTOL) ifseg(i)=.true.
-      !ifseg(i)=.true.
     enddo
   endif
 

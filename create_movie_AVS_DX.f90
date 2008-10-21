@@ -109,7 +109,7 @@
   real(kind=CUSTOM_REAL), parameter :: X_SOURCE_EXT_MESH = -9023.021484375
   real(kind=CUSTOM_REAL), parameter :: Y_SOURCE_EXT_MESH = 6123.611328125
   real(kind=CUSTOM_REAL), parameter :: Z_SOURCE_EXT_MESH = 17.96331405639648
-  integer, parameter :: NSPEC_SURFACE_EXT_MESH = 15808
+  integer, parameter :: NSPEC_SURFACE_EXT_MESH = 15808*4
 
 !!!! NL NL
 
@@ -510,7 +510,7 @@
   print *,'sorting list of points'
   if (USE_EXTERNAL_MESH) then
     call get_global_AVS(nspectot_AVS_max,xp,yp,zp,iglob,loc,ifseg,nglob,npointot, &
-         minval(store_val_x(:,0)),maxval(store_val_x(:,0)))
+         dble(minval(store_val_x(:,0))),dble(maxval(store_val_x(:,0))))
   else
     call get_global_AVS(nspectot_AVS_max,xp,yp,zp,iglob,loc,ifseg,nglob,npointot,UTM_X_MIN,UTM_X_MAX)
   endif
@@ -847,7 +847,10 @@
 
 ! define geometrical tolerance based upon typical size of the model
     SMALLVALTOL = 1.d-10 * dabs(UTM_X_MAX - UTM_X_MIN)
-  
+    print *, UTM_X_MAX
+    print *, UTM_X_MIN
+    print *, SMALLVALTOL
+
 ! dynamically allocate arrays
   allocate(ind(npointot))
   allocate(ninseg(npointot))
@@ -889,14 +892,17 @@
   if(j == 1) then
     do i=2,npointot
       if(dabs(xp(i)-xp(i-1)) > SMALLVALTOL) ifseg(i)=.true.
+      !ifseg(i)=.true.
     enddo
   else if(j == 2) then
     do i=2,npointot
       if(dabs(yp(i)-yp(i-1)) > SMALLVALTOL) ifseg(i)=.true.
+      !ifseg(i)=.true.
     enddo
   else
     do i=2,npointot
       if(dabs(zp(i)-zp(i-1)) > SMALLVALTOL) ifseg(i)=.true.
+      !ifseg(i)=.true.
     enddo
   endif
 

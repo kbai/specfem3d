@@ -3012,7 +3012,13 @@ accel(:,iglob) = accel(:,iglob) + &
 
 ! assemble all the contributions between slices using MPI
   if (USE_EXTERNAL_MESH) then
-    call assemble_MPI_vector_ext_mesh(NPROC,NGLOB_AB,accel, &
+    call assemble_MPI_vector_ext_mesh_s(NPROC,NGLOB_AB,accel, &
+         buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
+         ninterfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+         nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,my_neighbours_ext_mesh, &
+         request_send_vector_ext_mesh,request_recv_vector_ext_mesh &
+         )
+    call assemble_MPI_vector_ext_mesh_w(NPROC,NGLOB_AB,accel, &
          buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
          ninterfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
          nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,my_neighbours_ext_mesh, &

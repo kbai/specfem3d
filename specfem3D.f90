@@ -1991,6 +1991,8 @@
     ispec2D_moho_bot = 0
   endif
 
+  if (.not. USE_EXTERNAL_MESH) then
+
   do ispec = 1,NSPEC_AB
 
     if (SAVE_MOHO_MESH .and. SIMULATION_TYPE == 3) then
@@ -3009,15 +3011,29 @@ accel(:,iglob) = accel(:,iglob) + &
 
   endif
 
+  endif ! if (.not. USE_EXTERNAL_MESH)
 
 ! assemble all the contributions between slices using MPI
   if (USE_EXTERNAL_MESH) then
+    call compute_forces(NSPEC_AB,NGLOB_AB,displ,accel,xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
+         hprime_xx,hprime_yy,hprime_zz,hprimewgll_xx,hprimewgll_yy,hprimewgll_zz,wgllwgll_xy,wgllwgll_xz,wgllwgll_yz, &
+         kappastore,mustore,jacobian,ibool,ispec_is_inner_ext_mesh,.false., &
+         NSOURCES,myrank,it,islice_selected_source,ispec_selected_source,xi_source,eta_source,gamma_source,nu_source,hdur,dt &
+         )    
+
     call assemble_MPI_vector_ext_mesh_s(NPROC,NGLOB_AB,accel, &
          buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
          ninterfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
          nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,my_neighbours_ext_mesh, &
          request_send_vector_ext_mesh,request_recv_vector_ext_mesh &
          )
+
+    call compute_forces(NSPEC_AB,NGLOB_AB,displ,accel,xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
+         hprime_xx,hprime_yy,hprime_zz,hprimewgll_xx,hprimewgll_yy,hprimewgll_zz,wgllwgll_xy,wgllwgll_xz,wgllwgll_yz, &
+         kappastore,mustore,jacobian,ibool,ispec_is_inner_ext_mesh,.true., &
+         NSOURCES,myrank,it,islice_selected_source,ispec_selected_source,xi_source,eta_source,gamma_source,nu_source,hdur,dt &
+         )    
+
     call assemble_MPI_vector_ext_mesh_w(NPROC,NGLOB_AB,accel, &
          buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
          ninterfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &

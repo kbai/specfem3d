@@ -4,3 +4,17 @@ available in the PDF manual located in directory doc/USER_MANUAL.
 
 Main developers: Dimitri Komatitsch and Jeroen Tromp
 
+GPU_MODE Notes (by Max Rietmann)
+
+src/shared/constants.h:
+
+Change the following settings (for NOISE simulations):
+
+! sources and receivers Z coordinates given directly instead of with depth
+  logical, parameter :: USE_SOURCES_RECVS_Z = .true.
+
+! the seismograms are normal to surface
+! Z record corresponds to the normal, while E and N are two tangent vectors
+! that completes an orthonormal.
+  logical, parameter :: EXT_MESH_RECV_NORMAL = .true.
+

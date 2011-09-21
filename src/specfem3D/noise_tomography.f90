@@ -478,7 +478,8 @@
                     ibool, &
                     noise_surface_movie,it, &
                     NSPEC_AB_VAL,NGLOB_AB_VAL, &
-                    num_free_surface_faces,free_surface_ispec,free_surface_ijk)
+                    num_free_surface_faces,free_surface_ispec,free_surface_ijk,&
+                    Mesh_pointer,GPU_MODE)
   implicit none
   include "constants.h"
   ! input parameters
@@ -500,22 +501,29 @@
   ! local parameters
   integer :: ispec,i,j,k,iglob,iface,igll 
   real(kind=CUSTOM_REAL),dimension(NDIM,NGLLSQUARE,num_free_surface_faces) :: noise_surface_movie
+  integer(kind=8) :: Mesh_pointer
+  logical :: GPU_MODE  
 
-  ! loops over surface points   
-  ! get coordinates of surface mesh and surface displacement
-  do iface = 1, num_free_surface_faces
-    
-    ispec = free_surface_ispec(iface)
+  if(.NOT. GPU_MODE) then
+     ! loops over surface points   
+     ! get coordinates of surface mesh and surface displacement
+     do iface = 1, num_free_surface_faces
 
-    do igll = 1, NGLLSQUARE
-        i = free_surface_ijk(1,igll,iface)
-        j = free_surface_ijk(2,igll,iface)
-        k = free_surface_ijk(3,igll,iface)
+        ispec = free_surface_ispec(iface)
 
-        iglob = ibool(i,j,k,ispec)
-        noise_surface_movie(:,igll,iface) = displ(:,iglob)
-    enddo
-  enddo
+        do igll = 1, NGLLSQUARE
+           i = free_surface_ijk(1,igll,iface)
+           j = free_surface_ijk(2,igll,iface)
+           k = free_surface_ijk(3,igll,iface)
+
+           iglob = ibool(i,j,k,ispec)
+           noise_surface_movie(:,igll,iface) = displ(:,iglob)
+        enddo
+     enddo
+  ! TODO: Check if transfer_surface_to_hose is compatible with newer version above
+  else ! GPU_MODE == 1
+     call transfer_surface_to_host(Mesh_pointer, noise_surface_movie, num_free_surface_faces)
+  endif
 
   ! save surface motion to disk
   call write_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
@@ -539,7 +547,7 @@
                   it, &
                   NSPEC_AB_VAL,NGLOB_AB_VAL, &
                   num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
-                  free_surface_jacobian2Dw)
+                  free_surface_jacobian2Dw,Mesh_pointer,GPU_MODE,NOISE_TOMOGRAPHY)
   implicit none
   include "constants.h"
   ! input parameters
@@ -567,39 +575,50 @@
   real(kind=CUSTOM_REAL) :: eta
   real(kind=CUSTOM_REAL), dimension(NDIM,NGLLSQUARE,num_free_surface_faces) :: noise_surface_movie
 
+  ! GPU_MODE parameters
+  integer(kind=8) :: Mesh_pointer
+  logical :: GPU_MODE
+  integer :: NOISE_TOMOGRAPHY
+  
   ! read surface movie
   call read_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
 
-  ! get coordinates of surface mesh and surface displacement
-  ipoin = 0
+  if(GPU_MODE) then
+     call noise_read_add_surface_movie_cuda(Mesh_pointer, noise_surface_movie,&
+          num_free_surface_faces,NOISE_TOMOGRAPHY)
+  else ! GPU_MODE==0
 
-  ! loops over surface points      
-  ! puts noise distrubution and direction onto the surface points
-  do iface = 1, num_free_surface_faces
+     ! get coordinates of surface mesh and surface displacement
+     ipoin = 0
 
-    ispec = free_surface_ispec(iface)
+     ! loops over surface points      
+     ! puts noise distrubution and direction onto the surface points
+     do iface = 1, num_free_surface_faces
 
-    do igll = 1, NGLLSQUARE
-      i = free_surface_ijk(1,igll,iface)
-      j = free_surface_ijk(2,igll,iface)
-      k = free_surface_ijk(3,igll,iface)
+        ispec = free_surface_ispec(iface)
 
-      ipoin = ipoin + 1
-      iglob = ibool(i,j,k,ispec)
+        do igll = 1, NGLLSQUARE
+           i = free_surface_ijk(1,igll,iface)
+           j = free_surface_ijk(2,igll,iface)
+           k = free_surface_ijk(3,igll,iface)
 
-      eta = noise_surface_movie(1,igll,iface) * normal_x_noise(ipoin) + &
-            noise_surface_movie(2,igll,iface) * normal_y_noise(ipoin) + &
-            noise_surface_movie(3,igll,iface) * normal_z_noise(ipoin)
+           ipoin = ipoin + 1
+           iglob = ibool(i,j,k,ispec)
 
-      accel(1,iglob) = accel(1,iglob) + eta * mask_noise(ipoin) * normal_x_noise(ipoin) &
-                                  * free_surface_jacobian2Dw(igll,iface) 
-      accel(2,iglob) = accel(2,iglob) + eta * mask_noise(ipoin) * normal_y_noise(ipoin) &
-                                  * free_surface_jacobian2Dw(igll,iface)
-      accel(3,iglob) = accel(3,iglob) + eta * mask_noise(ipoin) * normal_z_noise(ipoin) &
-                                  * free_surface_jacobian2Dw(igll,iface) ! wgllwgll_xy(i,j) * jacobian2D_top(i,j,iface)
-    enddo
+           eta = noise_surface_movie(1,igll,iface) * normal_x_noise(ipoin) + &
+                noise_surface_movie(2,igll,iface) * normal_y_noise(ipoin) + &
+                noise_surface_movie(3,igll,iface) * normal_z_noise(ipoin)
 
-  enddo
+           accel(1,iglob) = accel(1,iglob) + eta * mask_noise(ipoin) * normal_x_noise(ipoin) &
+                * free_surface_jacobian2Dw(igll,iface) 
+           accel(2,iglob) = accel(2,iglob) + eta * mask_noise(ipoin) * normal_y_noise(ipoin) &
+                * free_surface_jacobian2Dw(igll,iface)
+           accel(3,iglob) = accel(3,iglob) + eta * mask_noise(ipoin) * normal_z_noise(ipoin) &
+                * free_surface_jacobian2Dw(igll,iface) ! wgllwgll_xy(i,j) * jacobian2D_top(i,j,iface)
+        enddo
+
+     enddo
+  endif ! GPU_MODE
 
   end subroutine noise_read_add_surface_movie
 
@@ -615,7 +634,7 @@
                           normal_x_noise,normal_y_noise,normal_z_noise, &
                           noise_surface_movie, &
                           NSPEC_AB_VAL,NGLOB_AB_VAL, &
-                          num_free_surface_faces,free_surface_ispec,free_surface_ijk)
+                          num_free_surface_faces,free_surface_ispec,free_surface_ijk,GPU_MODE,Mesh_pointer)
   implicit none
   include "constants.h"
   ! input parameters
@@ -645,39 +664,49 @@
   real(kind=CUSTOM_REAL) :: eta
   real(kind=CUSTOM_REAL), dimension(NDIM,NGLLSQUARE,num_free_surface_faces) :: noise_surface_movie
 
+  ! GPU_MODE parameters
+  integer(kind=8) :: Mesh_pointer
+  logical :: GPU_MODE
+  
   ! read surface movie, needed for Sigma_kl
   call read_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
 
-  ! noise source strength kernel
-  ! to keep similar structure to other kernels, the source strength kernel is saved as a volumetric kernel
-  ! but only updated at the surface, because the noise is generated there
-  ipoin = 0
-  
-  ! loops over surface points
-  ! puts noise distrubution and direction onto the surface points
-  do iface = 1, num_free_surface_faces
+  if(.NOT. GPU_MODE) then
 
-    ispec = free_surface_ispec(iface)
+     ! noise source strength kernel
+     ! to keep similar structure to other kernels, the source strength kernel is saved as a volumetric kernel
+     ! but only updated at the surface, because the noise is generated there
+     ipoin = 0
 
-    do igll = 1, NGLLSQUARE
-      i = free_surface_ijk(1,igll,iface)
-      j = free_surface_ijk(2,igll,iface)
-      k = free_surface_ijk(3,igll,iface)
+     ! loops over surface points
+     ! puts noise distrubution and direction onto the surface points
+     do iface = 1, num_free_surface_faces
 
-      ipoin = ipoin + 1
-      iglob = ibool(i,j,k,ispec)
+        ispec = free_surface_ispec(iface)
 
-      eta = noise_surface_movie(1,igll,iface) * normal_x_noise(ipoin) + &
-            noise_surface_movie(2,igll,iface) * normal_y_noise(ipoin) + &
-            noise_surface_movie(3,igll,iface) * normal_z_noise(ipoin)
+        do igll = 1, NGLLSQUARE
+           i = free_surface_ijk(1,igll,iface)
+           j = free_surface_ijk(2,igll,iface)
+           k = free_surface_ijk(3,igll,iface)
 
-      Sigma_kl(i,j,k,ispec) =  Sigma_kl(i,j,k,ispec) &
-         + deltat * eta * ( normal_x_noise(ipoin) * displ(1,iglob) &
-                          + normal_y_noise(ipoin) * displ(2,iglob) &
-                          + normal_z_noise(ipoin) * displ(3,iglob) )
-    enddo
+           ipoin = ipoin + 1
+           iglob = ibool(i,j,k,ispec)
 
-  enddo
+           eta = noise_surface_movie(1,igll,iface) * normal_x_noise(ipoin) + &
+                noise_surface_movie(2,igll,iface) * normal_y_noise(ipoin) + &
+                noise_surface_movie(3,igll,iface) * normal_z_noise(ipoin)
+
+           Sigma_kl(i,j,k,ispec) =  Sigma_kl(i,j,k,ispec) &
+                + deltat * eta * ( normal_x_noise(ipoin) * displ(1,iglob) &
+                + normal_y_noise(ipoin) * displ(2,iglob) &
+                + normal_z_noise(ipoin) * displ(3,iglob) )
+        enddo
+
+     enddo
+
+  else ! GPU_MODE==1
+     call compute_kernels_strength_noise_cuda(Mesh_pointer, noise_surface_movie,num_free_surface_faces,deltat)
+  endif ! GPU_MODE
 
   end subroutine compute_kernels_strength_noise
 

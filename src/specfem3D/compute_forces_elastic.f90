@@ -51,32 +51,38 @@ subroutine compute_forces_elastic()
 
 ! elastic term
     if(USE_DEVILLE_PRODUCTS) then
-      if (NGLLX == 5) then
-      call compute_forces_elastic_Dev_5points(iphase, NSPEC_AB,NGLOB_AB,displ,accel, &
-                        xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                        hprime_xx,hprime_xxT,hprimewgll_xx,hprimewgll_xxT, &
-                        wgllwgll_xy,wgllwgll_xz,wgllwgll_yz, &
-                        kappastore,mustore,jacobian,ibool, &
-                        ATTENUATION, &
-                        one_minus_sum_beta,factor_common, &
-                        alphaval,betaval,gammaval, &
-                        NSPEC_ATTENUATION_AB, &
-                        R_xx,R_yy,R_xy,R_xz,R_yz, &
-                        epsilondev_xx,epsilondev_yy,epsilondev_xy, &
-                        epsilondev_xz,epsilondev_yz,epsilon_trace_over_3, &
-                        ANISOTROPY,NSPEC_ANISO, &
-                        c11store,c12store,c13store,c14store,c15store,c16store,&
-                        c22store,c23store,c24store,c25store,c26store,c33store,&
-                        c34store,c35store,c36store,c44store,c45store,c46store,&
-                        c55store,c56store,c66store, &
-                        SIMULATION_TYPE, COMPUTE_AND_STORE_STRAIN,NSPEC_STRAIN_ONLY, &
-                        NSPEC_BOUN,NSPEC2D_MOHO,NSPEC_ADJOINT,&
-                        is_moho_top,is_moho_bot, &
-                        dsdx_top,dsdx_bot, &
-                        ispec2D_moho_top,ispec2D_moho_bot, &
-                        num_phase_ispec_elastic,nspec_inner_elastic,nspec_outer_elastic,&
-                        phase_ispec_inner_elastic )
+       if (NGLLX == 5) then
+          if(.NOT. GPU_MODE) then
+             call compute_forces_elastic_Dev_5points(iphase, NSPEC_AB,NGLOB_AB,displ,accel, &
+                  xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
+                  hprime_xx,hprime_xxT,hprimewgll_xx,hprimewgll_xxT, &
+                  wgllwgll_xy,wgllwgll_xz,wgllwgll_yz, &
+                  kappastore,mustore,jacobian,ibool, &
+                  ATTENUATION, &
+                  one_minus_sum_beta,factor_common, &
+                  alphaval,betaval,gammaval, &
+                  NSPEC_ATTENUATION_AB, &
+                  R_xx,R_yy,R_xy,R_xz,R_yz, &
+                  epsilondev_xx,epsilondev_yy,epsilondev_xy, &
+                  epsilondev_xz,epsilondev_yz,epsilon_trace_over_3, &
+                  ANISOTROPY,NSPEC_ANISO, &
+                  c11store,c12store,c13store,c14store,c15store,c16store,&
+                  c22store,c23store,c24store,c25store,c26store,c33store,&
+                  c34store,c35store,c36store,c44store,c45store,c46store,&
+                  c55store,c56store,c66store, &
+                  SIMULATION_TYPE, COMPUTE_AND_STORE_STRAIN,NSPEC_STRAIN_ONLY, &
+                  NSPEC_BOUN,NSPEC2D_MOHO,NSPEC_ADJOINT,&
+                  is_moho_top,is_moho_bot, &
+                  dsdx_top,dsdx_bot, &
+                  ispec2D_moho_top,ispec2D_moho_bot, &
+                  num_phase_ispec_elastic,nspec_inner_elastic,nspec_outer_elastic,&
+                  phase_ispec_inner_elastic )
 
+          else ! GPU_MODE==.true.
+             ! contains both forward SIM_TYPE==1 and backward SIM_TYPE==3 simulations
+             call compute_forces_elastic_cuda(Mesh_pointer, iphase, nspec_outer_elastic, &
+                  nspec_inner_elastic,COMPUTE_AND_STORE_STRAIN,SIMULATION_TYPE)   
+          endif
       else if (NGLLX == 6) then
       call compute_forces_elastic_Dev_6points(iphase, NSPEC_AB,NGLOB_AB,displ,accel, &
                         xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
@@ -236,6 +242,7 @@ subroutine compute_forces_elastic()
     endif
  
     ! adjoint simulations: backward/reconstructed wavefield
+    ! GPU_MODE for SIM_TYPE==3 contained above in compute_forces_elastic_cuda
     if( SIMULATION_TYPE == 3 ) then
       if(USE_DEVILLE_PRODUCTS) then
       if (NGLLX == 5) then
@@ -441,7 +448,8 @@ subroutine compute_forces_elastic()
                         veloc,rho_vp,rho_vs, &
                         ispec_is_elastic,SIMULATION_TYPE,SAVE_FORWARD, &
                         NSTEP,it,NGLOB_ADJOINT,b_accel, &
-                        b_num_abs_boundary_faces,b_reclen_field,b_absorb_field )
+                        b_num_abs_boundary_faces,b_reclen_field,b_absorb_field,&
+                        GPU_MODE,Mesh_pointer)
 
 ! acoustic coupling
     if( ACOUSTIC_SIMULATION ) then
@@ -479,43 +487,85 @@ subroutine compute_forces_elastic()
                         ispec_is_elastic,SIMULATION_TYPE,NSTEP,NGLOB_ADJOINT, &
                         nrec,islice_selected_rec,ispec_selected_rec, &
                         nadj_rec_local,adj_sourcearrays,b_accel, &
-                        NTSTEP_BETWEEN_READ_ADJSRC,NOISE_TOMOGRAPHY )
+                        NTSTEP_BETWEEN_READ_ADJSRC,NOISE_TOMOGRAPHY,GPU_MODE, Mesh_pointer )
 
 ! assemble all the contributions between slices using MPI
     if( phase_is_inner .eqv. .false. ) then
-      ! sends accel values to corresponding MPI interface neighbors
-      call assemble_MPI_vector_ext_mesh_s(NPROC,NGLOB_AB,accel, &
-                        buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
-                        num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
-                        nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,&
-                        my_neighbours_ext_mesh, &
-                        request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
-
-      ! adjoint simulations
-      if( SIMULATION_TYPE == 3 ) then
-        call assemble_MPI_vector_ext_mesh_s(NPROC,NGLOB_ADJOINT,b_accel, &
-                        b_buffer_send_vector_ext_mesh,b_buffer_recv_vector_ext_mesh, &
-                        num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
-                        nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,&
-                        my_neighbours_ext_mesh, &
-                        b_request_send_vector_ext_mesh,b_request_recv_vector_ext_mesh)
-      endif !adjoint
+       ! sends accel values to corresponding MPI interface neighbors
+       if(.NOT. GPU_MODE) then
+          call assemble_MPI_vector_ext_mesh_s(NPROC,NGLOB_AB,accel, &
+               buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
+               num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+               nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,&
+               my_neighbours_ext_mesh, &
+               request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
+       else ! GPU_MODE==1
+          call transfer_boundary_accel_from_device(NGLOB_AB*NDIM, Mesh_pointer, accel,&
+               buffer_send_vector_ext_mesh,&
+               num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh,&
+               nibool_interfaces_ext_mesh, ibool_interfaces_ext_mesh,1) ! <-- 1 == fwd accel
+          call assemble_MPI_vector_ext_mesh_send_cuda(NPROC,NGLOB_AB,accel, &
+               buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
+               num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+               nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,&
+               my_neighbours_ext_mesh, &
+               request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
+       endif ! GPU_MODE
+       
+       ! adjoint simulations
+       if( SIMULATION_TYPE == 3 ) then
+          if(.NOT. GPU_MODE) then
+             call assemble_MPI_vector_ext_mesh_s(NPROC,NGLOB_ADJOINT,b_accel, &
+                  b_buffer_send_vector_ext_mesh,b_buffer_recv_vector_ext_mesh, &
+                  num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+                  nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,&
+                  my_neighbours_ext_mesh, &
+                  b_request_send_vector_ext_mesh,b_request_recv_vector_ext_mesh)
+          else ! GPU_MODE == 1
+             call transfer_boundary_accel_from_device(NGLOB_AB*NDIM, Mesh_pointer, b_accel,&
+               b_buffer_send_vector_ext_mesh,&
+               num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh,&
+               nibool_interfaces_ext_mesh, ibool_interfaces_ext_mesh,3) ! <-- 3 == adjoint b_accel
+             call assemble_MPI_vector_ext_mesh_send_cuda(NPROC,NGLOB_ADJOINT,b_accel, &
+                  b_buffer_send_vector_ext_mesh,b_buffer_recv_vector_ext_mesh, &
+                  num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+                  nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,&
+                  my_neighbours_ext_mesh, &
+                  b_request_send_vector_ext_mesh,b_request_recv_vector_ext_mesh)
+             
+          endif ! GPU
+       endif !adjoint
 
     else
       ! waits for send/receive requests to be completed and assembles values
-      call assemble_MPI_vector_ext_mesh_w(NPROC,NGLOB_AB,accel, &
-                        buffer_recv_vector_ext_mesh,num_interfaces_ext_mesh,&
-                        max_nibool_interfaces_ext_mesh, &
-                        nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh, &
-                        request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
-
+      if(.NOT. GPU_MODE) then
+         call assemble_MPI_vector_ext_mesh_w(NPROC,NGLOB_AB,accel, &
+              buffer_recv_vector_ext_mesh,num_interfaces_ext_mesh,&
+              max_nibool_interfaces_ext_mesh, &
+              nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh, &
+              request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
+      else ! GPU_MODE == 1
+         call assemble_MPI_vector_ext_mesh_write_cuda(NPROC,NGLOB_AB,accel, Mesh_pointer,&
+              buffer_recv_vector_ext_mesh,num_interfaces_ext_mesh,&
+              max_nibool_interfaces_ext_mesh, &
+              nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh, &
+              request_send_vector_ext_mesh,request_recv_vector_ext_mesh,1)
+      endif
       ! adjoint simulations
       if( SIMULATION_TYPE == 3 ) then
-        call assemble_MPI_vector_ext_mesh_w(NPROC,NGLOB_ADJOINT,b_accel, &
-                        b_buffer_recv_vector_ext_mesh,num_interfaces_ext_mesh,&
-                        max_nibool_interfaces_ext_mesh, &
-                        nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh, &
-                        b_request_send_vector_ext_mesh,b_request_recv_vector_ext_mesh)
+         if(.NOT. GPU_MODE) then
+            call assemble_MPI_vector_ext_mesh_w(NPROC,NGLOB_ADJOINT,b_accel, &
+                 b_buffer_recv_vector_ext_mesh,num_interfaces_ext_mesh,&
+                 max_nibool_interfaces_ext_mesh, &
+                 nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh, &
+                 b_request_send_vector_ext_mesh,b_request_recv_vector_ext_mesh)
+         else ! GPU_MODE == 1
+            call assemble_MPI_vector_ext_mesh_write_cuda(NPROC,NGLOB_AB,b_accel, Mesh_pointer,&
+              b_buffer_recv_vector_ext_mesh,num_interfaces_ext_mesh,&
+              max_nibool_interfaces_ext_mesh, &
+              nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh, &
+              b_request_send_vector_ext_mesh,b_request_recv_vector_ext_mesh,3)
+         endif
       endif !adjoint
 
     endif
@@ -526,20 +576,22 @@ subroutine compute_forces_elastic()
     !! DK DK May 2009: and assemble_MPI_vector_ext_mesh_w above can be used.
     !! DK DK May 2009: For adjoint runs below (SIMULATION_TYPE == 3) they should be used as well.
 
-  enddo
-
-! multiplies with inverse of mass matrix (note: rmass has been inverted already)
-  accel(1,:) = accel(1,:)*rmass(:)
-  accel(2,:) = accel(2,:)*rmass(:)
-  accel(3,:) = accel(3,:)*rmass(:)
-
-  ! adjoint simulations
-  if (SIMULATION_TYPE == 3) then
-    b_accel(1,:) = b_accel(1,:)*rmass(:)
-    b_accel(2,:) = b_accel(2,:)*rmass(:)
-    b_accel(3,:) = b_accel(3,:)*rmass(:)
-  endif !adjoint
-
+ enddo
+ 
+ ! multiplies with inverse of mass matrix (note: rmass has been inverted already)
+ if(.NOT. GPU_MODE) then
+    accel(1,:) = accel(1,:)*rmass(:)
+    accel(2,:) = accel(2,:)*rmass(:)
+    accel(3,:) = accel(3,:)*rmass(:)
+    ! adjoint simulations
+    if (SIMULATION_TYPE == 3) then
+       b_accel(1,:) = b_accel(1,:)*rmass(:)
+       b_accel(2,:) = b_accel(2,:)*rmass(:)
+       b_accel(3,:) = b_accel(3,:)*rmass(:)
+    endif !adjoint
+ else ! GPU_MODE == 1    
+    call kernel_3_cuda(Mesh_pointer, NGLOB_AB, deltatover2,SIMULATION_TYPE,b_deltatover2)
+ endif
 
 ! updates acceleration with ocean load term
   if(OCEANS) then
@@ -566,10 +618,12 @@ subroutine compute_forces_elastic()
 !
 ! corrector:
 !   updates the velocity term which requires a(t+delta)
-  veloc(:,:) = veloc(:,:) + deltatover2*accel(:,:)
-
-  ! adjoint simulations
-  if (SIMULATION_TYPE == 3) b_veloc(:,:) = b_veloc(:,:) + b_deltatover2*b_accel(:,:)
+! GPU_MODE: this is handled in 'kernel_3' at the same time as accel*rmass
+  if(.NOT. GPU_MODE) then
+     veloc(:,:) = veloc(:,:) + deltatover2*accel(:,:)
+     ! adjoint simulations
+     if (SIMULATION_TYPE == 3) b_veloc(:,:) = b_veloc(:,:) + b_deltatover2*b_accel(:,:)
+  endif
 
 
 end subroutine compute_forces_elastic

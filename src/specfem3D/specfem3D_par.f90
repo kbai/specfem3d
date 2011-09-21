@@ -45,6 +45,11 @@ module specfem_par
 ! attenuation
   integer :: NSPEC_ATTENUATION_AB
 
+! CUDA mesh pointer<->integer wrapper
+  integer(kind=8) :: Mesh_pointer
+! Global GPU toggle. Set in Par_file
+  logical :: GPU_MODE
+  
 ! use integer array to store topography values
   integer :: NX_TOPO,NY_TOPO
   double precision :: ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO

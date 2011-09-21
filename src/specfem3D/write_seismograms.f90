@@ -45,6 +45,13 @@
   real(kind=CUSTOM_REAL):: stf_deltat
   double precision :: stf
 
+  ! this transfers fields only in elements with stations for efficiency
+  if(GPU_MODE) call transfer_station_fields_from_device(displ,veloc,accel,b_displ,b_veloc,b_accel,&
+       Mesh_pointer,number_receiver_global, ispec_selected_rec,ispec_selected_source,ibool,SIMULATION_TYPE)
+  
+  ! DEBUG: this transfers all elements in the fields, which is inefficient but guaranteed correct
+  ! if(GPU_MODE) call transfer_fields_from_device(size(accel),displ,veloc,accel,Mesh_pointer)
+  
   do irec_local = 1,nrec_local
 
     ! gets global number of that receiver

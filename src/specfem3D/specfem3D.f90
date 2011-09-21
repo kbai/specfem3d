@@ -327,6 +327,8 @@
 ! sets up and precomputes simulation arrays
   call prepare_timerun()
 
+! prepare and transfer GPU arrays
+  if(GPU_MODE) call prepare_GPU()
 
 ! steps through time iterations
   call iterate_time()

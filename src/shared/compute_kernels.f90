@@ -39,126 +39,108 @@
   real(kind=CUSTOM_REAL) :: kappal,rhol
   integer :: i,j,k,ispec,iglob
   real(kind=CUSTOM_REAL), dimension(5) :: epsilondev_loc,b_epsilondev_loc
+  
+  if(.NOT. GPU_MODE) then
 
-  ! updates kernels
-  do ispec = 1, NSPEC_AB
+     ! updates kernels
+     do ispec = 1, NSPEC_AB
 
-    ! elastic domains
-    if( ispec_is_elastic(ispec) ) then
+        ! elastic domains
+        if( ispec_is_elastic(ispec) ) then
 
-      do k = 1, NGLLZ
-        do j = 1, NGLLY
-          do i = 1, NGLLX
-            iglob = ibool(i,j,k,ispec)
+           do k = 1, NGLLZ
+              do j = 1, NGLLY
+                 do i = 1, NGLLX
+                    iglob = ibool(i,j,k,ispec)
 
-            ! isotropic kernels
-            ! note: takes displacement from backward/reconstructed (forward) field b_displ
-            !          and acceleration from adjoint field accel (containing adjoint sources)
-            !
-            ! note: : time integral summation uses deltat
-            !
-            ! compare with Tromp et al. (2005), eq. (14), which takes adjoint displacement
-            ! and forward acceleration, that is the symmetric form of what is calculated here
-            ! however, this kernel expression is symmetric with regards
-            ! to interchange adjoint - forward field
-            rho_kl(i,j,k,ispec) =  rho_kl(i,j,k,ispec) &
-                                + deltat * dot_product(accel(:,iglob), b_displ(:,iglob))
+                    ! isotropic kernels
+                    ! note: takes displacement from backward/reconstructed (forward) field b_displ
+                    !          and acceleration from adjoint field accel (containing adjoint sources)
+                    !
+                    ! note: : time integral summation uses deltat
+                    !
+                    ! compare with Tromp et al. (2005), eq. (14), which takes adjoint displacement
+                    ! and forward acceleration, that is the symmetric form of what is calculated here
+                    ! however, this kernel expression is symmetric with regards
+                    ! to interchange adjoint - forward field
+                    rho_kl(i,j,k,ispec) =  rho_kl(i,j,k,ispec) &
+                         + deltat * dot_product(accel(:,iglob), b_displ(:,iglob))
 
-            ! kernel for shear modulus, see e.g. Tromp et al. (2005), equation (17)
-            ! note: multiplication with 2*mu(x) will be done after the time loop
-            epsilondev_loc(1) = epsilondev_xx(i,j,k,ispec)
-            epsilondev_loc(2) = epsilondev_yy(i,j,k,ispec)
-            epsilondev_loc(3) = epsilondev_xy(i,j,k,ispec)
-            epsilondev_loc(4) = epsilondev_xz(i,j,k,ispec)
-            epsilondev_loc(5) = epsilondev_yz(i,j,k,ispec)
+                    ! kernel for shear modulus, see e.g. Tromp et al. (2005), equation (17)
+                    ! note: multiplication with 2*mu(x) will be done after the time loop
+                    epsilondev_loc(1) = epsilondev_xx(i,j,k,ispec)
+                    epsilondev_loc(2) = epsilondev_yy(i,j,k,ispec)
+                    epsilondev_loc(3) = epsilondev_xy(i,j,k,ispec)
+                    epsilondev_loc(4) = epsilondev_xz(i,j,k,ispec)
+                    epsilondev_loc(5) = epsilondev_yz(i,j,k,ispec)
 
-            b_epsilondev_loc(1) = b_epsilondev_xx(i,j,k,ispec)
-            b_epsilondev_loc(2) = b_epsilondev_yy(i,j,k,ispec)
-            b_epsilondev_loc(3) = b_epsilondev_xy(i,j,k,ispec)
-            b_epsilondev_loc(4) = b_epsilondev_xz(i,j,k,ispec)
-            b_epsilondev_loc(5) = b_epsilondev_yz(i,j,k,ispec)
+                    b_epsilondev_loc(1) = b_epsilondev_xx(i,j,k,ispec)
+                    b_epsilondev_loc(2) = b_epsilondev_yy(i,j,k,ispec)
+                    b_epsilondev_loc(3) = b_epsilondev_xy(i,j,k,ispec)
+                    b_epsilondev_loc(4) = b_epsilondev_xz(i,j,k,ispec)
+                    b_epsilondev_loc(5) = b_epsilondev_yz(i,j,k,ispec)
 
-            mu_kl(i,j,k,ispec) =  mu_kl(i,j,k,ispec) &
-             + deltat * (epsilondev_loc(1)*b_epsilondev_loc(1) + epsilondev_loc(2)*b_epsilondev_loc(2) &
-             + (epsilondev_loc(1)+epsilondev_loc(2)) * (b_epsilondev_loc(1)+b_epsilondev_loc(2)) &
-             + 2 * (epsilondev_loc(3)*b_epsilondev_loc(3) + epsilondev_loc(4)*b_epsilondev_loc(4) + &
-              epsilondev_loc(5)*b_epsilondev_loc(5)) )
+                    mu_kl(i,j,k,ispec) =  mu_kl(i,j,k,ispec) &
+                         + deltat * (epsilondev_loc(1)*b_epsilondev_loc(1) + epsilondev_loc(2)*b_epsilondev_loc(2) &
+                         + (epsilondev_loc(1)+epsilondev_loc(2)) * (b_epsilondev_loc(1)+b_epsilondev_loc(2)) &
+                         + 2 * (epsilondev_loc(3)*b_epsilondev_loc(3) + epsilondev_loc(4)*b_epsilondev_loc(4) + &
+                         epsilondev_loc(5)*b_epsilondev_loc(5)) )
 
-            ! kernel for bulk modulus, see e.g. Tromp et al. (2005), equation (18)
-            ! note: multiplication with kappa(x) will be done after the time loop
-            kappa_kl(i,j,k,ispec) = kappa_kl(i,j,k,ispec) &
-                              + deltat * (9 * epsilon_trace_over_3(i,j,k,ispec) &
-                                          * b_epsilon_trace_over_3(i,j,k,ispec))
+                    ! kernel for bulk modulus, see e.g. Tromp et al. (2005), equation (18)
+                    ! note: multiplication with kappa(x) will be done after the time loop
+                    kappa_kl(i,j,k,ispec) = kappa_kl(i,j,k,ispec) &
+                         + deltat * (9 * epsilon_trace_over_3(i,j,k,ispec) &
+                         * b_epsilon_trace_over_3(i,j,k,ispec))
 
-          enddo
-        enddo
-      enddo
-    endif !ispec_is_elastic
+                 enddo
+              enddo
+           enddo
+        endif !ispec_is_elastic
 
-    ! acoustic domains
-    if( ispec_is_acoustic(ispec) ) then
+        ! acoustic domains
+        if( ispec_is_acoustic(ispec) ) then
 
-      ! backward fields: displacement vector
-      call compute_gradient(ispec,NSPEC_ADJOINT,NGLOB_ADJOINT, &
-                      b_potential_acoustic, b_displ_elm,&
-                      hprime_xx,hprime_yy,hprime_zz, &
-                      xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                      ibool,rhostore)
-      ! adjoint fields: acceleration vector
-      !<YANGL
-      !!!! old expression (\bfs\dagger=\frac{1}{\rho}\bfnabla\phi^\dagger)
-      !!!call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
-      !!!                potential_dot_dot_acoustic, accel_elm,&
-      !!!                hprime_xx,hprime_yy,hprime_zz, &
-      !!!                xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-      !!!                ibool,rhostore)
-      ! new expression (\partial_t^2\bfs^\dagger=-\frac{1}{\rho}\bfnabla\phi^\dagger)
-      call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
-                      potential_acoustic, accel_elm,&
-                      hprime_xx,hprime_yy,hprime_zz, &
-                      xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                      ibool,rhostore)
-      !>YANGL
+           ! backward fields: displacement vector
+           call compute_gradient(ispec,NSPEC_ADJOINT,NGLOB_ADJOINT, &
+                b_potential_acoustic, b_displ_elm,&
+                hprime_xx,hprime_yy,hprime_zz, &
+                xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
+                ibool,rhostore)
+           ! adjoint fields: acceleration vector
+           call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
+                potential_dot_dot_acoustic, accel_elm,&
+                hprime_xx,hprime_yy,hprime_zz, &
+                xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
+                ibool,rhostore)
 
-      do k = 1, NGLLZ
-        do j = 1, NGLLY
-          do i = 1, NGLLX
-            iglob = ibool(i,j,k,ispec)
+           do k = 1, NGLLZ
+              do j = 1, NGLLY
+                 do i = 1, NGLLX
+                    iglob = ibool(i,j,k,ispec)
 
-            !<YANGL
-            !!!! old expression
-            !!!! density kernel
-            !!!rhol = rhostore(i,j,k,ispec)
-            !!!rho_ac_kl(i,j,k,ispec) =  rho_ac_kl(i,j,k,ispec) &
-            !!!          - deltat * rhol * dot_product(accel_elm(:,i,j,k), b_displ_elm(:,i,j,k))
+                    ! density kernel
+                    rhol = rhostore(i,j,k,ispec)
+                    rho_ac_kl(i,j,k,ispec) =  rho_ac_kl(i,j,k,ispec) &
+                         - deltat * rhol * dot_product(accel_elm(:,i,j,k), b_displ_elm(:,i,j,k))
 
-            !!!! bulk modulus kernel
-            !!!kappal = kappastore(i,j,k,ispec)
-            !!!kappa_ac_kl(i,j,k,ispec) = kappa_ac_kl(i,j,k,ispec) &
-            !!!                      - deltat / kappal  &
-            !!!                      * potential_dot_dot_acoustic(iglob) &
-            !!!                      * b_potential_dot_dot_acoustic(iglob)
-            ! new expression
-            ! density kernel
-            rhol = rhostore(i,j,k,ispec)
-            rho_ac_kl(i,j,k,ispec) =  rho_ac_kl(i,j,k,ispec) &
-                      + deltat * rhol * dot_product(accel_elm(:,i,j,k), b_displ_elm(:,i,j,k))
+                    ! bulk modulus kernel
+                    kappal = kappastore(i,j,k,ispec)
+                    kappa_ac_kl(i,j,k,ispec) = kappa_ac_kl(i,j,k,ispec) &
+                         - deltat / kappal  &
+                         * potential_dot_dot_acoustic(iglob) &
+                         * b_potential_dot_dot_acoustic(iglob)
 
-            ! bulk modulus kernel
-            kappal = kappastore(i,j,k,ispec)
-            kappa_ac_kl(i,j,k,ispec) = kappa_ac_kl(i,j,k,ispec) &
-                                  + deltat * kappal  &
-                                  * potential_acoustic(iglob) / kappal &
-                                  * b_potential_dot_dot_acoustic(iglob) / kappal
-            !>YANGL
+                 enddo
+              enddo
+           enddo
+        endif ! ispec_is_acoustic
 
-          enddo
-        enddo
-      enddo
-    endif ! ispec_is_acoustic
+     enddo
+  else ! GPU_MODE==1
 
-  enddo
-
+     call compute_kernels_cuda(Mesh_pointer,NOISE_TOMOGRAPHY,ELASTIC_SIMULATION,&
+          SAVE_MOHO_MESH,deltat)
+  endif ! GPU_MODE
   ! moho kernel
   if( ELASTIC_SIMULATION  .and. SAVE_MOHO_MESH ) then
       call compute_boundary_kernel()
@@ -171,7 +153,8 @@
                         normal_x_noise,normal_y_noise,normal_z_noise, &
                         noise_surface_movie, &
                         NSPEC_AB,NGLOB_AB, &
-                        num_free_surface_faces,free_surface_ispec,free_surface_ijk)
+                        num_free_surface_faces,free_surface_ispec,free_surface_ijk,&
+                        GPU_MODE,Mesh_pointer)
 
   ! computes an approximative hessian for preconditioning kernels
   if ( APPROXIMATE_HESS_KL ) then

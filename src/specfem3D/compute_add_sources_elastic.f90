@@ -34,7 +34,7 @@
                         ispec_is_elastic,SIMULATION_TYPE,NSTEP,NGLOB_ADJOINT, &
                         nrec,islice_selected_rec,ispec_selected_rec, &
                         nadj_rec_local,adj_sourcearrays,b_accel, &
-                        NTSTEP_BETWEEN_READ_ADJSRC,NOISE_TOMOGRAPHY  )
+                        NTSTEP_BETWEEN_READ_ADJSRC,NOISE_TOMOGRAPHY,GPU_MODE,Mesh_pointer  )
 
   use specfem_par,only: PRINT_SOURCE_TIME_FUNCTION,stf_used_total, &
                         xigll,yigll,zigll,xi_receiver,eta_receiver,gamma_receiver,&
@@ -79,6 +79,8 @@
 
 !adjoint simulations
   integer:: SIMULATION_TYPE,NSTEP,NGLOB_ADJOINT
+  logical:: GPU_MODE
+  integer(kind=8) :: Mesh_pointer
   integer:: nrec
   integer,dimension(nrec) :: islice_selected_rec,ispec_selected_rec
   integer:: nadj_rec_local
@@ -92,8 +94,10 @@
   double precision :: stf
   real(kind=CUSTOM_REAL),dimension(:,:,:,:,:),allocatable:: adj_sourcearray
   real(kind=CUSTOM_REAL) stf_used,stf_used_total_all,time_source
-  integer :: isource,iglob,i,j,k,ispec,ier
-  integer :: irec_local,irec
+  ! for GPU_MODE
+  real(kind=SIZE_DOUBLE), dimension(NSOURCES) :: stf_pre_compute
+  integer :: isource,iglob,i,j,k,ispec
+  integer :: irec_local,irec, ier
 
 ! adjoint sources in SU format
   integer :: it_start,it_end
@@ -109,79 +113,94 @@
 
 ! plotting source time function
   if(PRINT_SOURCE_TIME_FUNCTION .and. .not. phase_is_inner ) then
-    ! initializes total
-    stf_used_total = 0.0_CUSTOM_REAL
+     ! initializes total
+     stf_used_total = 0.0_CUSTOM_REAL
   endif
 
-! forward simulations
+  ! forward simulations
   if (SIMULATION_TYPE == 1 .and. NOISE_TOMOGRAPHY == 0) then
 
-    do isource = 1,NSOURCES
+     if(GPU_MODE) then
 
-      !   add the source (only if this proc carries the source)
-      if(myrank == islice_selected_source(isource)) then
+        do isource = 1,NSOURCES
+           stf_pre_compute(isource) = comp_source_time_function(dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian)
+        enddo
+        ! only implements SIMTYPE=1 and NOISE_TOM=0
+        ! write(*,*) "fortran dt = ", dt
+        ! change dt -> DT
+        call compute_add_sources_elastic_cuda(Mesh_pointer, NSPEC_AB, NGLOB_AB, phase_is_inner,&
+             NSOURCES, it, DT, t0, SIMULATION_TYPE, NSTEP, NOISE_TOMOGRAPHY,&
+             USE_FORCE_POINT_SOURCE, stf_pre_compute, myrank)
 
-        ispec = ispec_selected_source(isource)
+     else ! .NOT. GPU_MODE
 
-        if (ispec_is_inner(ispec) .eqv. phase_is_inner) then
+        do isource = 1,NSOURCES
 
-          if( ispec_is_elastic(ispec) ) then
+           !   add the source (only if this proc carries the source)
+           if(myrank == islice_selected_source(isource)) then
 
-            if(USE_FORCE_POINT_SOURCE) then
+              ispec = ispec_selected_source(isource)
 
-              ! note: for use_force_point_source xi/eta/gamma are in the range [1,NGLL*]
-              iglob = ibool(nint(xi_source(isource)), &
-                             nint(eta_source(isource)), &
-                             nint(gamma_source(isource)), &
-                             ispec_selected_source(isource))
+              if (ispec_is_inner(ispec) .eqv. phase_is_inner) then
 
-              f0 = hdur(isource) !! using hdur as a FREQUENCY just to avoid changing CMTSOLUTION file format
+                 if( ispec_is_elastic(ispec) ) then
 
-              !if (it == 1 .and. myrank == 0) then
-              !  write(IMAIN,*) 'using a source of dominant frequency ',f0
-              !  write(IMAIN,*) 'lambda_S at dominant frequency = ',3000./sqrt(3.)/f0
-              !  write(IMAIN,*) 'lambda_S at highest significant frequency = ',3000./sqrt(3.)/(2.5*f0)
-              !endif
+                    if(USE_FORCE_POINT_SOURCE) then
 
-              ! This is the expression of a Ricker; should be changed according maybe to the Par_file.
-              stf_used = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr(dble(it-1)*DT-t0-tshift_cmt(isource),f0)
+                       ! note: for use_force_point_source xi/eta/gamma are in the range [1,NGLL*]
+                       iglob = ibool(nint(xi_source(isource)), &
+                            nint(eta_source(isource)), &
+                            nint(gamma_source(isource)), &
+                            ispec_selected_source(isource))
 
-              ! we use a force in a single direction along one of the components:
-              !  x/y/z or E/N/Z-direction would correspond to 1/2/3 = COMPONENT_FORCE_SOURCE
-              ! e.g. nu_source(:,3) here would be a source normal to the surface (z-direction).
-              accel(:,iglob) = accel(:,iglob)  &
-                               + sngl( nu_source(COMPONENT_FORCE_SOURCE,:,isource) ) * stf_used
+                       f0 = hdur(isource) !! using hdur as a FREQUENCY just to avoid changing CMTSOLUTION file format
 
-            else
+                       !if (it == 1 .and. myrank == 0) then
+                       !  write(IMAIN,*) 'using a source of dominant frequency ',f0
+                       !  write(IMAIN,*) 'lambda_S at dominant frequency = ',3000./sqrt(3.)/f0
+                       !  write(IMAIN,*) 'lambda_S at highest significant frequency = ',3000./sqrt(3.)/(2.5*f0)
+                       !endif
 
-               stf = comp_source_time_function(dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+                       ! This is the expression of a Ricker; should be changed according maybe to the Par_file.
+                       stf_used = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr(dble(it-1)*DT-t0-tshift_cmt(isource),f0)
 
-               !     distinguish between single and double precision for reals
-               if(CUSTOM_REAL == SIZE_REAL) then
-                  stf_used = sngl(stf)
-               else
-                  stf_used = stf
-               endif
+                       ! we use a force in a single direction along one of the components:
+                       !  x/y/z or E/N/Z-direction would correspond to 1/2/3 = COMPONENT_FORCE_SOURCE
+                       ! e.g. nu_source(:,3) here would be a source normal to the surface (z-direction).
+                       accel(:,iglob) = accel(:,iglob)  &
+                            + sngl( nu_source(COMPONENT_FORCE_SOURCE,:,isource) ) * stf_used
 
-               !     add source array
-               do k=1,NGLLZ
-                  do j=1,NGLLY
-                     do i=1,NGLLX
-                        iglob = ibool(i,j,k,ispec)
-                        accel(:,iglob) = accel(:,iglob) + sourcearrays(isource,:,i,j,k)*stf_used
-                     enddo
-                  enddo
-               enddo
+                    else
 
-            endif ! USE_FORCE_POINT_SOURCE
+                       stf = comp_source_time_function(dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
 
-            stf_used_total = stf_used_total + stf_used
+                       !     distinguish between single and double precision for reals
+                       if(CUSTOM_REAL == SIZE_REAL) then
+                          stf_used = sngl(stf)
+                       else
+                          stf_used = stf
+                       endif
 
-          endif ! ispec_is_elastic
-        endif ! ispec_is_inner
-      endif ! myrank
+                       !     add source array
+                       do k=1,NGLLZ
+                          do j=1,NGLLY
+                             do i=1,NGLLX
+                                iglob = ibool(i,j,k,ispec)
+                                accel(:,iglob) = accel(:,iglob) + sourcearrays(isource,:,i,j,k)*stf_used
+                             enddo
+                          enddo
+                       enddo
 
-    enddo ! NSOURCES
+                    endif ! USE_FORCE_POINT_SOURCE
+
+                    stf_used_total = stf_used_total + stf_used
+
+                 endif ! ispec_is_elastic
+              endif ! ispec_is_inner
+           endif ! myrank
+
+        enddo ! NSOURCES
+     endif ! GPU_MODE
   endif ! forward
 
 ! NOTE: adjoint sources and backward wavefield timing:
@@ -211,124 +230,132 @@
 ! adjoint simulations
   if (SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3) then
 
-    ! read in adjoint sources block by block (for memory consideration)
-    ! e.g., in exploration experiments, both the number of receivers (nrec) and
-    ! the number of time steps (NSTEP) are huge,
-    ! which may cause problems since we have a large array:
-    !   adj_sourcearrays(nadj_rec_local,NSTEP,NDIM,NGLLX,NGLLY,NGLLZ)
+     ! read in adjoint sources block by block (for memory consideration)
+     ! e.g., in exploration experiments, both the number of receivers (nrec) and
+     ! the number of time steps (NSTEP) are huge,
+     ! which may cause problems since we have a large array:
+     !   adj_sourcearrays(nadj_rec_local,NSTEP,NDIM,NGLLX,NGLLY,NGLLZ)
 
-    ! figure out if we need to read in a chunk of the adjoint source at this timestep
-    it_sub_adj = ceiling( dble(it)/dble(NTSTEP_BETWEEN_READ_ADJSRC) )   !chunk_number
-    ibool_read_adj_arrays = (((mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC) == 0)) .and. (nadj_rec_local > 0))
+     ! figure out if we need to read in a chunk of the adjoint source at this timestep
+     it_sub_adj = ceiling( dble(it)/dble(NTSTEP_BETWEEN_READ_ADJSRC) )   !chunk_number
+     ibool_read_adj_arrays = (((mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC) == 0)) .and. (nadj_rec_local > 0))
 
-    ! needs to read in a new chunk/block of the adjoint source
-    ! note that for each partition, we divide it into two parts --- boundaries and interior --- indicated by 'phase_is_inner'
-    ! we first do calculations for the boudaries, and then start communication
-    ! with other partitions while calculate for the inner part
-    ! this must be done carefully, otherwise the adjoint sources may be added twice
-    if (ibool_read_adj_arrays .and. (.not. phase_is_inner)) then
+     ! needs to read in a new chunk/block of the adjoint source
+     ! note that for each partition, we divide it into two parts --- boundaries and interior --- indicated by 'phase_is_inner'
+     ! we first do calculations for the boudaries, and then start communication
+     ! with other partitions while calculate for the inner part
+     ! this must be done carefully, otherwise the adjoint sources may be added twice
+     if (ibool_read_adj_arrays .and. (.not. phase_is_inner)) then
 
-      ! allocates temporary source array
-      allocate(adj_sourcearray(NTSTEP_BETWEEN_READ_ADJSRC,NDIM,NGLLX,NGLLY,NGLLZ),stat=ier)
-      if( ier /= 0 ) stop 'error allocating array adj_sourcearray'
+        ! allocates temporary source array
+        allocate(adj_sourcearray(NTSTEP_BETWEEN_READ_ADJSRC,NDIM,NGLLX,NGLLY,NGLLZ),stat=ier)
+        if( ier /= 0 ) stop 'error allocating array adj_sourcearray'
 
-      if (.not. SU_FORMAT) then
-         !!! read ascii adjoint sources
-         irec_local = 0
-         do irec = 1, nrec
-           ! compute source arrays
-           if (myrank == islice_selected_rec(irec)) then
-             irec_local = irec_local + 1
-             ! reads in **sta**.**net**.**LH**.adj files
-             adj_source_file = trim(station_name(irec))//'.'//trim(network_name(irec))
-             call compute_arrays_adjoint_source(myrank,adj_source_file, &
-                       xi_receiver(irec),eta_receiver(irec),gamma_receiver(irec), &
-                       adj_sourcearray, xigll,yigll,zigll, &
-                       it_sub_adj,NSTEP,NTSTEP_BETWEEN_READ_ADJSRC)
-             do itime = 1,NTSTEP_BETWEEN_READ_ADJSRC
-               adj_sourcearrays(irec_local,itime,:,:,:,:) = adj_sourcearray(itime,:,:,:,:)
-             enddo
+        if (.not. SU_FORMAT) then
+!!! read ascii adjoint sources
+           irec_local = 0
+           do irec = 1, nrec
+              ! compute source arrays
+              if (myrank == islice_selected_rec(irec)) then
+                 irec_local = irec_local + 1
+                 ! reads in **sta**.**net**.**LH**.adj files
+                 adj_source_file = trim(station_name(irec))//'.'//trim(network_name(irec))
+                 call compute_arrays_adjoint_source(myrank,adj_source_file, &
+                      xi_receiver(irec),eta_receiver(irec),gamma_receiver(irec), &
+                      adj_sourcearray, xigll,yigll,zigll, &
+                      it_sub_adj,NSTEP,NTSTEP_BETWEEN_READ_ADJSRC)
+                 do itime = 1,NTSTEP_BETWEEN_READ_ADJSRC
+                    adj_sourcearrays(irec_local,itime,:,:,:,:) = adj_sourcearray(itime,:,:,:,:)
+                 enddo
 
-           endif
-         enddo
-      else
-         !!! read SU adjoint sources
-         ! range of the block we need to read
-         it_start = NSTEP - it_sub_adj*NTSTEP_BETWEEN_READ_ADJSRC + 1
-         it_end   = it_start + NTSTEP_BETWEEN_READ_ADJSRC - 1
-         write(procname,"(i4)") myrank
-         ! read adjoint sources
-         open(unit=IIN_SU1, file=trim(adjustl(OUTPUT_FILES_PATH))//'../SEM/'//trim(adjustl(procname))//'_dx_SU.adj', &
-                            access='direct',recl=240+4*NSTEP)
-         open(unit=IIN_SU2, file=trim(adjustl(OUTPUT_FILES_PATH))//'../SEM/'//trim(adjustl(procname))//'_dy_SU.adj', &
-                            access='direct',recl=240+4*NSTEP)
-         open(unit=IIN_SU3, file=trim(adjustl(OUTPUT_FILES_PATH))//'../SEM/'//trim(adjustl(procname))//'_dz_SU.adj', &
-                            access='direct',recl=240+4*NSTEP)
-         do irec_local = 1,nrec_local
-           irec = number_receiver_global(irec_local)
-           read(IIN_SU1,rec=irec_local) r4head, adj_temp
-           adj_src(:,1)=adj_temp(it_start:it_end)
-           read(IIN_SU2,rec=irec_local) r4head, adj_temp
-           adj_src(:,2)=adj_temp(it_start:it_end)
-           read(IIN_SU3,rec=irec_local) r4head, adj_temp
-           adj_src(:,3)=adj_temp(it_start:it_end)
-           ! lagrange interpolators for receiver location
-           call lagrange_any(xi_receiver(irec),NGLLX,xigll,hxir,hpxir)
-           call lagrange_any(eta_receiver(irec),NGLLY,yigll,hetar,hpetar)
-           call lagrange_any(gamma_receiver(irec),NGLLZ,zigll,hgammar,hpgammar)
-           ! interpolates adjoint source onto GLL points within this element
-           do k = 1, NGLLZ
-             do j = 1, NGLLY
-               do i = 1, NGLLX
-                 adj_sourcearray(:,:,i,j,k) = hxir(i) * hetar(j) * hgammar(k) * adj_src(:,:)
-               enddo
-             enddo
+              endif
            enddo
-           do itime = 1,NTSTEP_BETWEEN_READ_ADJSRC
-             adj_sourcearrays(irec_local,itime,:,:,:,:) = adj_sourcearray(itime,:,:,:,:)
-           enddo
-         enddo
-         close(IIN_SU1)
-         close(IIN_SU2)
-         close(IIN_SU3)
-      endif !if(.not. SU_FORMAT)
-
-      deallocate(adj_sourcearray)
-      
-    endif ! if(ibool_read_adj_arrays)
-
-    if( it < NSTEP ) then
-
-      ! receivers act as sources
-      irec_local = 0
-      do irec = 1,nrec
-
-        ! add the source (only if this proc carries the source)
-        if (myrank == islice_selected_rec(irec)) then
-          irec_local = irec_local + 1
-
-          ! checks if element is in phase_is_inner run
-          if (ispec_is_inner(ispec_selected_rec(irec)) .eqv. phase_is_inner) then
-
-            ! adds source array
-            do k = 1,NGLLZ
-              do j = 1,NGLLY
-                do i = 1,NGLLX
-                  iglob = ibool(i,j,k,ispec_selected_rec(irec))
-
-                  accel(:,iglob) = accel(:,iglob)  &
-                       + adj_sourcearrays(irec_local, &
-                          NTSTEP_BETWEEN_READ_ADJSRC - mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC), &
-                          :,i,j,k)
-                enddo
+        else
+!!! read SU adjoint sources
+           ! range of the block we need to read
+           it_start = NSTEP - it_sub_adj*NTSTEP_BETWEEN_READ_ADJSRC + 1
+           it_end   = it_start + NTSTEP_BETWEEN_READ_ADJSRC - 1
+           write(procname,"(i4)") myrank
+           ! read adjoint sources
+           open(unit=IIN_SU1, file=trim(adjustl(OUTPUT_FILES_PATH))//'../SEM/'//trim(adjustl(procname))//'_dx_SU.adj', &
+                access='direct',recl=240+4*NSTEP)
+           open(unit=IIN_SU2, file=trim(adjustl(OUTPUT_FILES_PATH))//'../SEM/'//trim(adjustl(procname))//'_dy_SU.adj', &
+                access='direct',recl=240+4*NSTEP)
+           open(unit=IIN_SU3, file=trim(adjustl(OUTPUT_FILES_PATH))//'../SEM/'//trim(adjustl(procname))//'_dz_SU.adj', &
+                access='direct',recl=240+4*NSTEP)
+           do irec_local = 1,nrec_local
+              irec = number_receiver_global(irec_local)
+              read(IIN_SU1,rec=irec_local) r4head, adj_temp
+              adj_src(:,1)=adj_temp(it_start:it_end)
+              read(IIN_SU2,rec=irec_local) r4head, adj_temp
+              adj_src(:,2)=adj_temp(it_start:it_end)
+              read(IIN_SU3,rec=irec_local) r4head, adj_temp
+              adj_src(:,3)=adj_temp(it_start:it_end)
+              ! lagrange interpolators for receiver location
+              call lagrange_any(xi_receiver(irec),NGLLX,xigll,hxir,hpxir)
+              call lagrange_any(eta_receiver(irec),NGLLY,yigll,hetar,hpetar)
+              call lagrange_any(gamma_receiver(irec),NGLLZ,zigll,hgammar,hpgammar)
+              ! interpolates adjoint source onto GLL points within this element
+              do k = 1, NGLLZ
+                 do j = 1, NGLLY
+                    do i = 1, NGLLX
+                       adj_sourcearray(:,:,i,j,k) = hxir(i) * hetar(j) * hgammar(k) * adj_src(:,:)
+                    enddo
+                 enddo
               enddo
-            enddo
+              do itime = 1,NTSTEP_BETWEEN_READ_ADJSRC
+                 adj_sourcearrays(irec_local,itime,:,:,:,:) = adj_sourcearray(itime,:,:,:,:)
+              enddo
+           enddo
+           close(IIN_SU1)
+           close(IIN_SU2)
+           close(IIN_SU3)
+        endif !if(.not. SU_FORMAT)
 
-          endif ! phase_is_inner
-        endif
-      enddo ! nrec
+        deallocate(adj_sourcearray)
 
-    endif ! it
+     endif ! if(ibool_read_adj_arrays)
+
+     if( it < NSTEP ) then
+
+        if(.NOT. GPU_MODE) then
+
+           ! receivers act as sources
+           irec_local = 0
+           do irec = 1,nrec
+
+              ! add the source (only if this proc carries the source)
+              if (myrank == islice_selected_rec(irec)) then
+                 irec_local = irec_local + 1
+
+                 ! checks if element is in phase_is_inner run
+                 if (ispec_is_inner(ispec_selected_rec(irec)) .eqv. phase_is_inner) then
+
+                    ! adds source array
+                    do k = 1,NGLLZ
+                       do j = 1,NGLLY
+                          do i = 1,NGLLX
+                             iglob = ibool(i,j,k,ispec_selected_rec(irec))
+
+                             accel(:,iglob) = accel(:,iglob)  &
+                                  + adj_sourcearrays(irec_local, &
+                                  NTSTEP_BETWEEN_READ_ADJSRC - mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC), &
+                                  :,i,j,k)
+                          enddo
+                       enddo
+                    enddo
+
+                 endif ! phase_is_inner
+              endif
+           enddo ! nrec
+        else ! GPU_MODE == .true.
+           call add_sources_sim_type_2_or_3(Mesh_pointer, adj_sourcearrays, &
+                size(adj_sourcearrays), ispec_is_inner,&
+                phase_is_inner, ispec_selected_rec,ibool,myrank, nrec, &
+                NTSTEP_BETWEEN_READ_ADJSRC - mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC),&
+                islice_selected_rec, nadj_rec_local, NTSTEP_BETWEEN_READ_ADJSRC)       
+        endif ! GPU_MODE
+     endif ! it
 
   endif !adjoint
 
@@ -339,73 +366,82 @@
 ! adjoint simulations
   if (SIMULATION_TYPE == 3 .and. NOISE_TOMOGRAPHY == 0) then
 
-    ! backward source reconstruction
-    do isource = 1,NSOURCES
+     if(GPU_MODE) then
+        do isource = 1,NSOURCES
+           stf_pre_compute(isource) = comp_source_time_function(dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+        enddo
+        call add_sourcearrays_adjoint_cuda(Mesh_pointer, USE_FORCE_POINT_SOURCE,&
+             stf_pre_compute, NSOURCES,phase_is_inner,myrank)
+     else ! .NOT. GPU_MODE
 
-      ! add the source (only if this proc carries the source)
-      if(myrank == islice_selected_source(isource)) then
+        ! backward source reconstruction
+        do isource = 1,NSOURCES
 
-        ispec = ispec_selected_source(isource)
+           ! add the source (only if this proc carries the source)
+           if(myrank == islice_selected_source(isource)) then
 
-        if (ispec_is_inner(ispec) .eqv. phase_is_inner) then
+              ispec = ispec_selected_source(isource)
 
-          if( ispec_is_elastic(ispec) ) then
+              if (ispec_is_inner(ispec) .eqv. phase_is_inner) then
 
-            if(USE_FORCE_POINT_SOURCE) then
+                 if( ispec_is_elastic(ispec) ) then
 
-               ! note: for use_force_point_source xi/eta/gamma are in the range [1,NGLL*]
-               iglob = ibool(nint(xi_source(isource)), &
-                             nint(eta_source(isource)), &
-                             nint(gamma_source(isource)), &
-                             ispec_selected_source(isource))
+                    if(USE_FORCE_POINT_SOURCE) then
 
-               f0 = hdur(isource) !! using hdur as a FREQUENCY just to avoid changing CMTSOLUTION file format
+                       ! note: for use_force_point_source xi/eta/gamma are in the range [1,NGLL*]
+                       iglob = ibool(nint(xi_source(isource)), &
+                            nint(eta_source(isource)), &
+                            nint(gamma_source(isource)), &
+                            ispec_selected_source(isource))
 
-               !if (it == 1 .and. myrank == 0) then
-               !   write(IMAIN,*) 'using a source of dominant frequency ',f0
-               !   write(IMAIN,*) 'lambda_S at dominant frequency = ',3000./sqrt(3.)/f0
-               !   write(IMAIN,*) 'lambda_S at highest significant frequency = ',3000./sqrt(3.)/(2.5*f0)
-               !endif
+                       f0 = hdur(isource) !! using hdur as a FREQUENCY just to avoid changing CMTSOLUTION file format
 
-               ! This is the expression of a Ricker; should be changed according maybe to the Par_file.
-               stf_used = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr(dble(NSTEP-it)*DT-t0-tshift_cmt(isource),f0)
+                       !if (it == 1 .and. myrank == 0) then
+                       !   write(IMAIN,*) 'using a source of dominant frequency ',f0
+                       !   write(IMAIN,*) 'lambda_S at dominant frequency = ',3000./sqrt(3.)/f0
+                       !   write(IMAIN,*) 'lambda_S at highest significant frequency = ',3000./sqrt(3.)/(2.5*f0)
+                       !endif
 
-               ! e.g. we use nu_source(:,3) here if we want a source normal to the surface.
-               ! note: time step is now at NSTEP-it
-               b_accel(:,iglob) = b_accel(:,iglob)  &
-                                  + sngl( nu_source(COMPONENT_FORCE_SOURCE,:,isource) ) * stf_used
+                       ! This is the expression of a Ricker; should be changed according maybe to the Par_file.
+                       stf_used = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr(dble(NSTEP-it)*DT-t0-tshift_cmt(isource),f0)
 
-            else
+                       ! e.g. we use nu_source(:,3) here if we want a source normal to the surface.
+                       ! note: time step is now at NSTEP-it
+                       b_accel(:,iglob) = b_accel(:,iglob)  &
+                            + sngl( nu_source(COMPONENT_FORCE_SOURCE,:,isource) ) * stf_used
 
-              ! see note above: time step corresponds now to NSTEP-it
-              ! (also compare to it-1 for forward simulation)
-              stf = comp_source_time_function(dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+                    else
 
-              ! distinguish between single and double precision for reals
-              if(CUSTOM_REAL == SIZE_REAL) then
-                stf_used = sngl(stf)
-              else
-                stf_used = stf
-              endif
+                       ! see note above: time step corresponds now to NSTEP-it
+                       ! (also compare to it-1 for forward simulation)
+                       stf = comp_source_time_function(dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
 
-              !  add source array
-              do k=1,NGLLZ
-                do j=1,NGLLY
-                  do i=1,NGLLX
-                    iglob = ibool(i,j,k,ispec_selected_source(isource))
-                    b_accel(:,iglob) = b_accel(:,iglob) + sourcearrays(isource,:,i,j,k)*stf_used
-                  enddo
-                enddo
-              enddo
-            endif ! USE_FORCE_POINT_SOURCE
+                       ! distinguish between single and double precision for reals
+                       if(CUSTOM_REAL == SIZE_REAL) then
+                          stf_used = sngl(stf)
+                       else
+                          stf_used = stf
+                       endif
 
-            stf_used_total = stf_used_total + stf_used
+                       !  add source array
+                       do k=1,NGLLZ
+                          do j=1,NGLLY
+                             do i=1,NGLLX
+                                iglob = ibool(i,j,k,ispec_selected_source(isource))
+                                b_accel(:,iglob) = b_accel(:,iglob) + sourcearrays(isource,:,i,j,k)*stf_used
+                             enddo
+                          enddo
+                       enddo
+                    endif ! USE_FORCE_POINT_SOURCE
 
-          endif ! elastic
-        endif ! phase_inner
-      endif ! myrank
+                    stf_used_total = stf_used_total + stf_used
 
-    enddo ! NSOURCES
+                 endif ! elastic
+              endif ! phase_inner
+           endif ! myrank
+
+        enddo ! NSOURCES
+     endif ! GPU_MODE
   endif ! adjoint
 
   ! master prints out source time function to file
@@ -425,11 +461,15 @@
        ! hence, instead of a moment tensor 'sourcearrays', a 'noise_sourcearray' for a point force is needed.
        ! furthermore, the CMTSOLUTION needs to be zero, i.e., no earthquakes.
        ! now this must be manually set in DATA/CMTSOLUTION, by USERS.
-       call add_source_master_rec_noise(myrank,nrec, &
-                                NSTEP,accel,noise_sourcearray, &
-                                ibool,islice_selected_rec,ispec_selected_rec, &
-                                it,irec_master_noise, &
-                                NSPEC_AB,NGLOB_AB)
+       if(.NOT. GPU_MODE) then
+          call add_source_master_rec_noise(myrank,nrec, &
+               NSTEP,accel,noise_sourcearray, &
+               ibool,islice_selected_rec,ispec_selected_rec, &
+               it,irec_master_noise, &
+               NSPEC_AB,NGLOB_AB)
+       else ! GPU_MODE == .true.
+          call add_source_master_rec_noise_cuda(Mesh_pointer, myrank, it, irec_master_noise, islice_selected_rec)
+       endif
     elseif ( NOISE_TOMOGRAPHY == 2 ) then
        ! second step of noise tomography, i.e., read the surface movie saved at every timestep
        ! use the movie to drive the ensemble forward wavefield
@@ -440,7 +480,8 @@
                               NSTEP-it+1, &
                               NSPEC_AB,NGLOB_AB, &
                               num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
-                              free_surface_jacobian2Dw)
+                              free_surface_jacobian2Dw,&
+                              Mesh_pointer,GPU_MODE,NOISE_TOMOGRAPHY)
         ! be careful, since ensemble forward sources are reversals of generating wavefield "eta"
         ! hence the "NSTEP-it+1", i.e., start reading from the last timestep
         ! note the ensemble forward sources are generally distributed on the surface of the earth
@@ -458,7 +499,8 @@
                               it, &
                               NSPEC_AB,NGLOB_AB, &
                               num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
-                              free_surface_jacobian2Dw)
+                              free_surface_jacobian2Dw,&
+                               Mesh_pointer,GPU_MODE,NOISE_TOMOGRAPHY)
     endif
   endif
 

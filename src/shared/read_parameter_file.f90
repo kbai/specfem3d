@@ -214,3 +214,20 @@
 
   end subroutine read_parameter_file
 
+
+subroutine read_gpu_mode(GPU_MODE)
+
+  implicit none
+  include "constants.h"
+
+  logical GPU_MODE
+  ! opens file Par_file
+
+  call open_parameter_file()
+
+  call read_value_logical(GPU_MODE, 'solver.GPU_MODE')
+
+  ! close parameter file
+  call close_parameter_file()
+
+end subroutine read_gpu_mode

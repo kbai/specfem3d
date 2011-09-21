@@ -704,4 +704,79 @@
   endif
 
   end subroutine prepare_timerun_noise
+  
+  subroutine prepare_GPU()
 
+    use specfem_par
+    use specfem_par_acoustic
+    use specfem_par_elastic
+    use specfem_par_poroelastic
+    use specfem_par_movie
+
+    implicit none
+    character(len=256) :: plot_file
+    integer :: ier
+
+    write(IMAIN,*) "GPU_MODE Active. Preparing Fields and Constants on Device."
+    call prepare_constants_device(Mesh_pointer, NGLLX, NSPEC_AB, NGLOB_AB, &
+          xix, xiy, xiz, etax,etay,etaz, gammax, gammay, gammaz,&
+          kappastore, mustore, ibool, phase_ispec_inner_elastic, num_phase_ispec_elastic,&
+          rmass, num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh,&
+          nibool_interfaces_ext_mesh, ibool_interfaces_ext_mesh,&
+          hprime_xx, hprimewgll_xx,&
+          wgllwgll_xy, wgllwgll_xz,&
+          wgllwgll_yz,&
+          abs_boundary_ispec, abs_boundary_ijk,&
+          abs_boundary_normal,&
+          rho_vp,rho_vs,&
+          abs_boundary_jacobian2Dw,&
+          b_absorb_field, num_abs_boundary_faces, b_num_abs_boundary_faces,&
+          ispec_is_inner, ispec_is_elastic,&
+          NSOURCES, sourcearrays, islice_selected_source, ispec_selected_source,&
+          number_receiver_global,ispec_selected_rec,nrec_local,nrec)
+
+    call prepare_fields_device(Mesh_pointer, NDIM*NGLOB_AB);
+
+    if ( NOISE_TOMOGRAPHY > 0 ) then
+
+        call prepare_noise_constants_device(Mesh_pointer, NGLLX, NSPEC_AB, NGLOB_AB, &
+             free_surface_ispec, nfaces_surface_ext_mesh, SIMULATION_TYPE)
+
+        call prepare_adjoint_constants_device(Mesh_pointer, NGLLX,&
+             ispec_selected_rec,islice_selected_rec,nrec,size(islice_selected_rec),&
+             noise_sourcearray, NSTEP,&
+             epsilondev_xx,&
+             epsilondev_yy,&
+             epsilondev_xy,&
+             epsilondev_xz,&
+             epsilondev_yz,&
+             NSPEC_STRAIN_ONLY)
+
+        if(NOISE_TOMOGRAPHY > 1) &             
+             call prepare_and_transfer_noise_backward_constants(Mesh_pointer,&
+             normal_x_noise,&
+             normal_y_noise,&
+             normal_z_noise,&
+             mask_noise,&
+             free_surface_jacobian2Dw,&
+             nfaces_surface_ext_mesh)
+        if( SIMULATION_TYPE == 3) then ! now have backward fields in addition to standard fields
+
+           call prepare_and_transfer_noise_backward_fields(Mesh_pointer, NDIM*NGLOB_AB, &
+                b_displ, b_veloc, b_accel,&
+                b_epsilondev_xx, b_epsilondev_yy, b_epsilondev_xy,&
+                b_epsilondev_xz, b_epsilondev_yz,NSPEC_STRAIN_ONLY)
+           call prepare_sensitivity_kernels(Mesh_pointer,&
+                rho_kl,mu_kl,kappa_kl,&
+                epsilon_trace_over_3,b_epsilon_trace_over_3,&
+                Sigma_kl,NSPEC_AB)
+
+
+        endif
+     end if
+
+     ! transfer forward and backward fields to device with initial values
+     call transfer_fields_to_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+     if(SIMULATION_TYPE == 3) call transfer_b_fields_to_device(NDIM*NGLOB_AB,b_displ,b_veloc, b_accel,Mesh_pointer)
+     
+  end subroutine prepare_GPU

@@ -74,6 +74,10 @@
   real(kind=CUSTOM_REAL),dimension(NDIM,NGLOB_ADJOINT):: b_accel
   logical:: SAVE_FORWARD
 
+  ! GPU_MODE variables
+  integer(kind=8) :: Mesh_pointer
+  logical :: GPU_MODE  
+  
 ! local parameters
   real(kind=CUSTOM_REAL) vx,vy,vz,nx,ny,nz,tx,ty,tz,vn,jacobianw
   integer :: ispec,iglob,i,j,k,iface,igll
@@ -94,64 +98,72 @@
     endif    
   endif !adjoint
 
+  
+  if(.NOT. GPU_MODE) then
 
-! absorbs absorbing-boundary surface using Stacey condition (Clayton & Enquist)
-  do iface=1,num_abs_boundary_faces
+     ! absorbs absorbing-boundary surface using Stacey condition (Clayton & Enquist)
+     do iface=1,num_abs_boundary_faces
 
-    ispec = abs_boundary_ispec(iface)
+        ispec = abs_boundary_ispec(iface)
 
-    if (ispec_is_inner(ispec) .eqv. phase_is_inner) then
+        if (ispec_is_inner(ispec) .eqv. phase_is_inner) then
 
-      if( ispec_is_elastic(ispec) ) then
+           if( ispec_is_elastic(ispec) ) then
 
-        ! reference gll points on boundary face
-        do igll = 1,NGLLSQUARE
+              ! reference gll points on boundary face
+              do igll = 1,NGLLSQUARE
 
-          ! gets local indices for GLL point
-          i = abs_boundary_ijk(1,igll,iface)
-          j = abs_boundary_ijk(2,igll,iface)
-          k = abs_boundary_ijk(3,igll,iface)
+                 ! gets local indices for GLL point
+                 i = abs_boundary_ijk(1,igll,iface)
+                 j = abs_boundary_ijk(2,igll,iface)
+                 k = abs_boundary_ijk(3,igll,iface)
 
-          ! gets velocity
-          iglob=ibool(i,j,k,ispec)
-          vx=veloc(1,iglob)
-          vy=veloc(2,iglob)
-          vz=veloc(3,iglob)
+                 ! gets velocity
+                 iglob=ibool(i,j,k,ispec)
+                 vx=veloc(1,iglob)
+                 vy=veloc(2,iglob)
+                 vz=veloc(3,iglob)
 
-          ! gets associated normal
-          nx = abs_boundary_normal(1,igll,iface)
-          ny = abs_boundary_normal(2,igll,iface)
-          nz = abs_boundary_normal(3,igll,iface)
+                 ! gets associated normal
+                 nx = abs_boundary_normal(1,igll,iface)
+                 ny = abs_boundary_normal(2,igll,iface)
+                 nz = abs_boundary_normal(3,igll,iface)
 
-          ! velocity component in normal direction (normal points out of element)
-          vn = vx*nx + vy*ny + vz*nz
+                 ! velocity component in normal direction (normal points out of element)
+                 vn = vx*nx + vy*ny + vz*nz
 
-          ! stacey term: velocity vector component * vp * rho in normal direction + vs * rho component tangential to it
-          tx = rho_vp(i,j,k,ispec)*vn*nx + rho_vs(i,j,k,ispec)*(vx-vn*nx)
-          ty = rho_vp(i,j,k,ispec)*vn*ny + rho_vs(i,j,k,ispec)*(vy-vn*ny)
-          tz = rho_vp(i,j,k,ispec)*vn*nz + rho_vs(i,j,k,ispec)*(vz-vn*nz)
+                 ! stacey term: velocity vector component * vp * rho in normal direction + vs * rho component tangential to it
+                 tx = rho_vp(i,j,k,ispec)*vn*nx + rho_vs(i,j,k,ispec)*(vx-vn*nx)
+                 ty = rho_vp(i,j,k,ispec)*vn*ny + rho_vs(i,j,k,ispec)*(vy-vn*ny)
+                 tz = rho_vp(i,j,k,ispec)*vn*nz + rho_vs(i,j,k,ispec)*(vz-vn*nz)
 
-          ! gets associated, weighted jacobian
-          jacobianw = abs_boundary_jacobian2Dw(igll,iface)
+                 ! gets associated, weighted jacobian
+                 jacobianw = abs_boundary_jacobian2Dw(igll,iface)
 
-          ! adds stacey term (weak form)
-          accel(1,iglob) = accel(1,iglob) - tx*jacobianw
-          accel(2,iglob) = accel(2,iglob) - ty*jacobianw
-          accel(3,iglob) = accel(3,iglob) - tz*jacobianw
+                 ! adds stacey term (weak form)
+                 accel(1,iglob) = accel(1,iglob) - tx*jacobianw
+                 accel(2,iglob) = accel(2,iglob) - ty*jacobianw
+                 accel(3,iglob) = accel(3,iglob) - tz*jacobianw
 
-          ! adjoint simulations
-          if (SIMULATION_TYPE == 3) then
-            b_accel(:,iglob) = b_accel(:,iglob) - b_absorb_field(:,igll,iface)
-          else if (SIMULATION_TYPE == 1 .and. SAVE_FORWARD) then
-            b_absorb_field(1,igll,iface) = tx*jacobianw
-            b_absorb_field(2,igll,iface) = ty*jacobianw
-            b_absorb_field(3,igll,iface) = tz*jacobianw
-          endif !adjoint
+                 ! adjoint simulations
+                 if (SIMULATION_TYPE == 3) then
+                    b_accel(:,iglob) = b_accel(:,iglob) - b_absorb_field(:,igll,iface)
+                 else if (SIMULATION_TYPE == 1 .and. SAVE_FORWARD) then
+                    b_absorb_field(1,igll,iface) = tx*jacobianw
+                    b_absorb_field(2,igll,iface) = ty*jacobianw
+                    b_absorb_field(3,igll,iface) = tz*jacobianw
+                 endif !adjoint
 
-         enddo
-      endif ! ispec_is_elastic
-    endif ! ispec_is_inner
-  enddo
+              enddo
+           endif ! ispec_is_elastic
+        endif ! ispec_is_inner
+     enddo
+
+  else ! GPU_MODE == .true.
+     call compute_stacey_elastic_cuda(Mesh_pointer, NSPEC_AB, NGLOB_AB, phase_is_inner,&
+          num_abs_boundary_faces, SIMULATION_TYPE, NSTEP, NGLOB_ADJOINT,&
+          b_num_abs_boundary_faces, b_reclen_field,b_absorb_field, SAVE_FORWARD, NGLLSQUARE,it)
+  endif
 
   ! adjoint simulations: stores absorbed wavefield part
   if (SIMULATION_TYPE == 1 .and. SAVE_FORWARD .and. num_abs_boundary_faces > 0 ) then

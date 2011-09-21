@@ -85,11 +85,12 @@
 
     ! restores last time snapshot saved for backward/reconstruction of wavefields
     ! note: this must be read in after the Newark time scheme
+    ! note 2: GPU b_field transfers are included
     if( SIMULATION_TYPE == 3 .and. it == 1 ) then
      call it_read_foward_arrays()
     endif
 
-    ! write the seismograms with time shift
+    ! write the seismograms with time shift (GPU_MODE transfer included)
     if (nrec_local > 0) then
       call write_seismograms()
     endif
@@ -115,7 +116,8 @@
                               ibool, &
                               noise_surface_movie,it, &
                               NSPEC_AB,NGLOB_AB, &
-                              num_free_surface_faces,free_surface_ispec,free_surface_ijk)
+                              num_free_surface_faces,free_surface_ispec,free_surface_ijk,&
+                              Mesh_pointer,GPU_MODE)
     endif
 
 !
@@ -143,6 +145,12 @@
   integer :: ihours,iminutes,iseconds,int_tCPU, &
              ihours_remain,iminutes_remain,iseconds_remain,int_t_remain, &
              ihours_total,iminutes_total,iseconds_total,int_t_total
+  
+  if(GPU_MODE) then
+     call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+     if(SIMULATION_TYPE==3) &
+          call transfer_b_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
+  endif
 
 ! compute maximum of norm of displacement in each slice
   if( ELASTIC_SIMULATION ) then
@@ -322,13 +330,19 @@
 
 ! updates elastic displacement and velocity
   if( ELASTIC_SIMULATION ) then
-    displ(:,:) = displ(:,:) + deltat*veloc(:,:) + deltatsqover2*accel(:,:)
-    veloc(:,:) = veloc(:,:) + deltatover2*accel(:,:)
-    accel(:,:) = 0._CUSTOM_REAL
+     if(.NOT. GPU_MODE) then
+        displ(:,:) = displ(:,:) + deltat*veloc(:,:) + deltatsqover2*accel(:,:)
+        veloc(:,:) = veloc(:,:) + deltatover2*accel(:,:)
+        accel(:,:) = 0._CUSTOM_REAL
+     else ! GPU_MODE == 1
+        ! Includes SIM_TYPE 1 & 3 (for noise tomography)
+        call it_update_displacement_scheme_cuda(Mesh_pointer, size(displ), deltat, deltatsqover2,&
+             deltatover2, SIMULATION_TYPE, b_deltat, b_deltatsqover2, b_deltatover2)
+     endif
   endif
 
 ! adjoint simulations
-  if (SIMULATION_TYPE == 3) then
+  if (SIMULATION_TYPE == 3 .and. .NOT. GPU_MODE) then
     ! acoustic backward fields
     if( ACOUSTIC_SIMULATION ) then
       b_potential_acoustic(:) = b_potential_acoustic(:) &
@@ -410,7 +424,9 @@
   endif
 
   close(27)
-
+  if(GPU_MODE) &
+            call transfer_b_fields_to_device(NDIM*NGLOB_AB,b_displ,b_veloc, b_accel,Mesh_pointer)
+  
   end subroutine it_read_foward_arrays
 
 !=====================================================================

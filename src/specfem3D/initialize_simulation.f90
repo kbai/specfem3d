@@ -48,6 +48,9 @@
                         NTSTEP_BETWEEN_OUTPUT_INFO,SIMULATION_TYPE,SAVE_FORWARD, &
                         NTSTEP_BETWEEN_READ_ADJSRC,NOISE_TOMOGRAPHY)
 
+  ! GPU_MODE is in par_file
+  call read_gpu_mode(GPU_MODE)
+
   ! get the base pathname for output files
   call get_value_string(OUTPUT_FILES, 'OUTPUT_FILES', OUTPUT_FILES_PATH(1:len_trim(OUTPUT_FILES_PATH)))
 

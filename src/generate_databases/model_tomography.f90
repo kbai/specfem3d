@@ -162,6 +162,97 @@
 
 !
 !-------------------------------------------------------------------------------------------------
+!PB ROUTINE WHICH ASSINGS AT EACH GLL POINT THE VALUES OF v_p v_s AND rho TAKEN FROM THE PREM MODEL
+!PB IT'S CALLED IN get_model.f90(:149) WITHIN THE generate_databases PROCESS
+
+ subroutine PREM_routine(xloc,yloc,zloc,ro_prem,vp_prem,vs_prem,idom)
+
+double precision, intent(in) :: xloc,yloc,zloc 
+integer, intent(in)          :: idom
+double precision             :: r0,r,x_prem
+!double precision             :: ro_prem,vp_prem,vs_prem
+real                         :: ro_prem,vp_prem,vs_prem
+!character(len=3), intent(in) :: param !rho, vs,vp
+
+  r0=sqrt(xloc**2+yloc**2+zloc**2)
+!  print*,'xloc,yloc,zloc,r0,idom',xloc,yloc,zloc,r0,idom
+  r=r0/1000.
+
+  x_prem=r/6371.     ! Radius (normalized to x(surface)=1 )
+!  print*,'x_prem',x_prem
+  IF(idom==1)THEN        ! upper crustal layer
+     !print*,'I am in domain 1'
+     ro_prem=2.6
+     vp_prem=5.8
+     vs_prem=3.2
+!    print*,'ro,vp,vs form domain 1',ro_prem,vp_prem,vs_prem
+  ELSEIF(idom==2)THEN
+     ro_prem=2.9                       ! lower crustal layer
+     vp_prem=6.8
+     vs_prem=3.9
+  ELSEIF(idom==3)THEN
+     ro_prem=2.691+.6924*x_prem             ! upper mantle
+     vp_prem=4.1875+3.9382*x_prem
+     vs_prem=2.1519+2.3481*x_prem
+  ELSEIF(idom==4)THEN
+     ro_prem=7.1089-3.8045*x_prem
+     vp_prem=20.3926-12.2569*x_prem
+     vs_prem=8.9496-4.4597*x_prem
+  ELSEIF(idom==5)THEN
+     ro_prem=11.2494-8.0298*x_prem
+     vp_prem=39.7027-32.6166*x_prem
+     vs_prem=22.3512-18.5856*x_prem
+  ELSEIF(idom==6)THEN
+     ro_prem=5.3197-1.4836*x_prem
+     vp_prem=19.0957-9.8672*x_prem
+     vs_prem=9.9839-4.9324*x_prem
+  ELSEIF(idom==7)THEN   !lower mantle
+     ro_prem=7.9565-6.4761*x_prem+5.5283*x_prem**2-3.0807*x_prem**3
+     vp_prem=29.2766-23.6027*x_prem+5.5242*x_prem**2-2.5514*x_prem**3
+     vs_prem=22.3459-17.2473*x_prem-2.0834*x_prem**2+0.9783*x_prem**3
+  ELSEIF(idom==8)THEN
+     ro_prem=7.9565-6.4761*x_prem+5.5283*x_prem**2-3.0807*x_prem**3
+     vp_prem=24.9520-40.4673*x_prem+51.4832*x_prem**2-26.6419*x_prem**3
+     vs_prem=11.1671-13.7818*x_prem+17.4575*x_prem**2-9.2777*x_prem**3
+  ELSEIF(idom==9)THEN
+     ro_prem=7.9565-6.4761*x_prem+5.5283*x_prem**2-3.0807*x_prem**3
+     vp_prem=15.3891-5.3181*x_prem+5.5242*x_prem**2-2.5514*x_prem**3
+     vs_prem=6.9254+1.4672*x_prem-2.0834*x_prem**2+.9783*x_prem**3
+  ELSEIF(idom==10)THEN  ! outer core
+     ro_prem=12.5815-1.2638*x_prem-3.6426*x_prem**2-5.5281*x_prem**3
+     vp_prem=11.0487-4.0362*x_prem+4.8023*x_prem**2-13.5732*x_prem**3
+     vs_prem=0.00
+  ELSEIF(idom==11)THEN                        ! inner core
+     ro_prem=13.0885-8.8381*x_prem**2
+     vp_prem=11.2622-6.3640*x_prem**2
+     vs_prem=3.6678-4.4475*x_prem**2
+  ENDIF
+
+!    print*,'ro,vp,vs passed from routine and not multiplied',ro_prem,vp_prem,vs_prem
+
+  ro_prem=ro_prem*1000
+  vp_prem=vp_prem*1000
+  vs_prem=vs_prem*1000
+
+!   print*,'ro,vp,vs passed from PREM_ROUTINE multiplied by 1000',ro_prem,vp_prem,vs_prem
+
+!  if (param=='rho') then
+!     prem_sub=ro_prem*1000.
+!  elseif (param=='v_p') then
+!     prem_sub=vp_prem*1000.
+!  elseif (param=='v_s') then
+!     prem_sub=vs_prem*1000.
+!  else
+!     write(6,*)'ERROR IN PREM_SUB FUNCTION:',param,'NOT AN OPTION'
+!     stop
+
+end subroutine PREM_routine
+
+
+
+
+!
+!-------------------------------------------------------------------------------------------------
 !
 
 

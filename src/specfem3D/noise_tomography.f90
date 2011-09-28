@@ -75,6 +75,88 @@
 
   end subroutine noise_distribution_direction
 
+subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_in, &
+                  normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
+                  mask_noise_out)
+  implicit none
+  include "constants.h"
+  ! input parameters
+  real(kind=CUSTOM_REAL) :: xcoord_in,ycoord_in,zcoord_in
+  ! output parameters
+  real(kind=CUSTOM_REAL) :: normal_x_noise_out,normal_y_noise_out,normal_z_noise_out,mask_noise_out
+  ! local parameters
+!PB VARIABLES TO DEFINE THE REGION OF NOISE
+  real(kind=CUSTOM_REAL) :: xcoord,ycoord,zcoord,xcoord_center,ycoord_center
+  real :: lon,lat,colat,lon_cn,lat_cn,dsigma,d,dmax
+  
+  ! coordinates "x/y/zcoord_in" actually contain r theta phi, therefore convert back to x y z
+  ! call rthetaphi_2_xyz(xcoord,ycoord,zcoord, xcoord_in,ycoord_in,zcoord_in)
+  xcoord=xcoord_in
+  ycoord=ycoord_in
+  zcoord=zcoord_in
+
+!PB NOT UNIF DISTRIBUTION OF NOISE ON THE SURFACE OF A SPHERE
+!PB lon lat colat ARE IN RADIANS SINCE ARE OBTAINED FROM CARTESIAN COORDINATES
+!PB lon_cn lat_cn (cn = CENTER OF NOISE REGION) IF NOT, MUST BE CONVERTED IN RADIANS
+!PB lon_cn lat_cn  ARE INSERTED DIRECTLY HERE FOR SIMPLICITY
+
+  lon_cn = (3.89)*PI/180
+  lat_cn = (45.113)*PI/180
+
+  if (xcoord >= 0) then
+   lon=asin(ycoord/(sqrt(xcoord**2+ycoord**2)))
+  else
+   lon=(PI-(asin(ycoord/(sqrt(xcoord**2+ycoord**2)))))
+  endif
+   colat=atan(sqrt(xcoord**2+ycoord**2)/zcoord)
+   lat=(PI/2)-colat
+
+!PB CALCULATE THE DISTANCE BETWEEN CENTER OF NOISE REGION AND EACH POINT OF THE MODEL'S FREE SURFACE  !PB dsigma IS THE "3D" ANGLE BETWEEN THE TWO POINTS, THEN d = R*dsigma   
+  dsigma=acos(sin(lon)*sin(lon_cn)+cos(lon)*cos(lon_cn)*cos(lat-lat_cn))
+  d=sqrt(xcoord**2+ycoord**2+zcoord**2)*dsigma
+
+!PB IF YOU WANT TO USE A NONUNIFORM DISTRIBUTION OF NOISE IN THE EXAMPLE
+!PROVIDED WITH THE CODE, THEN UNCOMMENT THE FOLLOWING LINES (before definition
+!of dmax)
+
+!  xcoord_center = 30000
+!  ycoord_center = 30000
+!  d = sqrt((xcoord_center-xcoord)**2+(ycoord_center-ycoord)**2)
+
+!PB NOTE THAT d IS EXPRESSED IN METERS REMEBER THAT WHEN YOU SET THE PARAMETER dmax
+!PB dmax IS THE RADIUS OF THE AREA IN WHICH masc_noise_out IS 1 (NOISE IS DEFINED)
+
+  dmax = 300000
+
+  ! NOTE that all coordinates are non-dimensionalized in GLOBAL package!
+  ! USERS are free to choose which set to use,
+  ! either "r theta phi" (xcoord_in,ycoord_in,zcoord_in)
+  ! or     "x y z"       (xcoord,ycoord,zcoord)
+
+
+  !*****************************************************************************************************************
+  !******************************** change your noise characteristics below ****************************************
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! noise direction
+  !!!!! here, the noise is assumed to be vertical (SESAME)
+  normal_x_noise_out = 0.0
+  normal_y_noise_out = 0.0
+  normal_z_noise_out = 1.0
+  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  noise distribution
+  !!!!! here, the noise is assumed to be uniform
+!  mask_noise_out = 1.0
+
+!HERE IS NOT UNIFORM
+ if (d <= dmax) then
+  mask_noise_out = 1.0
+ else
+  mask_noise_out = 0.0
+ endif
+
+  !******************************** change your noise characteristics above ****************************************
+  !*****************************************************************************************************************
+
+  end subroutine noise_distribution_direction_non_uniform
+  
 ! =============================================================================================================
 ! =============================================================================================================
 ! =============================================================================================================
@@ -183,10 +265,19 @@
         ipoin = ipoin + 1
         iglob = ibool(i,j,k,ispec)
         ! this subroutine must be modified by USERS
-        call noise_distribution_direction(xstore(iglob), &
-                  ystore(iglob),zstore(iglob), &
-                  normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
-                  mask_noise_out)
+
+        ! DEFAULT
+        ! call noise_distribution_direction(xstore(iglob), &
+        !           ystore(iglob),zstore(iglob), &
+        !           normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
+        !           mask_noise_out)
+
+        ! Setup for NOISE_TOMOGRAPHY by Piero Basini
+        call noise_distribution_direction_non_uniform(xstore(iglob), &
+             ystore(iglob),zstore(iglob), &
+             normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
+             mask_noise_out)
+        
         normal_x_noise(ipoin) = normal_x_noise_out
         normal_y_noise(ipoin) = normal_y_noise_out
         normal_z_noise(ipoin) = normal_z_noise_out

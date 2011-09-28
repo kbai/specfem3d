@@ -289,11 +289,17 @@ subroutine create_regions_mesh_ext(ibool, &
   if( myrank == 0) then
     write(IMAIN,*) '  ...determining velocity model'
   endif
-  call get_model(myrank,nspec,ibool,mat_ext_mesh,nelmnts_ext_mesh, &
+  ! Default model. Using PREM model instead
+  ! call get_model(myrank,nspec,ibool,mat_ext_mesh,nelmnts_ext_mesh, &
+  ! materials_ext_mesh,nmat_ext_mesh, &
+  ! undef_mat_prop,nundefMat_ext_mesh, &
+  ! ANISOTROPY,LOCAL_PATH)
+
+  call get_model_PREM(myrank,nspec,ibool,mat_ext_mesh,nelmnts_ext_mesh, &
                         materials_ext_mesh,nmat_ext_mesh, &
                         undef_mat_prop,nundefMat_ext_mesh, &
                         ANISOTROPY,LOCAL_PATH)
-
+  
 ! sets up absorbing/free surface boundaries
   call sync_all()
   if( myrank == 0) then

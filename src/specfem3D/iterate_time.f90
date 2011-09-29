@@ -63,8 +63,7 @@
 ! ************* MAIN LOOP OVER THE TIME STEPS *************
 ! *********************************************************
 
-  ! do it = 1,NSTEP
-  do it = 1,150
+  do it = 1,NSTEP
 
     ! simulation status output and stability check
     if(mod(it,NTSTEP_BETWEEN_OUTPUT_INFO) == 0 .or. it == 5) then

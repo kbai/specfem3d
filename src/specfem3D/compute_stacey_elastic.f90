@@ -36,7 +36,7 @@
                         veloc,rho_vp,rho_vs, &
                         ispec_is_elastic,SIMULATION_TYPE,SAVE_FORWARD, &
                         NSTEP,it,NGLOB_ADJOINT,b_accel, &
-                        b_num_abs_boundary_faces,b_reclen_field,b_absorb_field)
+                        b_num_abs_boundary_faces,b_reclen_field,b_absorb_field,GPU_MODE,Mesh_pointer)
 
   implicit none
 

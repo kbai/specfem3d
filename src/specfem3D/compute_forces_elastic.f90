@@ -488,8 +488,8 @@ subroutine compute_forces_elastic()
                         nrec,islice_selected_rec,ispec_selected_rec, &
                         nadj_rec_local,adj_sourcearrays,b_accel, &
                         NTSTEP_BETWEEN_READ_ADJSRC,NOISE_TOMOGRAPHY,GPU_MODE, Mesh_pointer )
-
-! assemble all the contributions between slices using MPI
+    
+    ! assemble all the contributions between slices using MPI
     if( phase_is_inner .eqv. .false. ) then
        ! sends accel values to corresponding MPI interface neighbors
        if(.NOT. GPU_MODE) then

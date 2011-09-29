@@ -18,3 +18,5 @@ Change the following settings (for NOISE simulations):
 ! that completes an orthonormal.
   logical, parameter :: EXT_MESH_RECV_NORMAL = .true.
 
+Settings for Eiger
+./configure --with-cuda FC=mpif90 MPIFC=mpif90 CUDA_LIB=-L/apps/eiger/Cuda-4.0/cuda/lib64 MPI_INC=-I/apps/eiger/mvapich2/1.5.1p1/mvapich2-gnu/include

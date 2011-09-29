@@ -740,7 +740,7 @@
     if ( NOISE_TOMOGRAPHY > 0 ) then
 
         call prepare_noise_constants_device(Mesh_pointer, NGLLX, NSPEC_AB, NGLOB_AB, &
-             free_surface_ispec, nfaces_surface_ext_mesh, SIMULATION_TYPE)
+             free_surface_ispec,free_surface_ijk, num_free_surface_faces,size(free_surface_ijk), SIMULATION_TYPE)
 
         call prepare_adjoint_constants_device(Mesh_pointer, NGLLX,&
              ispec_selected_rec,islice_selected_rec,nrec,size(islice_selected_rec),&

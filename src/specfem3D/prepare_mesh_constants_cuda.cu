@@ -560,8 +560,11 @@ void prepare_and_transfer_noise_backward_constants_(long* Mesh_pointer_f,
   printf("jacobian_size = %d\n",25*(*nfaces_surface_ext_mesh));
 }
 
-extern "C" void prepare_noise_constants_device_(long* Mesh_pointer_f, int* NGLLX, int* NSPEC_AB, int* NGLOB_AB,
-				     int* free_surface_ispec, int* num_free_surface_faces, int* SIMULATION_TYPE) {
+extern "C" void prepare_noise_constants_device_(long* Mesh_pointer_f, int* NGLLX,
+						int* NSPEC_AB, int* NGLOB_AB,
+						int* free_surface_ispec,int* free_surface_ijk,
+						int* num_free_surface_faces,
+						int* size_free_surface_ijk, int* SIMULATION_TYPE) {
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f);
 
@@ -572,6 +575,9 @@ extern "C" void prepare_noise_constants_device_(long* Mesh_pointer_f, int* NGLLX
 
   // alloc storage for the surface buffer to be copied
   print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_noise_surface_movie, 3*25*(*num_free_surface_faces)*sizeof(float)),1);
+
+  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_free_surface_ijk, (*size_free_surface_ijk)*sizeof(float)),1);
+  print_CUDA_error_if_any(cudaMemcpy(mp->d_free_surface_ijk,free_surface_ijk,(*size_free_surface_ijk)*sizeof(float),cudaMemcpyHostToDevice),1);
   
 }
 

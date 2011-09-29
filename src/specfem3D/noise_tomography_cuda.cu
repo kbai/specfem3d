@@ -30,12 +30,12 @@ __global__ void transfer_surface_to_host_kernel(int* free_surface_ispec,int* fre
     int i = free_surface_ijk[0+3*(igll + 25*(iface))]-1;
     int j = free_surface_ijk[1+3*(igll + 25*(iface))]-1;
     int k = free_surface_ijk[2+3*(igll + 25*(iface))]-1;
-    
-    int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)]-1;
+        
+    int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)]-1;    
     
     noise_surface_movie[INDEX3(3,25,0,igll,iface)] = displ[iglob*3];
-    noise_surface_movie[INDEX3(3,25,0,igll,iface)] = displ[iglob*3+1];
-    noise_surface_movie[INDEX3(3,25,0,igll,iface)] = displ[iglob*3+2];
+    noise_surface_movie[INDEX3(3,25,1,igll,iface)] = displ[iglob*3+1];
+    noise_surface_movie[INDEX3(3,25,2,igll,iface)] = displ[iglob*3+2];
   }
 }
 

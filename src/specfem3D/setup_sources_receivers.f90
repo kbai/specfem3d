@@ -514,6 +514,7 @@ subroutine setup_sources_precompute_arrays()
   real(kind=CUSTOM_REAL) :: junk
   integer :: isource,ispec
   integer :: irec !,irec_local
+  integer :: i,j,k,iglob  
   integer :: icomp,itime,nadj_files_found,nadj_files_found_tot,ier
   character(len=3),dimension(NDIM) :: comp ! = (/ "BHE", "BHN", "BHZ" /)
   character(len=256) :: filename
@@ -561,6 +562,34 @@ subroutine setup_sources_precompute_arrays()
           call compute_arrays_source_acoustic(xi_source(isource),eta_source(isource),gamma_source(isource),&
                         sourcearray,xigll,yigll,zigll,factor_source)
         endif
+
+        ! point forces, initializes sourcearray, used for simplified CUDA routines
+        if(USE_FORCE_POINT_SOURCE) then
+          ! note: for use_force_point_source xi/eta/gamma are in the range [1,NGLL*]
+          iglob = ibool(nint(xi_source(isource)), &
+                        nint(eta_source(isource)), &
+                        nint(gamma_source(isource)), &
+                        ispec)            
+          ! sets sourcearrays
+          sourcearray(:,:,:,:) = 0.0          
+          do k=1,NGLLZ
+            do j=1,NGLLY
+              do i=1,NGLLX
+                if( ibool(i,j,k,ispec) == iglob ) then
+                  ! acoustic source
+                  ! identical source array components in x,y,z-direction
+                  if( ispec_is_acoustic(ispec) ) then
+                    sourcearray(:,i,j,k) = 1.0
+                  endif
+                  ! elastic source
+                  if( ispec_is_elastic(ispec) ) then
+                    sourcearray(:,i,j,k) = nu_source(COMPONENT_FORCE_SOURCE,:,isource)
+                  endif
+                endif
+              enddo
+            enddo
+          enddo
+        endif                
 
         ! stores source excitations
         sourcearrays(isource,:,:,:,:) = sourcearray(:,:,:,:)
@@ -746,8 +775,17 @@ subroutine setup_sources_receivers_VTKfile()
   double precision :: xil,etal,gammal
   double precision :: xmesh,ymesh,zmesh
   real(kind=CUSTOM_REAL),dimension(NGNOD) :: xelm,yelm,zelm
-  integer :: ia,ispec,isource,irec,ier
-  character(len=256) :: filename,filename_new,system_command
+  integer :: ia,ispec,isource,irec,ier,totalpoints
+  INTEGER(kind=4) :: system_command_status
+  character(len=256) :: filename,filename_new,system_command,system_command1,system_command2
+
+  ! determines number of points for vtk file
+  if( SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then
+    totalpoints = NSOURCES + nrec
+  else
+    ! pure adjoint simulation only needs receivers
+    totalpoints = nrec
+  endif
 
   if (myrank == 0) then
     ! vtk file
@@ -758,64 +796,66 @@ subroutine setup_sources_receivers_VTKfile()
     write(IOVTK,'(a)') 'Source and Receiver VTK file'
     write(IOVTK,'(a)') 'ASCII'
     write(IOVTK,'(a)') 'DATASET POLYDATA'
-    write(IOVTK, '(a,i6,a)') 'POINTS ', NSOURCES+nrec, ' float'
+    write(IOVTK, '(a,i6,a)') 'POINTS ', totalpoints, ' float'
   endif
 
   ! sources
-  do isource=1,NSOURCES
-    ! spectral element id
-    ispec = ispec_selected_source(isource)
+  if( SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then  
+    do isource=1,NSOURCES
+      ! spectral element id
+      ispec = ispec_selected_source(isource)
 
-    ! gets element ancor nodes
-    if( myrank == islice_selected_source(isource) ) then
-      ! find the coordinates of the eight corner nodes of the element
-      call get_shape3D_element_corners(xelm,yelm,zelm,ispec,&
-                      ibool,xstore,ystore,zstore,NSPEC_AB,NGLOB_AB)
+      ! gets element ancor nodes
+      if( myrank == islice_selected_source(isource) ) then
+        ! find the coordinates of the eight corner nodes of the element
+        call get_shape3D_element_corners(xelm,yelm,zelm,ispec,&
+                        ibool,xstore,ystore,zstore,NSPEC_AB,NGLOB_AB)
 
-    endif
-    ! master collects corner locations
-    if( islice_selected_source(isource) /= 0 ) then
+      endif
+      ! master collects corner locations
+      if( islice_selected_source(isource) /= 0 ) then
+        if( myrank == 0 ) then
+          call recvv_cr(xelm,NGNOD,islice_selected_source(isource),0)
+          call recvv_cr(yelm,NGNOD,islice_selected_source(isource),0)
+          call recvv_cr(zelm,NGNOD,islice_selected_source(isource),0)
+        else if( myrank == islice_selected_source(isource) ) then
+          call sendv_cr(xelm,NGNOD,0,0)
+          call sendv_cr(yelm,NGNOD,0,0)
+          call sendv_cr(zelm,NGNOD,0,0)
+        endif
+      endif
+
       if( myrank == 0 ) then
-        call recvv_cr(xelm,NGNOD,islice_selected_source(isource),0)
-        call recvv_cr(yelm,NGNOD,islice_selected_source(isource),0)
-        call recvv_cr(zelm,NGNOD,islice_selected_source(isource),0)
-      else if( myrank == islice_selected_source(isource) ) then
-        call sendv_cr(xelm,NGNOD,0,0)
-        call sendv_cr(yelm,NGNOD,0,0)
-        call sendv_cr(zelm,NGNOD,0,0)
+        ! get the 3-D shape functions
+        if( USE_FORCE_POINT_SOURCE ) then
+          ! note: we switch xi,eta,gamma range to be [-1,1]
+          ! uses initial guess in xi, eta and gamma
+          xil = xigll(nint(xi_source(isource)))
+          etal = yigll(nint(eta_source(isource)))
+          gammal = zigll(nint(gamma_source(isource)))
+        else
+          xil = xi_source(isource)
+          etal = eta_source(isource)
+          gammal = gamma_source(isource)
+        endif
+        call get_shape3D_single(myrank,shape3D,xil,etal,gammal)
+
+        ! interpolates source locations
+        xmesh = 0.0
+        ymesh = 0.0
+        zmesh = 0.0
+        do ia=1,NGNOD
+          xmesh = xmesh + shape3D(ia)*xelm(ia)
+          ymesh = ymesh + shape3D(ia)*yelm(ia)
+          zmesh = zmesh + shape3D(ia)*zelm(ia)
+        enddo
+
+        ! writes out to VTK file
+        write(IOVTK,*) xmesh,ymesh,zmesh
       endif
-    endif
-
-    if( myrank == 0 ) then
-      ! get the 3-D shape functions
-      if( USE_FORCE_POINT_SOURCE ) then
-        ! note: we switch xi,eta,gamma range to be [-1,1]
-        ! uses initial guess in xi, eta and gamma
-        xil = xigll(nint(xi_source(isource)))
-        etal = yigll(nint(eta_source(isource)))
-        gammal = zigll(nint(gamma_source(isource)))
-      else
-        xil = xi_source(isource)
-        etal = eta_source(isource)
-        gammal = gamma_source(isource)
-      endif
-      call get_shape3D_single(myrank,shape3D,xil,etal,gammal)
-
-      ! interpolates source locations
-      xmesh = 0.0
-      ymesh = 0.0
-      zmesh = 0.0
-      do ia=1,NGNOD
-        xmesh = xmesh + shape3D(ia)*xelm(ia)
-        ymesh = ymesh + shape3D(ia)*yelm(ia)
-        zmesh = zmesh + shape3D(ia)*zelm(ia)
-      enddo
-
-      ! writes out to VTK file
-      write(IOVTK,*) xmesh,ymesh,zmesh
-    endif
-  enddo ! NSOURCES
-
+    enddo ! NSOURCES
+  endif
+  
   ! receivers
   do irec=1,nrec
     ispec = ispec_selected_rec(irec)
@@ -840,15 +880,9 @@ subroutine setup_sources_receivers_VTKfile()
 
     if( myrank == 0 ) then
       ! get the 3-D shape functions
-      if (SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then
-        xil = xi_receiver(irec)
-        etal = eta_receiver(irec)
-        gammal = gamma_receiver(irec)
-      else
-        xil = xi_source(irec)
-        etal = eta_source(irec)
-        gammal = gamma_source(irec)
-      endif
+      xil = xi_receiver(irec)
+      etal = eta_receiver(irec)
+      gammal = gamma_receiver(irec)
       call get_shape3D_single(myrank,shape3D,xil,etal,gammal)
 
       ! interpolates receiver locations
@@ -872,24 +906,38 @@ subroutine setup_sources_receivers_VTKfile()
     close(IOVTK)
 
     ! creates additional receiver and source files
+    if( SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then    
     ! extracts receiver locations
     filename = trim(OUTPUT_FILES)//'/sr.vtk'
     filename_new = trim(OUTPUT_FILES)//'/receiver.vtk'
     write(system_command, &
-  "('awk ',a1,'{if(NR<5) print $0;if(NR==6)print ',a1,'POINTS',i6,' float',a1,';if(NR>5+',i6,')print $0}',a1,' < ',a,' > ',a)")&
+  "('awk ',a1,'{if(NR<5) print $0;if(NR==5)print ',a1,'POINTS',i6,' float',a1,';if(NR>5+',i6,')print $0}',a1,' < ',a,' > ',a)")&
       "'",'"',nrec,'"',NSOURCES,"'",trim(filename),trim(filename_new)
-    call system(system_command)
+      call system(system_command,system_command_status)
 
-    ! extracts source locations
-    filename_new = trim(OUTPUT_FILES)//'/source.vtk'
-    write(system_command, &
-  "('awk ',a1,'{if(NR< 6 + ',i6,') print $0}END{print}',a1,' < ',a,' > ',a)")&
-      "'",NSOURCES,"'",trim(filename),trim(filename_new)
-    call system(system_command)
+      ! extracts source locations
+      !"('awk ',a1,'{if(NR< 6 + ',i6,') print $0}END{print}',a1,' < ',a,' > ',a)")&
+      filename_new = trim(OUTPUT_FILES)//'/source.vtk'
+    
+      write(system_command1, &
+  "('awk ',a1,'{if(NR<5) print $0;if(NR==5)print ',a1,'POINTS',i6,' float',a1,';')") &
+        "'",'"',NSOURCES,'"'
 
+      !daniel
+      !print*,'command 1:',trim(system_command1)  
 
+      write(system_command2, &
+  "('if(NR>5 && NR <6+',i6,')print $0}END{print ',a,'}',a1,' < ',a,' > ',a)") &
+        NSOURCES,'" "',"'",trim(filename),trim(filename_new)
+    
+      !print*,'command 2:',trim(system_command2)  
+          
+      system_command = trim(system_command1)//trim(system_command2)
+
+      !print*,'command:',trim(system_command)  
+
+      call system(trim(system_command),system_command_status)
+    endif  
   endif
-
-
 
 end subroutine setup_sources_receivers_VTKfile

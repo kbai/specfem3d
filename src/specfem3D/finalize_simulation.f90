@@ -37,16 +37,7 @@
   integer :: irec_local
 
   ! save last frame
-
-  if(GPU_MODE) then
-     call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
-     if(SIMULATION_TYPE==3) then
-        call transfer_b_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
-        call transfer_sensitivity_kernels_to_host(Mesh_pointer, rho_kl, mu_kl, kappa_kl,Sigma_kl,&
-             NSPEC_AB)
-     endif
-  endif
-
+  
   if (SIMULATION_TYPE == 1 .and. SAVE_FORWARD) then
      open(unit=27,file=prname(1:len_trim(prname))//'save_forward_arrays.bin',&
           status='unknown',form='unformatted')

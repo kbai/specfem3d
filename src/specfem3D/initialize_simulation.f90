@@ -205,6 +205,11 @@
       stop 'Deville et al. (2002) routines can only be used if NGLLX = NGLLY = NGLLZ is in [5-10]'
   endif
 
+  if( GPU_MODE ) then
+    if( NGLLX /= 5 .or. NGLLY /= 5 .or. NGLLZ /= 5 ) &
+      stop 'GPU mode can only be used if NGLLX == NGLLY == NGLLZ == 5'
+  endif
+
   ! absorbing surfaces
   if( ABSORBING_CONDITIONS ) then
     ! for arbitrary orientation of elements, which face belongs to xmin,xmax,etc... -

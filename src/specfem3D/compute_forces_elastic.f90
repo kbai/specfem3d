@@ -453,6 +453,21 @@ subroutine compute_forces_elastic()
 
 ! acoustic coupling
     if( ACOUSTIC_SIMULATION ) then
+      
+      ! daniel: workaround - todo on GPU
+      ! transfers potentials to CPU
+      if(GPU_MODE) then 
+        call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
+        call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc,accel,Mesh_pointer)
+        ! backward simulation
+        if( SIMULATION_TYPE == 3 ) then
+          call transfer_fields_acoustic_from_device(NGLOB_AB,b_potential_acoustic, &
+                              b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer) 
+          call transfer_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel,Mesh_pointer) 
+        endif
+      endif
+    
       call compute_coupling_elastic_ac(NSPEC_AB,NGLOB_AB, &
                         ibool,accel,potential_dot_dot_acoustic, &
                         num_coupling_ac_el_faces, &
@@ -470,6 +485,16 @@ subroutine compute_forces_elastic()
                         coupling_ac_el_normal, &
                         coupling_ac_el_jacobian2Dw, &
                         ispec_is_inner,phase_is_inner)
+
+      ! daniel: workaround - todo on GPU
+      ! transfers potentials to CPU
+      if(GPU_MODE) then 
+        ! only accel/b_accel is updated above
+        call transfer_fields_to_device(NDIM*NGLOB_AB,displ,veloc,accel, Mesh_pointer) 
+        if( SIMULATION_TYPE == 3 ) &
+          call transfer_fields_to_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer) 
+      endif
+                        
     endif
 
 
@@ -504,10 +529,10 @@ subroutine compute_forces_elastic()
                buffer_send_vector_ext_mesh,&
                num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh,&
                nibool_interfaces_ext_mesh, ibool_interfaces_ext_mesh,1) ! <-- 1 == fwd accel
-          call assemble_MPI_vector_ext_mesh_send_cuda(NPROC,NGLOB_AB,accel, &
+          call assemble_MPI_vector_ext_mesh_send_cuda(NPROC, &
                buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
                num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
-               nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,&
+               nibool_interfaces_ext_mesh,&
                my_neighbours_ext_mesh, &
                request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
        endif ! GPU_MODE
@@ -526,10 +551,10 @@ subroutine compute_forces_elastic()
                b_buffer_send_vector_ext_mesh,&
                num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh,&
                nibool_interfaces_ext_mesh, ibool_interfaces_ext_mesh,3) ! <-- 3 == adjoint b_accel
-             call assemble_MPI_vector_ext_mesh_send_cuda(NPROC,NGLOB_ADJOINT,b_accel, &
+             call assemble_MPI_vector_ext_mesh_send_cuda(NPROC, &
                   b_buffer_send_vector_ext_mesh,b_buffer_recv_vector_ext_mesh, &
                   num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
-                  nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,&
+                  nibool_interfaces_ext_mesh,&
                   my_neighbours_ext_mesh, &
                   b_request_send_vector_ext_mesh,b_request_recv_vector_ext_mesh)
              

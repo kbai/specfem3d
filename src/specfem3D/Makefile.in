@@ -29,19 +29,31 @@
 
 # @configure_input@
 
+## example:
 # CUDA_LIBS = -L/apps/eiger/Cuda-4.0/cuda/lib64 -lcuda -lcudart -lcublas
 # CUDA_INC = -I/apps/eiger/Cuda-4.0/cuda/include
 # MPI_INC = -I/apps/eiger/mvapich2/1.5.1p1/mvapich2-gnu/include
+##
+#CUDA_LIBS= -L/u/dpeter/install/cuda/lib64 -lcudart -lcublas
+#MPI_INC= -I/usr/local/openmpi/1.4.3/gcc/x86_64/include
 
 # MR added CUDA
 
 @COND_CUDA_TRUE@CUDA_LIBS = -lcuda -lcudart -lcublas
 @COND_CUDA_FALSE@CUDA_LIBS = 
 
+# with configure: ./configure CUDA_LIB=.. CUDA_INC=.. MPI_INC=..
 CUDA_LIB_LOCATION = @CUDA_LIB@
 CUDA_LINK = $(CUDA_LIB_LOCATION) $(CUDA_LIBS)
-CUDA_INC = @CUDA_INC@
+CUDA_INC = @CUDA_INC@ -I../../
 MPI_INC = @MPI_INC@
+
+@COND_CUDA_TRUE@NVCC = nvcc
+@COND_CUDA_FALSE@NVCC = g++
+
+@COND_CUDA_TRUE@NVCC_FLAGS = $(CUDA_INC) $(MPI_INC) -DCUDA -gencode=arch=compute_20,code=sm_20
+@COND_CUDA_FALSE@NVCC_FLAGS = $(MPI_INC)
+
 
 FC = @FC@
 FCFLAGS = #@FCFLAGS@
@@ -51,13 +63,10 @@ FLAGS_CHECK = @FLAGS_CHECK@
 FLAGS_NO_CHECK = @FLAGS_NO_CHECK@
 FCFLAGS_f90 = @FCFLAGS_f90@
 
-@COND_CUDA_TRUE@NVCC = nvcc
-@COND_CUDA_FALSE@NVCC = g++
-
-@COND_CUDA_TRUE@NVCC_FLAGS = $(CUDA_INC) $(MPI_INC) -DCUDA -gencode=arch=compute_20,code=sm_20
-@COND_CUDA_FALSE@NVCC_FLAGS = $(MPI_INC)
 
 SHARED = ../shared/
+CUDAD = ../cuda/
+
 # E : executables directory
 E = ../../bin
 # O : objects directory
@@ -122,13 +131,28 @@ libspecfem_a_OBJECTS = \
 	$O/write_VTK_data.shared.o \
 	$O/write_c_binary.cc.o 
 
+CUDA_OBJECTS = \
+	$O/check_fields_cuda.cuda.o \
+	$O/compute_add_sources_cuda.cuda.o \
+	$O/compute_forces_acoustic_cuda.cuda.o \
+	$O/compute_forces_elastic_cuda.cuda.o \
+	$O/compute_kernels_cuda.cuda.o \
+	$O/compute_stacey_acoustic_cuda.cuda.o \
+	$O/compute_stacey_elastic_cuda.cuda.o \
+	$O/it_update_displacement_cuda.cuda.o \
+	$O/noise_tomography_cuda.cuda.o \
+	$O/prepare_mesh_constants_cuda.cuda.o \
+	$O/transfer_fields_cuda.cuda.o \
+	$O/write_seismograms_cuda.cuda.o \
+	$O/save_and_compare_cpu_vs_gpu.cudacc.o 
+
 # solver objects - no statically allocated arrays anymore
 SOLVER_ARRAY_OBJECTS = \
 	$O/program_specfem3D.o \
 	$O/specfem3D_par.o \
 	$O/PML_init.o \
-	$O/compute_boundary_kernel.shared.o \
-	$O/compute_kernels.shared.o \
+	$O/compute_boundary_kernel.o \
+	$O/compute_kernels.o \
 	$O/compute_forces_acoustic.o \
 	$O/compute_forces_acoustic_pot.o \
 	$O/compute_forces_acoustic_PML.o \
@@ -160,16 +184,7 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/save_adjoint_kernels.o \
 	$O/specfem3D.o \
 	$O/assemble_MPI_vector.o \
-	$O/noise_tomography.o \
-	$O/it_update_displacement_cuda.cuda.o \
-	$O/compute_forces_elastic_cuda.cuda.o \
-	$O/compute_stacey_elastic_cuda.cuda.o \
-	$O/compute_add_sources_cuda.cuda.o \
-	$O/prepare_mesh_constants_cuda.cuda.o \
-	$O/noise_tomography_cuda.cuda.o \
-	$O/save_and_compare_cpu_vs_gpu.cc.o \
-	$O/write_seismograms_cuda.cuda.o \
-	$O/compute_kernels_cuda.cuda.o 
+	$O/noise_tomography.o 
 
 
 # objects toggled between the parallel and serial version
@@ -179,8 +194,7 @@ SOLVER_ARRAY_OBJECTS = \
 LIBSPECFEM = $L/libspecfem.a
 
 # objects for the pure Fortran version
-@COND_PYRE_FALSE@XGENERATE_DATABASES_OBJECTS = $O/program_generate_databases.o $(LIBSPECFEM)
-@COND_PYRE_FALSE@XSPECFEM_OBJECTS = $(SOLVER_ARRAY_OBJECTS) $(LIBSPECFEM)
+@COND_PYRE_FALSE@XSPECFEM_OBJECTS = $(SOLVER_ARRAY_OBJECTS) $(LIBSPECFEM) $(CUDA_OBJECTS)
 
 ####
 #### targets
@@ -188,7 +202,6 @@ LIBSPECFEM = $L/libspecfem.a
 
 # default targets for the pure Fortran version
 @COND_PYRE_FALSE@DEFAULT = \
-@COND_PYRE_FALSE@	generate_databases \
 @COND_PYRE_FALSE@	specfem3D \
 @COND_PYRE_FALSE@	combine_vol_data \
 @COND_PYRE_FALSE@	combine_surf_data \
@@ -209,9 +222,6 @@ specfem3D: xspecfem3D
 
 
 # rules for the pure Fortran version
-@COND_PYRE_FALSE@xgenerate_databases: $(XGENERATE_DATABASES_OBJECTS) $(COND_MPI_OBJECTS)
-@COND_PYRE_FALSE@	${FCLINK} -o ${E}/xgenerate_databases $(XGENERATE_DATABASES_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS)
-@COND_PYRE_FALSE@
 @COND_PYRE_FALSE@# solver also depends on values from mesher
 @COND_PYRE_FALSE@xspecfem3D: $(XSPECFEM_OBJECTS) $(COND_MPI_OBJECTS)
 @COND_PYRE_FALSE@	${FCLINK} -o ${E}/xspecfem3D $(XSPECFEM_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS) $(CUDA_LINK)
@@ -223,25 +233,25 @@ combine_vol_data: xcombine_vol_data
 combine_surf_data: xcombine_surf_data
 smooth_vol_data: xsmooth_vol_data
 
-xconvolve_source_timefunction: $O/convolve_source_timefunction.o
-	${FCCOMPILE_CHECK} -o  ${E}/xconvolve_source_timefunction $O/convolve_source_timefunction.o
+xconvolve_source_timefunction: $O/convolve_source_timefunction.shared.o
+	${FCCOMPILE_CHECK} -o  ${E}/xconvolve_source_timefunction $O/convolve_source_timefunction.shared.o
 
-@COND_PYRE_FALSE@xcreate_movie_shakemap_AVS_DX_GMT: $O/create_movie_shakemap_AVS_DX_GMT.o $(LIBSPECFEM) $(OUTPUT)/surface_from_mesher.h
-@COND_PYRE_FALSE@	${FCCOMPILE_CHECK} -o  ${E}/xcreate_movie_shakemap_AVS_DX_GMT $O/create_movie_shakemap_AVS_DX_GMT.o $(LIBSPECFEM) -I$(OUTPUT)
+@COND_PYRE_FALSE@xcreate_movie_shakemap_AVS_DX_GMT: $O/create_movie_shakemap_AVS_DX_GMT.shared.o $(LIBSPECFEM) $(OUTPUT)/surface_from_mesher.h
+@COND_PYRE_FALSE@	${FCCOMPILE_CHECK} -o  ${E}/xcreate_movie_shakemap_AVS_DX_GMT $O/create_movie_shakemap_AVS_DX_GMT.shared.o $(LIBSPECFEM) -I$(OUTPUT)
 
-xcombine_vol_data: $O/combine_vol_data.o $O/write_c_binary.o $O/read_parameter_file.o $O/read_value_parameters.o $O/get_value_parameters.o $O/param_reader.o
-	${FCCOMPILE_CHECK} -o  ${E}/xcombine_vol_data  $O/combine_vol_data.o $O/write_c_binary.o $O/read_parameter_file.o $O/read_value_parameters.o $O/get_value_parameters.o $O/param_reader.o
+xcombine_vol_data: $O/combine_vol_data.shared.o $O/write_c_binary.cc.o $O/read_parameter_file.shared.o $O/read_value_parameters.shared.o $O/get_value_parameters.shared.o $O/param_reader.cc.o
+	${FCCOMPILE_CHECK} -o  ${E}/xcombine_vol_data  $O/combine_vol_data.shared.o $O/write_c_binary.cc.o $O/read_parameter_file.shared.o $O/read_value_parameters.shared.o $O/get_value_parameters.shared.o $O/param_reader.cc.o
 
-xcombine_surf_data: $O/combine_surf_data.o $O/write_c_binary.o $O/param_reader.o
-	${FCCOMPILE_CHECK} -o  ${E}/xcombine_surf_data  $O/combine_surf_data.o $O/write_c_binary.o $O/param_reader.o
+xcombine_surf_data: $O/combine_surf_data.shared.o $O/write_c_binary.cc.o $O/param_reader.cc.o
+	${FCCOMPILE_CHECK} -o  ${E}/xcombine_surf_data  $O/combine_surf_data.shared.o $O/write_c_binary.cc.o $O/param_reader.cc.o
 
-xsmooth_vol_data: $O/smooth_vol_data.o $O/read_parameter_file.o $O/read_value_parameters.o $O/get_value_parameters.o $O/param_reader.o $O/gll_library.o $O/exit_mpi.o $O/parallel.o
-	${FCLINK} -o  ${E}/xsmooth_vol_data  $O/smooth_vol_data.o $O/read_parameter_file.o $O/read_value_parameters.o $O/get_value_parameters.o $O/param_reader.o $O/gll_library.o $O/exit_mpi.o $O/parallel.o $(MPILIBS)
+xsmooth_vol_data: $O/smooth_vol_data.o $O/read_parameter_file.shared.o $O/read_value_parameters.shared.o $O/get_value_parameters.shared.o $O/param_reader.cc.o $O/gll_library.shared.o $O/exit_mpi.shared.o $O/parallel.o
+	${FCLINK} -o  ${E}/xsmooth_vol_data  $O/smooth_vol_data.o $O/read_parameter_file.shared.o $O/read_value_parameters.shared.o $O/get_value_parameters.shared.o $O/param_reader.cc.o $O/gll_library.shared.o $O/exit_mpi.shared.o $O/parallel.o $(MPILIBS)
 
 
 clean:
 	rm -f $O/* *.o *.gnu *.mod $(OUTPUT)/timestamp* $(OUTPUT)/starttime*txt work.pc* \
-        xgenerate_databases xspecfem3D \
+        xspecfem3D \
         xconvolve_source_timefunction \
         xcreate_movie_shakemap_AVS_DX_GMT xcombine_vol_data xcombine_surf_data xsmooth_vol_data
 
@@ -263,33 +273,28 @@ $L/libspecfem.a: $(libspecfem_a_OBJECTS)
 ###
 
 $O/%.o: %.f90 $(SHARED)constants.h
-	${FCCOMPILE_NO_CHECK} -c -o $O/$@ $<
+	${FCCOMPILE_NO_CHECK} -c -o $@ $<
 
 $O/%.shared.o: ${SHARED}%.f90 $(SHARED)constants.h
-	${FCCOMPILE_NO_CHECK} -c -o $O/$@ $<
+	${FCCOMPILE_NO_CHECK} -c -o $@ $<
 
-$O/%.cuda.o: %.cu
-	$(NVCC) -c $< -o $O/$@ $(NVCC_FLAGS)
+###
+### CUDA compilation
+###
+$O/%.cuda.o: ${CUDAD}%.cu ../../config.h $(CUDAD)mesh_constants_cuda.h $(CUDAD)prepare_constants_cuda.h
+	$(NVCC) -c $< -o $@ $(NVCC_FLAGS)
 
+###
 ### C compilation
+###
 force_ftz.o: ${SHARED}/force_ftz.c ../../config.h
 	${CC} -c $(CPPFLAGS) $(CFLAGS) -I../.. -o $O/force_ftz.o ${SHARED}/force_ftz.c
 
-
 $O/%.cc.o: ${SHARED}/%.c ../../config.h
-	${CC} -c $(CFLAGS) $(MPI_INC) -o $O/$@ ${SHARED}/$< -I../../
+	${CC} -c $(CFLAGS) $(MPI_INC) -o $@ ${SHARED}/$< -I../../
 
-
-###
-### C files below
-###
-
-# $O/param_reader.o: ${SHARED}/param_reader.c
-# ${CC} -c $(CFLAGS) -o $O/param_reader.o ${SHARED}/param_reader.c -I../../
-
-# $O/write_c_binary.o: ${SHARED}/write_c_binary.c
-# ${CC} -c $(CFLAGS) -o $O/write_c_binary.o ${SHARED}/write_c_binary.c -I../../
-
+$O/%.cudacc.o: ${CUDAD}/%.c ../../config.h
+	${CC} -c $(CFLAGS) $(MPI_INC) -o $@ ${CUDAD}/$< -I../../
 
 
 ###
@@ -298,4 +303,7 @@ $O/%.cc.o: ${SHARED}/%.c ../../config.h
 
 $O/parallel.o: $(SHARED)constants.h ${SHARED}/parallel.f90
 	${MPIFCCOMPILE_CHECK} -c -o $O/parallel.o ${SHARED}/parallel.f90
+
+$O/smooth_vol_data.o: $(SHARED)constants.h ${SHARED}/smooth_vol_data.f90
+	${MPIFCCOMPILE_NO_CHECK} -c -o $O/smooth_vol_data.o ${SHARED}/smooth_vol_data.f90
 

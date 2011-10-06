@@ -6,47 +6,28 @@
 #include <sys/time.h>
 #include <sys/resource.h>
 
+#include "config.h"
 #include "mesh_constants_cuda.h"
-
 // #include "epik_user.h"
 
-typedef float real;
 
-
-#define NGLL2 25
-
+//  cuda constant arrays
 __constant__ float d_hprime_xx[NGLL2];
+__constant__ float d_hprime_yy[NGLL2];  // daniel: check if hprime_yy == hprime_xx
+__constant__ float d_hprime_zz[NGLL2];  // daniel: check if hprime_zz == hprime_xx
 __constant__ float d_hprimewgll_xx[NGLL2];
 __constant__ float d_wgllwgll_xy[NGLL2];
 __constant__ float d_wgllwgll_xz[NGLL2];
 __constant__ float d_wgllwgll_yz[NGLL2];
 
-#define MAXDEBUG 1
-#define ENABLE_VERY_SLOW_ERROR_CHECKING
 
-#if MAXDEBUG == 1
-#define LOG(x) printf("%s\n",x)
-#define PRINT5(var,offset) for(;print_count<5;print_count++) printf("var(%d)=%2.20f\n",print_count,var[offset+print_count]);
-#define PRINT10(var) if(print_count<10) { printf("var=%1.20e\n",var); print_count++; }
-#define PRINT10i(var) if(print_count<10) { printf("var=%d\n",var); print_count++; }
-#else
-#define LOG(x) // printf("%s\n",x);
-#define PRINT5(var,offset) // for(i=0;i<10;i++) printf("var(%d)=%f\n",i,var[offset+i]);
-#endif
+/* ----------------------------------------------------------------------------------------------- */
 
 void Kernel_2(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
 	      int COMPUTE_AND_STORE_STRAIN,int SIMULATION_TYPE);
 
 
-
-double get_time()
-{
-    struct timeval t;
-    struct timezone tzp;
-    gettimeofday(&t, &tzp);
-    return t.tv_sec + t.tv_usec*1e-6;
-}
-
+/* ----------------------------------------------------------------------------------------------- */
 
 // prepares a device array with with all inter-element edge-nodes -- this
 // is followed by a memcpy and MPI operations
@@ -56,8 +37,8 @@ __global__ void prepare_boundary_accel_on_device(float* d_accel, float* d_send_a
 						 int* d_ibool_interfaces_ext_mesh) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
-  int bx = blockIdx.y*gridDim.x+blockIdx.x;
-  int tx = threadIdx.x;
+  //int bx = blockIdx.y*gridDim.x+blockIdx.x;
+  //int tx = threadIdx.x;
   int iinterface=0;  
   
   for( iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
@@ -73,16 +54,20 @@ __global__ void prepare_boundary_accel_on_device(float* d_accel, float* d_send_a
 
 }
 
+/* ----------------------------------------------------------------------------------------------- */
+
 // prepares and transfers the inter-element edge-nodes to the host to be MPI'd
-extern "C" void transfer_boundary_accel_from_device_(int* size, long* Mesh_pointer_f, float* accel,
-					  float* send_accel_buffer,
-					  int* num_interfaces_ext_mesh,
-					  int* max_nibool_interfaces_ext_mesh,
-					  int* nibool_interfaces_ext_mesh,
-					  int* ibool_interfaces_ext_mesh,
-					  int* FORWARD_OR_ADJOINT)
-					  
-{
+extern "C" 
+void FC_FUNC_(transfer_boundary_accel_from_device,
+              TRANSFER_BOUNDARY_ACCEL_FROM_DEVICE)(int* size, long* Mesh_pointer_f, float* accel,
+                                                    float* send_accel_buffer,
+                                                    int* num_interfaces_ext_mesh,
+                                                    int* max_nibool_interfaces_ext_mesh,
+                                                    int* nibool_interfaces_ext_mesh,
+                                                    int* ibool_interfaces_ext_mesh,
+                                                    int* FORWARD_OR_ADJOINT){
+TRACE("transfer_boundary_accel_from_device");
+
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
   
 
@@ -121,17 +106,7 @@ extern "C" void transfer_boundary_accel_from_device_(int* size, long* Mesh_point
   }
   
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  exit_on_cuda_error("prepare_adjoint_constants_device");  
-  // // sync and check to catch errors from previous async operations
-  // cudaThreadSynchronize();
-  
-  // // printf("Elapsed time for xfer d->h: %f\n",end-start);
-  // cudaError_t err = cudaGetLastError();
-  // if (err != cudaSuccess)
-  //   {
-  //     fprintf(stderr,"Error launching/running prepare_boundary_kernel: %s\n", cudaGetErrorString(err));
-  //     exit(1);
-  //   }
+  exit_on_cuda_error("transfer_boundary_accel_from_device");  
 #endif
 
   
@@ -147,14 +122,17 @@ extern "C" void transfer_boundary_accel_from_device_(int* size, long* Mesh_point
   // printf("boundary xfer d->h Time: %f ms\n",time);
   
 }
+
+/* ----------------------------------------------------------------------------------------------- */
+
 __global__ void assemble_boundary_accel_on_device(float* d_accel, float* d_send_accel_buffer,
 						 int num_interfaces_ext_mesh, int max_nibool_interfaces_ext_mesh,
 						 int* d_nibool_interfaces_ext_mesh,
 						 int* d_ibool_interfaces_ext_mesh) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
-  int bx = blockIdx.y*gridDim.x+blockIdx.x;
-  int tx = threadIdx.x;
+  //int bx = blockIdx.y*gridDim.x+blockIdx.x;
+  //int tx = threadIdx.x;
   int iinterface=0;  
 
   for( iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
@@ -186,15 +164,19 @@ __global__ void assemble_boundary_accel_on_device(float* d_accel, float* d_send_
   // ! enddo
 }
 
+/* ----------------------------------------------------------------------------------------------- */
 
 // FORWARD_OR_ADJOINT == 1 for accel, and == 3 for b_accel
-extern "C"
-void transfer_and_assemble_accel_to_device_(long* Mesh_pointer, real* accel,
-					    real* buffer_recv_vector_ext_mesh,
-					    int* num_interfaces_ext_mesh,
-					    int* max_nibool_interfaces_ext_mesh,
-					    int* nibool_interfaces_ext_mesh,
-					    int* ibool_interfaces_ext_mesh,int* FORWARD_OR_ADJOINT) {
+extern "C" 
+void FC_FUNC_(transfer_and_assemble_accel_to_device,
+              TRANSFER_AND_ASSEMBLE_ACCEL_TO_DEVICE)(long* Mesh_pointer, real* accel,
+                                                    real* buffer_recv_vector_ext_mesh,
+                                                    int* num_interfaces_ext_mesh,
+                                                    int* max_nibool_interfaces_ext_mesh,
+                                                    int* nibool_interfaces_ext_mesh,
+                                                    int* ibool_interfaces_ext_mesh,int* FORWARD_OR_ADJOINT) {
+TRACE("transfer_and_assemble_accel_to_device");
+
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
   
   cudaMemcpy(mp->d_send_accel_buffer, buffer_recv_vector_ext_mesh, 3* *max_nibool_interfaces_ext_mesh* *num_interfaces_ext_mesh*sizeof(real), cudaMemcpyHostToDevice);
@@ -208,7 +190,7 @@ void transfer_and_assemble_accel_to_device_(long* Mesh_pointer, real* accel,
     num_blocks_y = num_blocks_y*2;
   }
 
-  double start_time = get_time();
+  //double start_time = get_time();
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
   // cudaEvent_t start, stop; 
@@ -238,33 +220,28 @@ void transfer_and_assemble_accel_to_device_(long* Mesh_pointer, real* accel,
   // cudaEventDestroy( stop );
   // printf("Boundary Assemble Kernel Execution Time: %f ms\n",time);
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  // sync and check to catch errors from previous async operations
-  cudaThreadSynchronize();
-  double end_time = get_time();
+  //double end_time = get_time();
   //printf("Elapsed time: %e\n",end_time-start_time);
-  cudaError_t err = cudaGetLastError();
-  if (err != cudaSuccess)
-    {
-      fprintf(stderr,"Error launching/running prepare_boundary_kernel: %s\n", cudaGetErrorString(err));
-      exit(1);
-    }
+  exit_on_cuda_error("transfer_and_assemble_accel_to_device_");
 #endif
-  
 }
 
 
+/* ----------------------------------------------------------------------------------------------- */
 
 
+extern "C" 
+void FC_FUNC_(compute_forces_elastic_cuda,
+              COMPUTE_FORCES_ELASTIC_CUDA)(long* Mesh_pointer_f,
+                                           int* iphase,
+                                           int* nspec_outer_elastic,
+                                           int* nspec_inner_elastic,
+                                           int* COMPUTE_AND_STORE_STRAIN,
+                                           int* SIMULATION_TYPE) {
 
-extern "C" void compute_forces_elastic_cuda_(long* Mesh_pointer_f,
-					     int* iphase,
-					     int* nspec_outer_elastic,
-					     int* nspec_inner_elastic,
-					     int* COMPUTE_AND_STORE_STRAIN,
-					     int* SIMULATION_TYPE) {
-  
-  // EPIK_TRACER("compute_forces_elastic_cuda");
-  //printf("Running compute_forces\n");
+TRACE("compute_forces_elastic_cuda");  
+// EPIK_TRACER("compute_forces_elastic_cuda");
+//printf("Running compute_forces\n");
   
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper
 
@@ -274,12 +251,10 @@ extern "C" void compute_forces_elastic_cuda_(long* Mesh_pointer_f,
     num_elements = *nspec_outer_elastic;
   else
     num_elements = *nspec_inner_elastic;  
-  int myrank;
-  
+
+  //int myrank;  
   /* MPI_Comm_rank(MPI_COMM_WORLD,&myrank); */
   /* if(myrank==0) { */
-  
-  
 
   Kernel_2(num_elements, mp, *iphase, *COMPUTE_AND_STORE_STRAIN,*SIMULATION_TYPE);
   
@@ -288,23 +263,20 @@ extern "C" void compute_forces_elastic_cuda_(long* Mesh_pointer_f,
 /* MPI_Barrier(MPI_COMM_WORLD); */
 }
 
+/* ----------------------------------------------------------------------------------------------- */
+
 __global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elastic, int num_phase_ispec_elastic, int d_iphase, int* d_ibool);
 
 __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,int* d_phase_ispec_inner_elastic, int num_phase_ispec_elastic, int d_iphase,float* d_displ, float* d_accel, float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz, float* d_gammax, float* d_gammay, float* d_gammaz, float* d_kappav, float* d_muv,float* d_debug,int COMPUTE_AND_STORE_STRAIN,float* epsilondev_xx,float* epsilondev_yy,float* epsilondev_xy,float* epsilondev_xz,float* epsilondev_yz,float* epsilon_trace_over_3,int SIMULATION_TYPE);
+
+/* ----------------------------------------------------------------------------------------------- */
 
 void Kernel_2(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
 	      int COMPUTE_AND_STORE_STRAIN,int SIMULATION_TYPE)
   {
     
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-    // sync and check to catch errors from previous async operations
-    cudaThreadSynchronize();
-    cudaError_t err = cudaGetLastError();
-    if (err != cudaSuccess)
-      {
-	fprintf(stderr,"Error before kernel Kernel 2: %s\n", cudaGetErrorString(err));
-	exit(1);
-      }
+  exit_on_cuda_error("before kernel Kernel 2");
 #endif
     
     /* if the grid can handle the number of blocks, we let it be 1D */
@@ -407,12 +379,14 @@ void Kernel_2(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
 
   }
 
+/* ----------------------------------------------------------------------------------------------- */
+
 __global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elastic, int num_phase_ispec_elastic, int d_iphase, int* d_ibool) {
   int bx = blockIdx.x;
   int tx = threadIdx.x;
   int working_element;
-  int ispec;
-  int NGLL3_ALIGN = 128;
+  //int ispec;
+  //int NGLL3_ALIGN = 128;
   if(tx==0 && bx==0) {
 
     d_debug_output[0] = 420.0;
@@ -428,12 +402,16 @@ __global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elast
   
 }
 
+/* ----------------------------------------------------------------------------------------------- */
+
 // double precision temporary variables leads to 10% performance
 // decrease in Kernel_2_impl (not very much..)
-typedef float reald;
+//typedef float reald;
 
 // doesn't seem to change the performance.
 // #define MANUALLY_UNROLLED_LOOPS
+
+/* ----------------------------------------------------------------------------------------------- */
 
 __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,int* d_phase_ispec_inner_elastic, int num_phase_ispec_elastic, int d_iphase,float* d_displ, float* d_accel, float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz, float* d_gammax, float* d_gammay, float* d_gammaz, float* d_kappav, float* d_muv,float* d_debug,int COMPUTE_AND_STORE_STRAIN,float* epsilondev_xx,float* epsilondev_yy,float* epsilondev_xy,float* epsilondev_xz,float* epsilondev_yz,float* epsilon_trace_over_3,int SIMULATION_TYPE)
 {
@@ -445,8 +423,8 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,i
 
   
   
-  const int NGLLX = 5;
-  /* const int NGLL2 = 25; */
+  //const int NGLLX = 5;
+  // const int NGLL2 = 25; 
   const int NGLL3 = 125;
   const int NGLL3_ALIGN = 128;
     
@@ -845,11 +823,23 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,i
 #endif // of #ifndef MAKE_KERNEL2_BECOME_STUPID_FOR_TESTS
 }
 
+/* ----------------------------------------------------------------------------------------------- */
+
 __global__ void kernel_3_cuda_device(real* veloc,
 				     real* accel, int size,
 				     real deltatover2, real* rmass);
 
-extern "C" void kernel_3_cuda_(long* Mesh_pointer,int* size_F, float* deltatover2_F, int* SIMULATION_TYPE_f, float* b_deltatover2) {
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C" 
+void FC_FUNC_(kernel_3_cuda,
+              KERNEL_3_CUDA)(long* Mesh_pointer,
+                             int* size_F, 
+                             float* deltatover2_F, 
+                             int* SIMULATION_TYPE_f, 
+                             float* b_deltatover2) {
+TRACE("kernel_3_cuda");  
+
    Mesh* mp = (Mesh*)(*Mesh_pointer); // get Mesh from fortran integer wrapper
    int size = *size_F;
    int SIMULATION_TYPE = *SIMULATION_TYPE_f;
@@ -872,19 +862,12 @@ extern "C" void kernel_3_cuda_(long* Mesh_pointer,int* size_F, float* deltatover
    }
    
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-
    //printf("checking updatedispl_kernel launch...with %dx%d blocks\n",num_blocks_x,num_blocks_y);
-   // sync and check to catch errors from previous async operations
-   cudaThreadSynchronize();
-   MPI_Barrier(MPI_COMM_WORLD);
-   cudaError_t err = cudaGetLastError();
-   if (err != cudaSuccess)
-     {
-       fprintf(stderr,"Error after kernel 3: %s\n", cudaGetErrorString(err));
-       exit(1);
-     }
+  exit_on_cuda_error("after kernel 3");
 #endif
 }
+
+/* ----------------------------------------------------------------------------------------------- */
 
  __global__ void kernel_3_cuda_device(real* veloc,
 					real* accel, int size,
@@ -904,75 +887,151 @@ extern "C" void kernel_3_cuda_(long* Mesh_pointer,int* size_F, float* deltatover
     }
   }
 
-void setConst_hprime_xx(float* array)
-{
+/* ----------------------------------------------------------------------------------------------- */
 
+/* ----------------------------------------------------------------------------------------------- */
+
+/* note: 
+ constant arrays when used in compute_forces_acoustic_cuda.cu routines stay zero,
+ constant declaration and cudaMemcpyToSymbol would have to be in the same file...
+ 
+ extern keyword doesn't work for __constant__ declarations.
+ 
+ also:
+ cudaMemcpyToSymbol("deviceCaseParams", caseParams, sizeof(CaseParams));
+ ..
+ and compile with -arch=sm_20
+ 
+ see also: http://stackoverflow.com/questions/4008031/how-to-use-cuda-constant-memory-in-a-programmer-pleasant-way
+ doesn't seem to work.
+ 
+ we could keep arrays separated for acoustic and elastic routines...
+ 
+ for now, we store pointers with cudaGetSymbolAddress() function calls.
+ 
+ */
+
+
+// constant arrays
+
+void setConst_hprime_xx(float* array,Mesh* mp)
+{
+  
   cudaError_t err = cudaMemcpyToSymbol(d_hprime_xx, array, NGLL2*sizeof(float));
   if (err != cudaSuccess)
-    {
-      fprintf(stderr, "Error in setConst_hprime_xx: %s\n", cudaGetErrorString(err));
-      fprintf(stderr, "The problem is maybe -arch sm_13 instead of -arch sm_11 in the Makefile, please doublecheck\n");
-      exit(1);
-    }
+  {
+    fprintf(stderr, "Error in setConst_hprime_xx: %s\n", cudaGetErrorString(err));
+    fprintf(stderr, "The problem is maybe -arch sm_13 instead of -arch sm_11 in the Makefile, please doublecheck\n");
+    exit(1);
+  }
+  
+  err = cudaGetSymbolAddress((void**)&(mp->d_hprime_xx),"d_hprime_xx");
+  if(err != cudaSuccess) {
+    fprintf(stderr, "Error with d_hprime_xx: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }      
 }
 
-void setConst_hprimewgll_xx(float* array)
+void setConst_hprime_yy(float* array,Mesh* mp)
+{
+  
+  cudaError_t err = cudaMemcpyToSymbol(d_hprime_yy, array, NGLL2*sizeof(float));
+  if (err != cudaSuccess)
+  {
+    fprintf(stderr, "Error in setConst_hprime_yy: %s\n", cudaGetErrorString(err));
+    fprintf(stderr, "The problem is maybe -arch sm_13 instead of -arch sm_11 in the Makefile, please doublecheck\n");
+    exit(1);
+  }
+  
+  err = cudaGetSymbolAddress((void**)&(mp->d_hprime_yy),"d_hprime_yy");
+  if(err != cudaSuccess) {
+    fprintf(stderr, "Error with d_hprime_yy: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }      
+}
+
+void setConst_hprime_zz(float* array,Mesh* mp)
+{
+  
+  cudaError_t err = cudaMemcpyToSymbol(d_hprime_zz, array, NGLL2*sizeof(float));
+  if (err != cudaSuccess)
+  {
+    fprintf(stderr, "Error in setConst_hprime_zz: %s\n", cudaGetErrorString(err));
+    fprintf(stderr, "The problem is maybe -arch sm_13 instead of -arch sm_11 in the Makefile, please doublecheck\n");
+    exit(1);
+  }
+  
+  err = cudaGetSymbolAddress((void**)&(mp->d_hprime_zz),"d_hprime_zz");
+  if(err != cudaSuccess) {
+    fprintf(stderr, "Error with d_hprime_zz: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }      
+}
+
+
+void setConst_hprimewgll_xx(float* array,Mesh* mp)
 {
   cudaError_t err = cudaMemcpyToSymbol(d_hprimewgll_xx, array, NGLL2*sizeof(float));
   if (err != cudaSuccess)
-    {
-      fprintf(stderr, "Error in setConst_hprime_xx: %s\n", cudaGetErrorString(err));
-      exit(1);
-    }
+  {
+    fprintf(stderr, "Error in setConst_hprime_xx: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }
+  
+  err = cudaGetSymbolAddress((void**)&(mp->d_hprimewgll_xx),"d_hprimewgll_xx");
+  if(err != cudaSuccess) {
+    fprintf(stderr, "Error with d_hprimewgll_xx: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }        
 }
 
 void setConst_wgllwgll_xy(float* array,Mesh* mp)
 {
   cudaError_t err = cudaMemcpyToSymbol(d_wgllwgll_xy, array, NGLL2*sizeof(float));
   if (err != cudaSuccess)
-    {
-      fprintf(stderr, "Error in setConst_wgllwgll_xy: %s\n", cudaGetErrorString(err));
-      exit(1);
-    }
-  
-  // mp->d_wgllwgll_xy = d_wgllwgll_xy; // this doesn't work, use
-  // following cudaGetSymbolAddress
+  {
+    fprintf(stderr, "Error in setConst_wgllwgll_xy: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }
+  //mp->d_wgllwgll_xy = d_wgllwgll_xy;
   err = cudaGetSymbolAddress((void**)&(mp->d_wgllwgll_xy),"d_wgllwgll_xy");
-  printf("setting up mp->d_wgllwgll_xy\n");
   if(err != cudaSuccess) {
     fprintf(stderr, "Error with d_wgllwgll_xy: %s\n", cudaGetErrorString(err));
     exit(1);
-  }
+  }      
+  
 }
 
 void setConst_wgllwgll_xz(float* array,Mesh* mp)
 {
   cudaError_t err = cudaMemcpyToSymbol(d_wgllwgll_xz, array, NGLL2*sizeof(float));
   if (err != cudaSuccess)
-    {
-      fprintf(stderr, "Error in  setConst_wgllwgll_xz: %s\n", cudaGetErrorString(err));
-      exit(1);
-    }
-  // mp->d_wgllwgll_xz = d_wgllwgll_xz;
+  {
+    fprintf(stderr, "Error in  setConst_wgllwgll_xz: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }
+  //mp->d_wgllwgll_xz = d_wgllwgll_xz;
   err = cudaGetSymbolAddress((void**)&(mp->d_wgllwgll_xz),"d_wgllwgll_xz");
   if(err != cudaSuccess) {
     fprintf(stderr, "Error with d_wgllwgll_xz: %s\n", cudaGetErrorString(err));
     exit(1);
-  }
+  }      
+  
 }
 
 void setConst_wgllwgll_yz(float* array,Mesh* mp)
 {
   cudaError_t err = cudaMemcpyToSymbol(d_wgllwgll_yz, array, NGLL2*sizeof(float));
   if (err != cudaSuccess)
-    {
-      fprintf(stderr, "Error in setConst_wgllwgll_yz: %s\n", cudaGetErrorString(err));
-      exit(1);
-    }
-  // mp->d_wgllwgll_yz = d_wgllwgll_yz;
+  {
+    fprintf(stderr, "Error in setConst_wgllwgll_yz: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }
+  //mp->d_wgllwgll_yz = d_wgllwgll_yz;
   err = cudaGetSymbolAddress((void**)&(mp->d_wgllwgll_yz),"d_wgllwgll_yz");
   if(err != cudaSuccess) {
     fprintf(stderr, "Error with d_wgllwgll_yz: %s\n", cudaGetErrorString(err));
     exit(1);
-  }
+  }      
+  
 }

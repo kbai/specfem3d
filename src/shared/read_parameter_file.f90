@@ -214,8 +214,11 @@
 
   end subroutine read_parameter_file
 
+!
+!-------------------------------------------------------------------------------------------------
+!
 
-subroutine read_gpu_mode(GPU_MODE)
+  subroutine read_gpu_mode(GPU_MODE)
 
   implicit none
   include "constants.h"
@@ -230,4 +233,6 @@ subroutine read_gpu_mode(GPU_MODE)
   ! close parameter file
   call close_parameter_file()
 
-end subroutine read_gpu_mode
+  end subroutine read_gpu_mode
+
+

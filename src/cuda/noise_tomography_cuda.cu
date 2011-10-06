@@ -5,18 +5,12 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "config.h"
 #include "mesh_constants_cuda.h"
-
 // #include "epik_user.h"
 
-#define INDEX2(xsize,x,y) x + (y)*xsize
-#define INDEX3(xsize,ysize,x,y,z) x + (y)*xsize + (z)*xsize*ysize
-#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + (y)*xsize + (z)*xsize*ysize + (i)*xsize*ysize*zsize
-#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + (y)*xsize + (z)*xsize*ysize + (i)*xsize*ysize*zsize + (j)*xsize*ysize*zsize*isize
 
-typedef float real;
-
-#define ENABLE_VERY_SLOW_ERROR_CHECKING
+/* ----------------------------------------------------------------------------------------------- */
 
 __global__ void transfer_surface_to_host_kernel(int* free_surface_ispec,int* free_surface_ijk, int num_free_surface_faces, int* ibool, real* displ, real* noise_surface_movie) {
   int igll = threadIdx.x;
@@ -39,34 +33,56 @@ __global__ void transfer_surface_to_host_kernel(int* free_surface_ispec,int* fre
   }
 }
 
-extern "C" void fortranflush_(int* rank)
-{
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(fortranflush,FORTRANFLUSH)(int* rank){
+TRACE("fortranflush");  
   
   fflush(stdout);
   fflush(stderr);
   printf("Flushing proc %d!\n",*rank);
 }
 
-extern "C" void fortranprint_(int* id) {
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(fortranprint,FORTRANPRINT)(int* id) {
+TRACE("fortranprint");  
+
   int procid;
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
   printf("%d: sends msg_id %d\n",procid,*id);
 }
 
-extern "C" void fortranprintf_(float* val) {
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(fortranprintf,FORTRANPRINTF)(float* val) {
+TRACE("fortranprintf");  
+
   int procid;
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
   printf("%d: sends val %e\n",procid,*val);
 }
 
-extern "C" void fortranprintd_(double* val) {
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(fortranprintd,FORTRANPRINTD)(double* val) {
+TRACE("fortranprintd");  
+
   int procid;
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
   printf("%d: sends val %e\n",procid,*val);
 }
+
+/* ----------------------------------------------------------------------------------------------- */
 
 // randomize displ for testing
-extern "C" void make_displ_rand_(long* Mesh_pointer_f,float* h_displ) {
+extern "C"
+void FC_FUNC_(make_displ_rand,MAKE_DISPL_RAND)(long* Mesh_pointer_f,float* h_displ) {
+TRACE("make_displ_rand");  
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper  
   // float* displ_rnd = (float*)malloc(mp->NGLOB_AB*3*sizeof(float));
@@ -76,8 +92,13 @@ extern "C" void make_displ_rand_(long* Mesh_pointer_f,float* h_displ) {
   cudaMemcpy(mp->d_displ,h_displ,mp->NGLOB_AB*3*sizeof(float),cudaMemcpyHostToDevice);
 }
 
-extern "C" void transfer_surface_to_host_(long* Mesh_pointer_f,real* h_noise_surface_movie,int* num_free_surface_faces) {
-  
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(transfer_surface_to_host,
+              TRANSFER_SURFACE_TO_HOST)(long* Mesh_pointer_f,real* h_noise_surface_movie,int* num_free_surface_faces) {
+TRACE("transfer_surface_to_host");  
+ 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper  
   int num_blocks_x = *num_free_surface_faces;
   int num_blocks_y = 1;
@@ -93,14 +114,11 @@ extern "C" void transfer_surface_to_host_(long* Mesh_pointer_f,real* h_noise_sur
   cudaMemcpy(h_noise_surface_movie,mp->d_noise_surface_movie,3*25*(*num_free_surface_faces)*sizeof(real),cudaMemcpyDeviceToHost);  
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  // sync and check to catch errors from previous async operations
-  cudaThreadSynchronize();
   exit_on_cuda_error("transfer_surface_to_host");
-#endif
-  
+#endif  
 }
 
-
+/* ----------------------------------------------------------------------------------------------- */
 
 __global__ void noise_read_add_surface_movie_cuda_kernel(real* accel, int* ibool, int* free_surface_ispec,int* free_surface_ijk, int num_free_surface_faces, real* noise_surface_movie, real* normal_x_noise, real* normal_y_noise, real* normal_z_noise, real* mask_noise, real* free_surface_jacobian2Dw, real* wgllwgll_xy,float* d_debug) {
 
@@ -162,7 +180,12 @@ __global__ void noise_read_add_surface_movie_cuda_kernel(real* accel, int* ibool
   }
 }
 
-extern "C" void noise_read_add_surface_movie_cuda_(long* Mesh_pointer_f, real* h_noise_surface_movie, int* num_free_surface_faces_f,int* NOISE_TOMOGRAPHYf) {
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(noise_read_add_surface_movie_cuda,
+              NOISE_READ_ADD_SURFACE_MOVIE_CUDA)(long* Mesh_pointer_f, real* h_noise_surface_movie, int* num_free_surface_faces_f,int* NOISE_TOMOGRAPHYf) {
+TRACE("noise_read_add_surface_movie_cuda");  
 
   // EPIK_TRACER("noise_read_add_surface_movie_cuda");
   
@@ -224,17 +247,8 @@ extern "C" void noise_read_add_surface_movie_cuda_(long* Mesh_pointer_f, real* h
   // printf("debug[%d]= %e\n",i,h_debug[i]);
   // }
   // MPI_Abort(MPI_COMM_WORLD,1);
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING  
   exit_on_cuda_error("noise_read_add_surface_movie_cuda_kernel");
-  // sync and check to catch errors from previous async operations
-  // cudaThreadSynchronize();
-  // cudaError_t err = cudaGetLastError();
-  // if (err != cudaSuccess)
-  //   {
-  //     fprintf(stderr,"Error launching/running noise_read_add_surface_movie_cuda_kernel: %s\n", cudaGetErrorString(err));
-  //     exit(1);
-  //   }
 #endif
 
   cudaFree(d_noise_surface_movie);

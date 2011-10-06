@@ -45,12 +45,37 @@
   real(kind=CUSTOM_REAL):: stf_deltat
   double precision :: stf
 
-  ! this transfers fields only in elements with stations for efficiency
-  if(GPU_MODE) call transfer_station_fields_from_device(displ,veloc,accel,b_displ,b_veloc,b_accel,&
-       Mesh_pointer,number_receiver_global, ispec_selected_rec,ispec_selected_source,ibool,SIMULATION_TYPE)
-  
-  ! DEBUG: this transfers all elements in the fields, which is inefficient but guaranteed correct
-  ! if(GPU_MODE) call transfer_fields_from_device(size(accel),displ,veloc,accel,Mesh_pointer)
+  ! gets resulting array values onto CPU
+  if(GPU_MODE) then 
+    ! this transfers fields only in elements with stations for efficiency
+    if( ACOUSTIC_SIMULATION ) then
+      ! only copy corresponding elements to CPU host
+      ! timing: Elapsed time: 5.230904e-04
+      call transfer_station_fields_acoustic_from_device( &
+                      potential_acoustic,potential_dot_acoustic,potential_dot_dot_acoustic, &
+                      b_potential_acoustic,b_potential_dot_acoustic,b_potential_dot_dot_acoustic, &
+                      Mesh_pointer,number_receiver_global, &
+                      ispec_selected_rec,ispec_selected_source,ibool,SIMULATION_TYPE)
+
+      ! alternative: transfers whole fields      
+      ! timing: Elapsed time: 4.138947e-03
+      !call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
+      !          potential_dot_acoustic,potential_dot_dot_acoustic,Mesh_pointer)        
+    endif
+    
+    ! this transfers fields only in elements with stations for efficiency
+    if( ELASTIC_SIMULATION ) then
+      call transfer_station_fields_from_device( &
+                  displ,veloc,accel, &
+                  b_displ,b_veloc,b_accel, &
+                  Mesh_pointer,number_receiver_global, &
+                  ispec_selected_rec,ispec_selected_source, &
+                  ibool,SIMULATION_TYPE)
+
+      ! alternative: transfers whole fields      
+      !  call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)      
+    endif
+  endif
   
   do irec_local = 1,nrec_local
 

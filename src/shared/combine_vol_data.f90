@@ -24,6 +24,27 @@
 !
 !=====================================================================
 
+  module vtk
+
+    
+    !-------------------------------------------------------------
+    ! USER PARAMETER
+
+    ! outputs as VTK ASCII file 
+    logical,parameter :: USE_VTK_OUTPUT = .true.
+
+    !-------------------------------------------------------------
+
+
+    ! global point data
+    real,dimension(:),allocatable :: total_dat
+    
+  end module vtk
+
+!
+!-------------------------------------------------------------------------------------------------
+!
+
   program combine_paraview_data_ext_mesh
 
 ! puts the output of SPECFEM3D into '***.mesh' format,
@@ -36,10 +57,11 @@
 !
 ! works for external, unregular meshes
 
+  use vtk
   implicit none
 
   include 'constants.h'
-
+  
   ! data must be of dimension: (NGLLX,NGLLY,NGLLZ,NSPEC_AB)
   double precision,dimension(:,:,:,:),allocatable :: data
   ! real array for data
@@ -52,7 +74,7 @@
   integer :: NSPEC_AB, NGLOB_AB
   integer :: numpoin
   integer :: i, ios, it, ier
-  integer :: iproc, proc1, proc2, num_node, node_list(2000)
+  integer :: iproc, proc1, proc2, num_node, node_list(600)
   integer :: np, ne, npp, nee, nelement, njunk
 
   character(len=256) :: sline, arg(6), filename, indir, outdir
@@ -156,10 +178,21 @@
   print *, 'Slice list: '
   print *, node_list(1:num_node)
 
-  ! open paraview output mesh file
-  mesh_file = trim(outdir) // '/' // trim(filename)//'.mesh'
-  call open_file(trim(mesh_file)//char(0))
-
+  if( USE_VTK_OUTPUT ) then
+    mesh_file = trim(outdir) // '/' // trim(filename)//'.vtk'
+    open(IOVTK,file=mesh_file(1:len_trim(mesh_file)),status='unknown',iostat=ios)
+    if( ios /= 0 ) stop 'error opening vtk output file'
+    
+    write(IOVTK,'(a)') '# vtk DataFile Version 3.1'
+    write(IOVTK,'(a)') 'material model VTK file'
+    write(IOVTK,'(a)') 'ASCII'
+    write(IOVTK,'(a)') 'DATASET UNSTRUCTURED_GRID'
+  else
+    ! open paraview output mesh file
+    mesh_file = trim(outdir) // '/' // trim(filename)//'.mesh'
+    call open_file(trim(mesh_file)//char(0))
+  endif
+  
   ! counts total number of points (all slices)
   npp = 0
   nee = 0
@@ -228,11 +261,11 @@
     if (.not. HIGH_RESOLUTION_MESH) then
       ! writes out element corners only
       call cvd_write_corners(NSPEC_AB,NGLOB_AB,ibool,xstore,ystore,zstore,dat, &
-                            it,npp,numpoin)
+                            it,npp,numpoin,np)
     else
       ! high resolution, all GLL points
       call cvd_write_GLL_points(NSPEC_AB,NGLOB_AB,ibool,xstore,ystore,zstore,dat,&
-                               it,npp,numpoin)
+                               it,npp,numpoin,np)
     endif
 
     print*,'  points:',np,numpoin
@@ -244,6 +277,8 @@
     deallocate(ibool,dat,xstore,ystore,zstore)
 
   enddo  ! all slices for points
+
+  if( USE_VTK_OUTPUT) write(IOVTK,*) ""
 
   if (np /=  npp) stop 'Error: Number of total points are not consistent'
   print *, 'Total number of points: ', np
@@ -292,6 +327,8 @@
 
   enddo ! num_node
 
+  if( USE_VTK_OUTPUT) write(IOVTK,*) ""
+
   ! checks with total number of elements
   if (ne /= nee) then
     print*,'error: number of elements counted:',ne,'total:',nee
@@ -299,9 +336,25 @@
   endif
   print *, 'Total number of elements: ', ne
 
-  ! close mesh file
-  call close_file()
+  if( USE_VTK_OUTPUT) then
+    ! type: hexahedrons
+    write(IOVTK,'(a,i12)') "CELL_TYPES ",nee
+    write(IOVTK,*) (12,it=1,nee)
+    write(IOVTK,*) ""
 
+    write(IOVTK,'(a,i12)') "POINT_DATA ",npp
+    write(IOVTK,'(a)') "SCALARS "//trim(filename)//" float"
+    write(IOVTK,'(a)') "LOOKUP_TABLE default"
+    do it = 1,npp
+        write(IOVTK,*) total_dat(it)
+    enddo
+    write(IOVTK,*) ""
+    close(IOVTK)
+  else
+    ! close mesh file
+    call close_file()
+  endif
+  
   print *, 'Done writing '//trim(mesh_file)
 
   end program combine_paraview_data_ext_mesh
@@ -415,10 +468,10 @@
 
 
   subroutine cvd_write_corners(NSPEC_AB,NGLOB_AB,ibool,xstore,ystore,zstore,dat,&
-                               it,npp,numpoin)
+                               it,npp,numpoin,np)
 
 ! writes out locations of spectral element corners only
-
+  use vtk
   implicit none
   include 'constants.h'
 
@@ -427,7 +480,7 @@
   real(kind=CUSTOM_REAL),dimension(NGLOB_AB) :: xstore, ystore, zstore
   real,dimension(NGLLY,NGLLY,NGLLZ,NSPEC_AB),intent(in) :: dat
   integer:: it
-  integer :: npp,numpoin
+  integer :: npp,numpoin,np
 
   ! local parameters
   logical,dimension(:),allocatable :: mask_ibool
@@ -437,7 +490,15 @@
 
   ! writes out total number of points
   if (it == 1) then
-    call write_integer(npp)
+    if( USE_VTK_OUTPUT ) then      
+      write(IOVTK, '(a,i12,a)') 'POINTS ', npp, ' float'    
+      ! creates array to hold point data
+      allocate(total_dat(npp),stat=ier)
+      if( ier /= 0 ) stop 'error allocating total dat array'
+      total_dat(:) = 0.0
+    else
+      call write_integer(npp)
+    endif
   endif
 
   ! writes our corner point locations
@@ -460,21 +521,31 @@
       x = xstore(iglob1)
       y = ystore(iglob1)
       z = zstore(iglob1)
-      call write_real(x)
-      call write_real(y)
-      call write_real(z)
-      call write_real(dat(1,1,1,ispec))
-      mask_ibool(iglob1) = .true.
+      if( USE_VTK_OUTPUT ) then
+        write(IOVTK,'(3e18.6)') x,y,z
+        total_dat(np+numpoin) = dat(1,1,1,ispec)
+      else
+        call write_real(x)
+        call write_real(y)
+        call write_real(z)
+        call write_real(dat(1,1,1,ispec))
+      endif
+        mask_ibool(iglob1) = .true.
     endif
     if(.not. mask_ibool(iglob2)) then
       numpoin = numpoin + 1
       x = xstore(iglob2)
       y = ystore(iglob2)
       z = zstore(iglob2)
-      call write_real(x)
-      call write_real(y)
-      call write_real(z)
-      call write_real(dat(NGLLX,1,1,ispec))
+      if( USE_VTK_OUTPUT ) then
+        write(IOVTK,'(3e18.6)') x,y,z
+        total_dat(np+numpoin) = dat(NGLLX,1,1,ispec)
+      else
+        call write_real(x)
+        call write_real(y)
+        call write_real(z)      
+        call write_real(dat(NGLLX,1,1,ispec))
+      endif
       mask_ibool(iglob2) = .true.
     endif
     if(.not. mask_ibool(iglob3)) then
@@ -482,10 +553,15 @@
       x = xstore(iglob3)
       y = ystore(iglob3)
       z = zstore(iglob3)
-      call write_real(x)
-      call write_real(y)
-      call write_real(z)
-      call write_real(dat(NGLLX,NGLLY,1,ispec))
+      if( USE_VTK_OUTPUT ) then
+        write(IOVTK,'(3e18.6)') x,y,z
+        total_dat(np+numpoin) = dat(NGLLX,NGLLY,1,ispec)
+      else      
+        call write_real(x)
+        call write_real(y)
+        call write_real(z)
+        call write_real(dat(NGLLX,NGLLY,1,ispec))
+      endif
       mask_ibool(iglob3) = .true.
     endif
     if(.not. mask_ibool(iglob4)) then
@@ -493,10 +569,15 @@
       x = xstore(iglob4)
       y = ystore(iglob4)
       z = zstore(iglob4)
-      call write_real(x)
-      call write_real(y)
-      call write_real(z)
-      call write_real(dat(1,NGLLY,1,ispec))
+      if( USE_VTK_OUTPUT ) then
+        write(IOVTK,'(3e18.6)') x,y,z
+        total_dat(np+numpoin) = dat(1,NGLLY,1,ispec)        
+      else      
+        call write_real(x)
+        call write_real(y)
+        call write_real(z)
+        call write_real(dat(1,NGLLY,1,ispec))
+      endif
       mask_ibool(iglob4) = .true.
     endif
     if(.not. mask_ibool(iglob5)) then
@@ -504,10 +585,15 @@
       x = xstore(iglob5)
       y = ystore(iglob5)
       z = zstore(iglob5)
-      call write_real(x)
-      call write_real(y)
-      call write_real(z)
-      call write_real(dat(1,1,NGLLZ,ispec))
+      if( USE_VTK_OUTPUT ) then
+        write(IOVTK,'(3e18.6)') x,y,z
+        total_dat(np+numpoin) = dat(1,1,NGLLZ,ispec)        
+      else      
+        call write_real(x)
+        call write_real(y)
+        call write_real(z)
+        call write_real(dat(1,1,NGLLZ,ispec))
+      endif
       mask_ibool(iglob5) = .true.
     endif
     if(.not. mask_ibool(iglob6)) then
@@ -515,10 +601,15 @@
       x = xstore(iglob6)
       y = ystore(iglob6)
       z = zstore(iglob6)
-      call write_real(x)
-      call write_real(y)
-      call write_real(z)
-      call write_real(dat(NGLLX,1,NGLLZ,ispec))
+      if( USE_VTK_OUTPUT ) then
+        write(IOVTK,'(3e18.6)') x,y,z
+        total_dat(np+numpoin) = dat(NGLLX,1,NGLLZ,ispec)        
+      else      
+        call write_real(x)
+        call write_real(y)
+        call write_real(z)
+        call write_real(dat(NGLLX,1,NGLLZ,ispec))
+      endif
       mask_ibool(iglob6) = .true.
     endif
     if(.not. mask_ibool(iglob7)) then
@@ -526,10 +617,15 @@
       x = xstore(iglob7)
       y = ystore(iglob7)
       z = zstore(iglob7)
-      call write_real(x)
-      call write_real(y)
-      call write_real(z)
-      call write_real(dat(NGLLX,NGLLY,NGLLZ,ispec))
+      if( USE_VTK_OUTPUT ) then
+        write(IOVTK,'(3e18.6)') x,y,z
+        total_dat(np+numpoin) = dat(NGLLX,NGLLY,NGLLZ,ispec)        
+      else      
+        call write_real(x)
+        call write_real(y)
+        call write_real(z)
+        call write_real(dat(NGLLX,NGLLY,NGLLZ,ispec))
+      endif
       mask_ibool(iglob7) = .true.
     endif
     if(.not. mask_ibool(iglob8)) then
@@ -537,10 +633,15 @@
       x = xstore(iglob8)
       y = ystore(iglob8)
       z = zstore(iglob8)
-      call write_real(x)
-      call write_real(y)
-      call write_real(z)
-      call write_real(dat(1,NGLLY,NGLLZ,ispec))
+      if( USE_VTK_OUTPUT ) then
+        write(IOVTK,'(3e18.6)') x,y,z
+        total_dat(np+numpoin) = dat(1,NGLLY,NGLLZ,ispec)        
+      else      
+        call write_real(x)
+        call write_real(y)
+        call write_real(z)
+        call write_real(dat(1,NGLLY,NGLLZ,ispec))
+      endif
       mask_ibool(iglob8) = .true.
     endif
   enddo ! ispec
@@ -552,10 +653,10 @@
 
 
   subroutine cvd_write_GLL_points(NSPEC_AB,NGLOB_AB,ibool,xstore,ystore,zstore,dat,&
-                                  it,npp,numpoin)
+                                  it,npp,numpoin,np)
 
 ! writes out locations of all GLL points of spectral elements
-
+  use vtk
   implicit none
   include 'constants.h'
 
@@ -563,7 +664,7 @@
   integer,dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB),intent(in) :: ibool
   real(kind=CUSTOM_REAL),dimension(NGLOB_AB) :: xstore, ystore, zstore
   real,dimension(NGLLY,NGLLY,NGLLZ,NSPEC_AB),intent(in) :: dat
-  integer:: it,npp,numpoin
+  integer:: it,npp,numpoin,np
 
   ! local parameters
   logical,dimension(:),allocatable :: mask_ibool
@@ -572,7 +673,15 @@
 
   ! writes out total number of points
   if (it == 1) then
-    call write_integer(npp)
+    if( USE_VTK_OUTPUT ) then      
+      write(IOVTK, '(a,i12,a)') 'POINTS ', npp, ' float'    
+      ! creates array to hold point data
+      allocate(total_dat(npp),stat=ier)
+      if( ier /= 0 ) stop 'error allocating total dat array'
+      total_dat(:) = 0.0
+    else  
+      call write_integer(npp)
+    endif
   endif
 
   ! writes out point locations and values
@@ -591,10 +700,15 @@
             x = xstore(iglob)
             y = ystore(iglob)
             z = zstore(iglob)
-            call write_real(x)
-            call write_real(y)
-            call write_real(z)
-            call write_real(dat(i,j,k,ispec))
+            if( USE_VTK_OUTPUT ) then
+              write(IOVTK,'(3e18.6)') x,y,z
+              total_dat(np+numpoin) = dat(i,j,k,ispec)
+            else            
+              call write_real(x)
+              call write_real(y)
+              call write_real(z)
+              call write_real(dat(i,j,k,ispec))
+            endif
             mask_ibool(iglob) = .true.
           endif
         enddo ! i
@@ -611,6 +725,7 @@
   subroutine cvd_write_corner_elements(NSPEC_AB,NGLOB_AB,ibool,&
                                       np,nelement,it,nee,numpoin)
 
+  use vtk
   implicit none
   include 'constants.h'
 
@@ -627,7 +742,12 @@
 
   ! outputs total number of elements for all slices
   if (it == 1) then
-    call write_integer(nee)
+    if( USE_VTK_OUTPUT ) then      
+      ! note: indices for vtk start at 0
+      write(IOVTK,'(a,i12,i12)') "CELLS ",nee,nee*9
+    else
+      call write_integer(nee)
+    endif
   end if
 
   ! writes out element indices
@@ -701,17 +821,21 @@
     n7 = num_ibool(iglob7) -1 + np
     n8 = num_ibool(iglob8) -1 + np
 
-    call write_integer(n1)
-    call write_integer(n2)
-    call write_integer(n3)
-    call write_integer(n4)
-    call write_integer(n5)
-    call write_integer(n6)
-    call write_integer(n7)
-    call write_integer(n8)
-
+    if( USE_VTK_OUTPUT ) then  
+      write(IOVTK,'(9i12)') 8,n1,n2,n3,n4,n5,n6,n7,n8
+    else
+      call write_integer(n1)
+      call write_integer(n2)
+      call write_integer(n3)
+      call write_integer(n4)
+      call write_integer(n5)
+      call write_integer(n6)
+      call write_integer(n7)
+      call write_integer(n8)
+    endif
+    
   enddo
-
+  
   ! elements written
   nelement = NSPEC_AB
 
@@ -728,7 +852,7 @@
                                     np,nelement,it,nee,numpoin)
 
 ! writes out indices of elements given by GLL points
-
+  use vtk
   implicit none
   include 'constants.h'
 
@@ -745,8 +869,13 @@
 
   ! outputs total number of elements for all slices
   if (it == 1) then
-    !nee = nelement * num_node
-    call write_integer(nee)
+    if( USE_VTK_OUTPUT ) then      
+      ! note: indices for vtk start at 0
+      write(IOVTK,'(a,i12,i12)') "CELLS ",nee,nee*9
+    else  
+      !nee = nelement * num_node
+      call write_integer(nee)
+    endif
   endif
 
   ! sets numbering num_ibool respecting mask
@@ -793,14 +922,19 @@
           n6 = num_ibool(iglob6)+np-1
           n7 = num_ibool(iglob7)+np-1
           n8 = num_ibool(iglob8)+np-1
-          call write_integer(n1)
-          call write_integer(n2)
-          call write_integer(n3)
-          call write_integer(n4)
-          call write_integer(n5)
-          call write_integer(n6)
-          call write_integer(n7)
-          call write_integer(n8)
+  
+          if( USE_VTK_OUTPUT ) then  
+            write(IOVTK,'(9i12)') 8,n1,n2,n3,n4,n5,n6,n7,n8
+          else          
+            call write_integer(n1)
+            call write_integer(n2)
+            call write_integer(n3)
+            call write_integer(n4)
+            call write_integer(n5)
+            call write_integer(n6)
+            call write_integer(n7)
+            call write_integer(n8)
+          endif
         enddo
       enddo
     enddo

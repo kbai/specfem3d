@@ -30,7 +30,31 @@
 
   use specfem_par
   use specfem_par_movie
+  use specfem_par_elastic
+  use specfem_par_acoustic    
   implicit none
+
+  ! gets resulting array values onto CPU
+  if(GPU_MODE .and. &
+    ( &
+      EXTERNAL_MESH_CREATE_SHAKEMAP .or. &
+      CREATE_SHAKEMAP .or. &
+      ( MOVIE_SURFACE .and. mod(it,NTSTEP_BETWEEN_FRAMES) == 0) .or. &
+      ( MOVIE_VOLUME .and. mod(it,NTSTEP_BETWEEN_FRAMES) == 0) .or. &
+      ( PNM_GIF_IMAGE .and. mod(it,NTSTEP_BETWEEN_FRAMES) == 0) &
+     ) ) then 
+    ! acoustic domains
+    if( ACOUSTIC_SIMULATION ) then
+      ! transfers whole fields      
+      call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
+                potential_dot_acoustic,potential_dot_dot_acoustic,Mesh_pointer)        
+    endif
+    ! elastic domains
+    if( ELASTIC_SIMULATION ) then
+      ! transfers whole fields      
+      call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+    endif
+  endif
 
   ! shakemap creation
   if (EXTERNAL_MESH_CREATE_SHAKEMAP) then
@@ -1034,6 +1058,9 @@
   character(len=3) :: channel
   character(len=1) :: compx,compy,compz
 
+  real(kind=CUSTOM_REAL),dimension(:,:,:,:),allocatable:: tmpdata
+  integer :: i,j,k,iglob
+
   ! gets component characters: X/Y/Z or E/N/Z
   call write_channel_name(1,channel)
   compx(1:1) = channel(3:3) ! either X or E
@@ -1160,6 +1187,57 @@
     !write(27) velocity_movie
     !close(27)
 
+    ! norms
+    allocate( tmpdata(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
+    if( ier /= 0 ) stop 'error allocating tmpdata arrays for movie output'
+
+    if( ELASTIC_SIMULATION ) then
+      ! norm of displacement
+      do ispec=1,NSPEC_AB
+        do k=1,NGLLZ
+          do j=1,NGLLY
+            do i=1,NGLLX
+              iglob = ibool(i,j,k,ispec)
+              tmpdata(i,j,k,ispec) = sqrt( displ(1,iglob)**2 + displ(2,iglob)**2 + displ(3,iglob)**2 )
+            enddo
+          enddo
+        enddo
+      enddo
+      write(outputname,"('/proc',i6.6,'_displ_norm_it',i6.6,'.bin')") myrank,it
+      open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
+      if( ier /= 0 ) stop 'error opening file movie output velocity z'
+      write(27) tmpdata
+      close(27)
+
+      ! norm of acceleration
+      do ispec=1,NSPEC_AB
+        do k=1,NGLLZ
+          do j=1,NGLLY
+            do i=1,NGLLX
+              iglob = ibool(i,j,k,ispec)
+              tmpdata(i,j,k,ispec) = sqrt( accel(1,iglob)**2 + accel(2,iglob)**2 + accel(3,iglob)**2 )
+            enddo
+          enddo
+        enddo
+      enddo
+      write(outputname,"('/proc',i6.6,'_accel_norm_it',i6.6,'.bin')") myrank,it
+      open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
+      if( ier /= 0 ) stop 'error opening file movie output velocity z'
+      write(27) tmpdata
+      close(27)    
+    endif
+
+    ! norm of velocity
+    tmpdata = sqrt( velocity_x**2 + velocity_y**2 + velocity_z**2)
+
+    write(outputname,"('/proc',i6.6,'_velocity_norm_it',i6.6,'.bin')") myrank,it
+    open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
+    if( ier /= 0 ) stop 'error opening file movie output velocity z'
+    write(27) tmpdata
+    close(27)
+    
+    deallocate(tmpdata)
+    
   endif
 
   end subroutine wmo_movie_volume_output

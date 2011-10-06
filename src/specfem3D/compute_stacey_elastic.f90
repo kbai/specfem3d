@@ -36,7 +36,8 @@
                         veloc,rho_vp,rho_vs, &
                         ispec_is_elastic,SIMULATION_TYPE,SAVE_FORWARD, &
                         NSTEP,it,NGLOB_ADJOINT,b_accel, &
-                        b_num_abs_boundary_faces,b_reclen_field,b_absorb_field,GPU_MODE,Mesh_pointer)
+                        b_num_abs_boundary_faces,b_reclen_field,b_absorb_field, &
+                        GPU_MODE,Mesh_pointer)
 
   implicit none
 
@@ -159,10 +160,12 @@
         endif ! ispec_is_inner
      enddo
 
-  else ! GPU_MODE == .true.
-     call compute_stacey_elastic_cuda(Mesh_pointer, NSPEC_AB, NGLOB_AB, phase_is_inner,&
+  else 
+    ! GPU_MODE == .true.
+    call compute_stacey_elastic_cuda(Mesh_pointer, NSPEC_AB, NGLOB_AB, phase_is_inner,&
           num_abs_boundary_faces, SIMULATION_TYPE, NSTEP, NGLOB_ADJOINT,&
-          b_num_abs_boundary_faces, b_reclen_field,b_absorb_field, SAVE_FORWARD, NGLLSQUARE,it)
+          b_num_abs_boundary_faces, b_reclen_field,b_absorb_field, &
+          SAVE_FORWARD,it)
   endif
 
   ! adjoint simulations: stores absorbed wavefield part

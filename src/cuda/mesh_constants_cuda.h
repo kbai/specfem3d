@@ -63,6 +63,7 @@ void exit_on_cuda_error(char* kernel_name);
 #define NDIM 3
 #define NGLLX 5
 #define NGLL2 25
+#define N_SLS 3
 
 typedef float real;   // type of variables passed into function
 typedef float realw;  // type of "working" variables
@@ -156,13 +157,29 @@ typedef struct mesh_ {
   // surface movie elements to save for noise tomography
   float* d_noise_surface_movie;
 
+  // attenuation
+  float* d_R_xx;
+  float* d_R_yy;
+  float* d_R_xy;
+  float* d_R_xz;
+  float* d_R_yz;
+
+  float* d_one_minus_sum_beta;
+  float* d_factor_common;
+  
+  float* d_alphaval;
+  float* d_betaval;
+  float* d_gammaval;
+  
+  // attenuation & kernel
   float* d_epsilondev_xx;
   float* d_epsilondev_yy;
   float* d_epsilondev_xy;
   float* d_epsilondev_xz;
   float* d_epsilondev_yz;
   float* d_epsilon_trace_over_3;
-  
+      
+  // noise
   float* d_normal_x_noise;
   float* d_normal_y_noise;
   float* d_normal_z_noise;
@@ -171,17 +188,30 @@ typedef struct mesh_ {
 
   float* d_noise_sourcearray;
 
+  // attenuation & kernel backward fields
+  float* d_b_R_xx;
+  float* d_b_R_yy;
+  float* d_b_R_xy;
+  float* d_b_R_xz;
+  float* d_b_R_yz;
+  
   float* d_b_epsilondev_xx;
   float* d_b_epsilondev_yy;
   float* d_b_epsilondev_xy;
   float* d_b_epsilondev_xz;
   float* d_b_epsilondev_yz;
   float* d_b_epsilon_trace_over_3;
+
+  float* d_b_alphaval;
+  float* d_b_betaval;
+  float* d_b_gammaval;
   
   // sensitivity kernels
   float* d_rho_kl;
   float* d_mu_kl;
   float* d_kappa_kl;
+  
+  // noise sensitivity kernel
   float* d_Sigma_kl;
 
   // ------------------------------------------------------------------ //

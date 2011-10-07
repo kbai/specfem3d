@@ -63,7 +63,6 @@
 
   use specfem_par
   use specfem_par_elastic
-  use specfem_par_movie,only: nfaces_surface_ext_mesh
 
   implicit none
   ! local parameters

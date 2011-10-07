@@ -172,7 +172,10 @@ TRACE("compute_add_sources_elastic_cuda");
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void add_source_master_rec_noise_cuda_kernel(int* ibool, int* ispec_selected_rec, int irec_master_noise, real* accel, real* noise_sourcearray, int it) {
+__global__ void add_source_master_rec_noise_cuda_kernel(int* ibool, int* ispec_selected_rec, 
+                                                        int irec_master_noise, 
+                                                        real* accel, real* noise_sourcearray, 
+                                                        int it) {
   int tx = threadIdx.x;
   int iglob = ibool[tx + 125*(ispec_selected_rec[irec_master_noise-1]-1)]-1;
 

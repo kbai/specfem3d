@@ -205,9 +205,20 @@
       stop 'Deville et al. (2002) routines can only be used if NGLLX = NGLLY = NGLLZ is in [5-10]'
   endif
 
+  ! check for GPU runs
   if( GPU_MODE ) then
     if( NGLLX /= 5 .or. NGLLY /= 5 .or. NGLLZ /= 5 ) &
       stop 'GPU mode can only be used if NGLLX == NGLLY == NGLLZ == 5'
+    if( CUSTOM_REAL /= 4 ) &
+      stop 'GPU mode runs only with CUSTOM_REAL == 4'
+    if( SAVE_MOHO_MESH ) &
+      stop 'GPU mode does not support SAVE_MOHO_MESH yet'
+    if( ATTENUATION ) then
+      if( N_SLS /= 3 ) &
+        stop 'GPU mode does not support N_SLS /= 3 yet'   
+    endif
+    if( ANISOTROPY ) &  
+      stop 'GPU mode does not support ANISOTROPY yet'    
   endif
 
   ! absorbing surfaces

@@ -732,30 +732,28 @@
   
   ! prepares general fields on GPU  
   call prepare_constants_device(Mesh_pointer, &
-                      NGLLX, NSPEC_AB, NGLOB_AB, &
-                      xix, xiy, xiz, etax,etay,etaz, gammax, gammay, gammaz, &
-                      kappastore, mustore,ibool, &
-                      num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh, &
-                      nibool_interfaces_ext_mesh, ibool_interfaces_ext_mesh, &
-                      hprime_xx, hprime_yy, hprime_zz, &
-                      hprimewgll_xx, wgllwgll_xy, wgllwgll_xz, wgllwgll_yz, &
-                      abs_boundary_ispec, abs_boundary_ijk, &
-                      abs_boundary_normal, &
-                      abs_boundary_jacobian2Dw, &
-                      b_absorb_field, num_abs_boundary_faces, b_num_abs_boundary_faces, &
-                      ispec_is_inner, &
-                      NSOURCES, sourcearrays, islice_selected_source, ispec_selected_source, &
-                      number_receiver_global, ispec_selected_rec, nrec, nrec_local, &
-                      SIMULATION_TYPE)
-
-!    call prepare_fields_device(Mesh_pointer, NDIM*NGLOB_AB);
+                                  NGLLX, NSPEC_AB, NGLOB_AB, &
+                                  xix, xiy, xiz, etax,etay,etaz, gammax, gammay, gammaz, &
+                                  kappastore, mustore,ibool, &
+                                  num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh, &
+                                  nibool_interfaces_ext_mesh, ibool_interfaces_ext_mesh, &
+                                  hprime_xx, hprime_yy, hprime_zz, &
+                                  hprimewgll_xx, wgllwgll_xy, wgllwgll_xz, wgllwgll_yz, &
+                                  abs_boundary_ispec, abs_boundary_ijk, &
+                                  abs_boundary_normal, &
+                                  abs_boundary_jacobian2Dw, &
+                                  b_absorb_field, num_abs_boundary_faces, b_num_abs_boundary_faces, &
+                                  ispec_is_inner, &
+                                  NSOURCES, sourcearrays, islice_selected_source, ispec_selected_source, &
+                                  number_receiver_global, ispec_selected_rec, nrec, nrec_local, &
+                                  SIMULATION_TYPE)
 
   ! prepares fields on GPU for acoustic simulations 
   if( ACOUSTIC_SIMULATION ) &
     call prepare_fields_acoustic_device(Mesh_pointer,rmass_acoustic,rhostore,kappastore, &
                                   num_phase_ispec_acoustic,phase_ispec_inner_acoustic, &
                                   ispec_is_acoustic, &
-                                  num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
+                                  NOISE_TOMOGRAPHY,num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
                                   ABSORBING_CONDITIONS,b_reclen_potential,b_absorb_potential, &
                                   SIMULATION_TYPE,rho_ac_kl,kappa_ac_kl)
   
@@ -765,59 +763,38 @@
                                   rmass,rho_vp,rho_vs, &
                                   num_phase_ispec_elastic,phase_ispec_inner_elastic, &
                                   ispec_is_elastic, &
-                                  ABSORBING_CONDITIONS,b_absorb_field,b_num_abs_boundary_faces)
+                                  ABSORBING_CONDITIONS,b_absorb_field,b_num_abs_boundary_faces, &
+                                  SIMULATION_TYPE,rho_kl,mu_kl,kappa_kl, &
+                                  COMPUTE_AND_STORE_STRAIN, &
+                                  epsilondev_xx,epsilondev_yy,epsilondev_xy,epsilondev_xz,epsilondev_yz, &
+                                  epsilon_trace_over_3, &
+                                  b_epsilondev_xx,b_epsilondev_yy,b_epsilondev_xy,b_epsilondev_xz,b_epsilondev_yz, &
+                                  b_epsilon_trace_over_3, &
+                                  ATTENUATION,size(R_xx), &
+                                  R_xx,R_yy,R_xy,R_xz,R_yz, &
+                                  b_R_xx,b_R_yy,b_R_xy,b_R_xz,b_R_yz, &
+                                  one_minus_sum_beta,factor_common, &
+                                  alphaval,betaval,gammaval, &
+                                  b_alphaval,b_betaval,b_gammaval)
 
-  ! prepares receiver arrays for adjoint runs
-  if( SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3 ) then
+  ! prepares needed receiver array for adjoint runs
+  if( SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3 ) &
     call prepare_adjoint_sim2_or_3_constants_device(Mesh_pointer, &
-                                    islice_selected_rec, &
-                                    size(islice_selected_rec))
+                                  islice_selected_rec,size(islice_selected_rec))
   
-  endif
-
   ! prepares fields on GPU for noise simulations      
   if ( NOISE_TOMOGRAPHY > 0 ) then
     ! note: noise tomography is only supported for elastic domains so far.
     
-    ! copies noise (free) surface arrays to GPU
-    call prepare_noise_constants_device(Mesh_pointer, NGLLX, NSPEC_AB, NGLOB_AB, &
-             free_surface_ispec,free_surface_ijk,num_free_surface_faces,size(free_surface_ijk), &
-             SIMULATION_TYPE)
+    ! copies noise  arrays to GPU
+    call prepare_fields_noise_device(Mesh_pointer, NSPEC_AB, NGLOB_AB, &
+                                  free_surface_ispec,free_surface_ijk,num_free_surface_faces,size(free_surface_ijk), &
+                                  SIMULATION_TYPE,NOISE_TOMOGRAPHY, &
+                                  NSTEP,noise_sourcearray, &
+                                  normal_x_noise,normal_y_noise,normal_z_noise, &
+                                  mask_noise,free_surface_jacobian2Dw, &
+                                  Sigma_kl)
 
-    call prepare_adjoint_constants_device(Mesh_pointer, &
-             !ispec_selected_rec,islice_selected_rec,nrec,size(islice_selected_rec),&
-             noise_sourcearray, NSTEP,&
-             epsilondev_xx,&
-             epsilondev_yy,&
-             epsilondev_xy,&
-             epsilondev_xz,&
-             epsilondev_yz,&
-             NSPEC_STRAIN_ONLY)
-
-    if(NOISE_TOMOGRAPHY > 1) &             
-      call prepare_and_transfer_noise_backward_constants(Mesh_pointer,&
-             normal_x_noise,&
-             normal_y_noise,&
-             normal_z_noise,&
-             mask_noise,&
-             free_surface_jacobian2Dw,&
-             nfaces_surface_ext_mesh)
-    
-    if( SIMULATION_TYPE == 3) then 
-      ! now have backward fields in addition to standard fields
-      call prepare_and_transfer_noise_backward_fields(Mesh_pointer, NDIM*NGLOB_AB, &
-                b_displ, b_veloc, b_accel,&
-                b_epsilondev_xx, b_epsilondev_yy, b_epsilondev_xy,&
-                b_epsilondev_xz, b_epsilondev_yz, &
-                NSPEC_STRAIN_ONLY)
-                
-      call prepare_sensitivity_kernels(Mesh_pointer,&
-                rho_kl,mu_kl,kappa_kl,&
-                epsilon_trace_over_3,b_epsilon_trace_over_3,&
-                Sigma_kl,NSPEC_AB)
-
-
-    endif
   endif ! NOISE_TOMOGRAPHY
 
   ! sends initial data to device
@@ -839,9 +816,6 @@
       call transfer_b_fields_to_device(NDIM*NGLOB_AB,b_displ,b_veloc, b_accel,Mesh_pointer)
   endif
 
-  ! outputs GPU usage to files for all processes
-  call output_free_device_memory(myrank)
-
   ! outputs usage 
   if( myrank == 0 ) then
     call get_free_device_memory(free_mb,used_mb,total_mb)
@@ -850,5 +824,8 @@
     write(IMAIN,*)"             total =",total_mb," MB"
     write(IMAIN,*)
   endif    
+
+  ! outputs GPU usage to files for all processes
+  call output_free_device_memory(myrank)
   
   end subroutine prepare_timerun_GPU

@@ -92,7 +92,7 @@ void setConst_wgllwgll_xy(float* array,Mesh* mp);
 void setConst_wgllwgll_xz(float* array, Mesh* mp);
 void setConst_wgllwgll_yz(float* array, Mesh* mp);
 
-void exit_on_cuda_error(char* kernel_name);
-void show_free_memory(char* info_str);
+//void exit_on_cuda_error(char* kernel_name);
+//void show_free_memory(char* info_str);
 
 #endif //CUDA_HEADER_H

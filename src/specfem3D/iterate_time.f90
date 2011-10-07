@@ -468,10 +468,11 @@
       read(27) b_epsilondev_yz
        
       ! puts elastic attenuation arrays to GPU 
-      ! daniel: TODO transfer R_xx,... and epsilondev_xx,... as well
       if(GPU_MODE) &
-        call exit_MPI(myrank,'read forward arrays: not fully implemented yet for elastic domains with attenuation')
-       
+          call transfer_b_fields_att_to_device(Mesh_pointer, &
+                                            b_R_xx,b_R_yy,b_R_xy,b_R_xz,b_R_yz,size(b_R_xx), &
+                                            b_epsilondev_xx,b_epsilondev_yy,b_epsilondev_xy,b_epsilondev_xz,b_epsilondev_yz, &
+                                            size(b_epsilondev_xx))                 
     endif
 
   endif
@@ -523,10 +524,13 @@
                
         ! puts elastic fields onto GPU
         if(GPU_MODE) then
+          ! wavefields
           call transfer_b_fields_to_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
-          
-          ! daniel: TODO transfer R_xx,... and epsilondev_xx,... as well
-          call exit_MPI(myrank,'store attenuation arrays: not fully implemented yet for elastic domains')
+          ! attenuation arrays
+          call transfer_b_fields_att_to_device(Mesh_pointer, &
+                                            b_R_xx,b_R_yy,b_R_xy,b_R_xz,b_R_yz,size(b_R_xx), &
+                                            b_epsilondev_xx,b_epsilondev_yy,b_epsilondev_xy,b_epsilondev_xz,b_epsilondev_yz, &
+                                            size(b_epsilondev_xx))          
         endif        
       endif
       
@@ -552,9 +556,12 @@
         ! gets elastic fields from GPU onto CPU
         if(GPU_MODE) then
           call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
-          
-          ! daniel: TODO transfer R_xx,... and epsilondev_xx,... as well
-          call exit_MPI(myrank,'store attenuation arrays: not fully implemented yet for elastic domains')
+
+          ! attenuation arrays
+          call transfer_fields_att_from_device(Mesh_pointer, &
+                                            R_xx,R_yy,R_xy,R_xz,R_yz,size(R_xx), &
+                                            epsilondev_xx,epsilondev_yy,epsilondev_xy,epsilondev_xz,epsilondev_yz, &
+                                            size(epsilondev_xx))          
         endif
         
         ! writes to disk file      
@@ -603,25 +610,58 @@
 
   implicit none
 
-  ! acoustic potentials
-  if( ACOUSTIC_SIMULATION ) then
-    call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
+  ! to store forward wave fields
+  if (SIMULATION_TYPE == 1 .and. SAVE_FORWARD) then
+
+    ! acoustic potentials
+    if( ACOUSTIC_SIMULATION ) &
+      call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
                             potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
-    if( SIMULATION_TYPE == 3 ) then
-      call transfer_b_fields_acoustic_from_device(NGLOB_AB,b_potential_acoustic, &
-                            b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer)    
+                            
+    ! elastic wavefield
+    if( ELASTIC_SIMULATION ) then
+      call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+
+      if (ATTENUATION) &
+        call transfer_fields_att_from_device(Mesh_pointer, &
+                                            R_xx,R_yy,R_xy,R_xz,R_yz,size(R_xx), &
+                                            epsilondev_xx,epsilondev_yy,epsilondev_xy,epsilondev_xz,epsilondev_yz, &
+                                            size(epsilondev_xx))
+        
+    endif
+  else if (SIMULATION_TYPE == 3) then
+
+    ! to store kernels
+    
+    if( ACOUSTIC_SIMULATION ) then
+      ! only in case needed...
+      !call transfer_b_fields_acoustic_from_device(NGLOB_AB,b_potential_acoustic, &
+      !                      b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer)    
+      
+      ! acoustic kernels                      
       call transfer_sensitivity_kernels_acoustic_to_host(Mesh_pointer,rho_ac_kl,kappa_ac_kl,NSPEC_AB)
     endif
+
+    if( ELASTIC_SIMULATION ) then
+      ! only in case needed...
+      !call transfer_b_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
+      
+      ! elastic kernels
+      call transfer_sensitivity_kernels_to_host(Mesh_pointer,rho_kl,mu_kl,kappa_kl,NSPEC_AB)
+    endif
+
+    ! specific noise strength kernel
+    if( NOISE_TOMOGRAPHY == 3 ) then
+      call transfer_sensitivity_kernels_to_host(Mesh_pointer,Sigma_kl,NSPEC_AB)  
+    endif
+
   endif
 
-  ! elastic wavefield
-  if( ELASTIC_SIMULATION ) then
-    call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
-    if( SIMULATION_TYPE == 3 ) then
-      call transfer_b_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
-      call transfer_sensitivity_kernels_to_host(Mesh_pointer, rho_kl, mu_kl, kappa_kl,Sigma_kl, &
-                                               NSPEC_AB)
-    endif
-  endif    
+  
+  ! frees allocated memory on GPU
+  call prepare_cleanup_device(Mesh_pointer,num_abs_boundary_faces, &
+                              SIMULATION_TYPE,ACOUSTIC_SIMULATION,ELASTIC_SIMULATION, &
+                              ABSORBING_CONDITIONS,NOISE_TOMOGRAPHY,COMPUTE_AND_STORE_STRAIN, &
+                              ATTENUATION)
   
   end subroutine it_transfer_from_GPU

@@ -53,7 +53,9 @@ __global__ void compute_stacey_acoustic_kernel(float* potential_dot_acoustic,
       
       // determines bulk sound speed
       rhol = rhostore[INDEX4_PADDED(NGLLX,NGLLX,NGLLX,i,j,k,ispec)];
+
       kappal = kappastore[INDEX4(NGLLX,NGLLX,NGLLX,i,j,k,ispec)];
+
       cpl = sqrt( kappal / rhol );
             
       // gets associated, weighted jacobian      

@@ -120,7 +120,17 @@ TRACE("transfer_surface_to_host");
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void noise_read_add_surface_movie_cuda_kernel(real* accel, int* ibool, int* free_surface_ispec,int* free_surface_ijk, int num_free_surface_faces, real* noise_surface_movie, real* normal_x_noise, real* normal_y_noise, real* normal_z_noise, real* mask_noise, real* free_surface_jacobian2Dw, real* wgllwgll_xy,float* d_debug) {
+__global__ void noise_read_add_surface_movie_cuda_kernel(real* accel, int* ibool, 
+                                                         int* free_surface_ispec,int* free_surface_ijk, 
+                                                         int num_free_surface_faces, 
+                                                         real* noise_surface_movie, 
+                                                         real* normal_x_noise, 
+                                                         real* normal_y_noise, 
+                                                         real* normal_z_noise, 
+                                                         real* mask_noise, 
+                                                         real* free_surface_jacobian2Dw, 
+                                                         real* wgllwgll_xy,
+                                                         float* d_debug) {
 
   int iface = blockIdx.x + gridDim.x*blockIdx.y; // surface element id
 

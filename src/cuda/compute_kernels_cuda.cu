@@ -159,28 +159,13 @@ void FC_FUNC_(compute_kernels_cuda,
 #endif
 }
 
-/* ----------------------------------------------------------------------------------------------- */
-
-extern "C" 
-void FC_FUNC_(transfer_sensitivity_kernels_to_host,
-              TRANSFER_SENSITIVITY_KERNELS_TO_HOST)(long* Mesh_pointer, float* h_rho_kl,
-                                                    float* h_mu_kl, float* h_kappa_kl,
-                                                    float* h_Sigma_kl,int* NSPEC_AB,int* NSPEC_AB_VAL) {
-
-  Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
-
-  print_CUDA_error_if_any(cudaMemcpy(h_rho_kl,mp->d_rho_kl,*NSPEC_AB*125*sizeof(float),
-				     cudaMemcpyDeviceToHost),1);
-  print_CUDA_error_if_any(cudaMemcpy(h_mu_kl,mp->d_mu_kl,*NSPEC_AB*125*sizeof(float),
-				     cudaMemcpyDeviceToHost),1);
-  print_CUDA_error_if_any(cudaMemcpy(h_kappa_kl,mp->d_kappa_kl,*NSPEC_AB*125*sizeof(float),
-				     cudaMemcpyDeviceToHost),1);
-  print_CUDA_error_if_any(cudaMemcpy(h_Sigma_kl,mp->d_Sigma_kl,125*(*NSPEC_AB_VAL)*sizeof(float),
-				     cudaMemcpyHostToDevice),4);
-  
-}
 
 /* ----------------------------------------------------------------------------------------------- */
+
+// NOISE SIMULATIONS
+
+/* ----------------------------------------------------------------------------------------------- */
+
 
 __global__ void compute_kernels_strength_noise_cuda_kernel(float* displ, 
                                                            int* free_surface_ispec,
@@ -236,6 +221,9 @@ void FC_FUNC_(compute_kernels_strength_noise_cuda,
                                                     float* h_noise_surface_movie,
                                                     int* num_free_surface_faces_f,
                                                     float* deltat) {
+
+TRACE("compute_kernels_strength_noise_cuda");
+                                                    
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
   int num_free_surface_faces = *num_free_surface_faces_f;
 
@@ -498,24 +486,3 @@ TRACE("compute_kernels_acoustic_cuda");
 #endif
 }
 
-/* ----------------------------------------------------------------------------------------------- */
-
-extern "C" 
-void FC_FUNC_(transfer_sensitivity_kernels_acoustic_to_host,
-              TRANSFER_SENSITIVITY_KERNELS_ACOUSTIC_TO_HOST)(long* Mesh_pointer, 
-                                                             float* h_rho_ac_kl,
-                                                             float* h_kappa_ac_kl,
-                                                             int* NSPEC_AB) {
-
-TRACE("transfer_sensitivity_kernels_acoustic_to_host");  
-  
-  //get mesh pointer out of fortran integer container  
-  Mesh* mp = (Mesh*)(*Mesh_pointer); 
-  int size = *NSPEC_AB*125;
-  
-  // copies kernel values over to CPU host
-  print_CUDA_error_if_any(cudaMemcpy(h_rho_ac_kl,mp->d_rho_ac_kl,size*sizeof(float),
-                                     cudaMemcpyDeviceToHost),911);
-  print_CUDA_error_if_any(cudaMemcpy(h_kappa_ac_kl,mp->d_kappa_ac_kl,size*sizeof(float),
-                                     cudaMemcpyDeviceToHost),922);  
-}

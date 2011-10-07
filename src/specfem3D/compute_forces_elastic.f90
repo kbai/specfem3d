@@ -81,7 +81,7 @@ subroutine compute_forces_elastic()
           else ! GPU_MODE==.true.
              ! contains both forward SIM_TYPE==1 and backward SIM_TYPE==3 simulations
              call compute_forces_elastic_cuda(Mesh_pointer, iphase, nspec_outer_elastic, &
-                  nspec_inner_elastic,COMPUTE_AND_STORE_STRAIN,SIMULATION_TYPE)   
+                  nspec_inner_elastic,COMPUTE_AND_STORE_STRAIN,SIMULATION_TYPE,ATTENUATION)   
           endif
       else if (NGLLX == 6) then
       call compute_forces_elastic_Dev_6points(iphase, NSPEC_AB,NGLOB_AB,displ,accel, &

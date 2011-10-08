@@ -215,46 +215,30 @@ subroutine compute_forces_acoustic()
     endif
 
 ! elastic coupling
-    if(ELASTIC_SIMULATION ) then
-    
-      ! transfers potentials to CPU
-      if(GPU_MODE) then 
-        call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
-        call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc,accel, Mesh_pointer)
-        ! backward simulation
-        if( SIMULATION_TYPE == 3 ) then
-          call transfer_fields_acoustic_from_device(NGLOB_AB,b_potential_acoustic, &
-                              b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer) 
-          call transfer_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel,Mesh_pointer)
-        endif
-      endif
-    
-      call compute_coupling_acoustic_el(NSPEC_AB,NGLOB_AB, &
+    if(ELASTIC_SIMULATION ) then    
+      if( .NOT. GPU_MODE ) then
+        call compute_coupling_acoustic_el(NSPEC_AB,NGLOB_AB, &
                         ibool,displ,potential_dot_dot_acoustic, &
                         num_coupling_ac_el_faces, &
                         coupling_ac_el_ispec,coupling_ac_el_ijk, &
                         coupling_ac_el_normal, &
                         coupling_ac_el_jacobian2Dw, &
                         ispec_is_inner,phase_is_inner)
-      ! adjoint simulations
-      if( SIMULATION_TYPE == 3 ) &
-        call compute_coupling_acoustic_el(NSPEC_ADJOINT,NGLOB_ADJOINT, &
+        ! adjoint simulations
+        if( SIMULATION_TYPE == 3 ) &
+          call compute_coupling_acoustic_el(NSPEC_ADJOINT,NGLOB_ADJOINT, &
                         ibool,b_displ,b_potential_dot_dot_acoustic, &
                         num_coupling_ac_el_faces, &
                         coupling_ac_el_ispec,coupling_ac_el_ijk, &
                         coupling_ac_el_normal, &
                         coupling_ac_el_jacobian2Dw, &
                         ispec_is_inner,phase_is_inner)
-        
-      ! transfers potentials to CPU
-      if(GPU_MODE) then 
-        ! only potential_dot_dot_acoustic/b_potential_dot_dot_acoustic is updated above
-        call transfer_fields_acoustic_to_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
-        if( SIMULATION_TYPE == 3 ) &
-          call transfer_fields_acoustic_to_device(NGLOB_AB,b_potential_acoustic, &
-                              b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer) 
+      else
+        ! on GPU
+        if( num_coupling_ac_el_faces > 0 ) &
+          call compute_coupling_acoustic_el_cuda(Mesh_pointer,phase_is_inner, &
+                                              num_coupling_ac_el_faces,SIMULATION_TYPE)
+      
       endif
     endif
 

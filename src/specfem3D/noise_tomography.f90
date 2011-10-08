@@ -397,22 +397,31 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   endif
 
   if (NOISE_TOMOGRAPHY/=0) then
-     ! save/read the surface movie using the same c routine as we do for absorbing boundaries (file ID is 2)
+    ! save/read the surface movie using the same c routine as we do for absorbing boundaries (file ID is 2)
 
-     ! size of single record
-     reclen=CUSTOM_REAL*NDIM*NGLLSQUARE*NSPEC_TOP
-     ! total file size
-     filesize = reclen
-     filesize = filesize*NSTEP
+    ! size of single record
+    reclen=CUSTOM_REAL*NDIM*NGLLSQUARE*NSPEC_TOP
      
-     write(outputname,"('/proc',i6.6,'_surface_movie')") myrank
-     if (NOISE_TOMOGRAPHY==1) call open_file_abs_w(2,trim(LOCAL_PATH)//trim(outputname), &
+    ! check integer size limit: size of b_reclen_field must fit onto an 4-byte integer 
+    if( NSPEC_TOP > 2147483647 / (CUSTOM_REAL * NGLLSQUARE * NDIM) ) then
+      print *,'reclen of noise surface_movie needed exceeds integer 4-byte limit: ',reclen
+      print *,'  ',CUSTOM_REAL, NDIM, NGLLSQUARE, NSPEC_TOP
+      print*,'bit size fortran: ',bit_size(NSPEC_TOP)
+      call exit_MPI(myrank,"error NSPEC_TOP integer limit")
+    endif
+     
+    ! total file size
+    filesize = reclen
+    filesize = filesize*NSTEP
+     
+    write(outputname,"('/proc',i6.6,'_surface_movie')") myrank
+    if (NOISE_TOMOGRAPHY==1) call open_file_abs_w(2,trim(LOCAL_PATH)//trim(outputname), &
                                       len_trim(trim(LOCAL_PATH)//trim(outputname)), &
                                       filesize)
-     if (NOISE_TOMOGRAPHY==2) call open_file_abs_r(2,trim(LOCAL_PATH)//trim(outputname), &
+    if (NOISE_TOMOGRAPHY==2) call open_file_abs_r(2,trim(LOCAL_PATH)//trim(outputname), &
                                       len_trim(trim(LOCAL_PATH)//trim(outputname)), &
                                       filesize)
-     if (NOISE_TOMOGRAPHY==3) call open_file_abs_r(2,trim(LOCAL_PATH)//trim(outputname), &
+    if (NOISE_TOMOGRAPHY==3) call open_file_abs_r(2,trim(LOCAL_PATH)//trim(outputname), &
                                       len_trim(trim(LOCAL_PATH)//trim(outputname)), &
                                       filesize)
   endif

@@ -1,3 +1,31 @@
+/*
+ !=====================================================================
+ !
+ !               S p e c f e m 3 D  V e r s i o n  2 . 0
+ !               ---------------------------------------
+ !
+ !          Main authors: Dimitri Komatitsch and Jeroen Tromp
+ !    Princeton University, USA and University of Pau / CNRS / INRIA
+ ! (c) Princeton University / California Institute of Technology and University of Pau / CNRS / INRIA
+ !                            April 2011
+ !
+ ! This program is free software; you can redistribute it and/or modify
+ ! it under the terms of the GNU General Public License as published by
+ ! the Free Software Foundation; either version 2 of the License, or
+ ! (at your option) any later version.
+ !
+ ! This program is distributed in the hope that it will be useful,
+ ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+ ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ ! GNU General Public License for more details.
+ !
+ ! You should have received a copy of the GNU General Public License along
+ ! with this program; if not, write to the Free Software Foundation, Inc.,
+ ! 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ !
+ !=====================================================================
+ */
+
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
@@ -185,15 +213,15 @@ __global__ void compute_kernels_strength_noise_cuda_kernel(float* displ,
     int ispec = free_surface_ispec[iface]-1;
     int igll = threadIdx.x;        
     int ipoin = igll + 25*iface;
-    int i = free_surface_ijk[INDEX3(3,25,0,igll,iface)]-1;
-    int j = free_surface_ijk[INDEX3(3,25,0,igll,iface)]-1;
-    int k = free_surface_ijk[INDEX3(3,25,0,igll,iface)]-1;
+    int i = free_surface_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)]-1;
+    int j = free_surface_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)]-1;
+    int k = free_surface_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)]-1;
     
     int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)]-1;
     
-    float eta = (noise_surface_movie[INDEX3(3,25,0,igll,iface)]*normal_x_noise[ipoin]+
-		 noise_surface_movie[INDEX3(3,25,1,igll,iface)]*normal_y_noise[ipoin]+ 
-		 noise_surface_movie[INDEX3(3,25,2,igll,iface)]*normal_z_noise[ipoin]);
+    float eta = ( noise_surface_movie[INDEX3(NDIM,NGLL2,0,igll,iface)]*normal_x_noise[ipoin]+
+                 noise_surface_movie[INDEX3(NDIM,NGLL2,1,igll,iface)]*normal_y_noise[ipoin]+ 
+                 noise_surface_movie[INDEX3(NDIM,NGLL2,2,igll,iface)]*normal_z_noise[ipoin]);
 
     // if(ijk_ispec == 78496) {
     //   d_debug[0] = Sigma_kl[ijk_ispec];

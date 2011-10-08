@@ -76,6 +76,9 @@
   real(kind=CUSTOM_REAL) :: rhol,cpl,jacobianw,absorbl
   integer :: ispec,iglob,i,j,k,iface,igll
   !integer:: reclen1,reclen2
+  
+  ! checks if anything to do
+  if( num_abs_boundary_faces == 0 ) return
 
 ! adjoint simulations:
   if (SIMULATION_TYPE == 3 .and. num_abs_boundary_faces > 0)  then
@@ -144,8 +147,7 @@
   else 
     ! GPU_MODE == .true.
     call compute_stacey_acoustic_cuda(Mesh_pointer, phase_is_inner, &
-                                num_abs_boundary_faces, SIMULATION_TYPE, &
-                                SAVE_FORWARD,b_absorb_potential)
+                                SIMULATION_TYPE,SAVE_FORWARD,b_absorb_potential)
 
   endif
   

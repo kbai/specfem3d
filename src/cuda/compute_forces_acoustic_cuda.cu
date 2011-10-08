@@ -1,31 +1,30 @@
 /*
-!=====================================================================
-!
-!               S p e c f e m 3 D  V e r s i o n  2 . 0
-!               ---------------------------------------
-!
-!          Main authors: Dimitri Komatitsch and Jeroen Tromp
-!    Princeton University, USA and University of Pau / CNRS / INRIA
-! (c) Princeton University / California Institute of Technology and University of Pau / CNRS / INRIA
-!                            April 2011
-!
-! This program is free software; you can redistribute it and/or modify
-! it under the terms of the GNU General Public License as published by
-! the Free Software Foundation; either version 2 of the License, or
-! (at your option) any later version.
-!
-! This program is distributed in the hope that it will be useful,
-! but WITHOUT ANY WARRANTY; without even the implied warranty of
-! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-! GNU General Public License for more details.
-!
-! You should have received a copy of the GNU General Public License along
-! with this program; if not, write to the Free Software Foundation, Inc.,
-! 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
-!
-!=====================================================================
-*/
-
+ !=====================================================================
+ !
+ !               S p e c f e m 3 D  V e r s i o n  2 . 0
+ !               ---------------------------------------
+ !
+ !          Main authors: Dimitri Komatitsch and Jeroen Tromp
+ !    Princeton University, USA and University of Pau / CNRS / INRIA
+ ! (c) Princeton University / California Institute of Technology and University of Pau / CNRS / INRIA
+ !                            April 2011
+ !
+ ! This program is free software; you can redistribute it and/or modify
+ ! it under the terms of the GNU General Public License as published by
+ ! the Free Software Foundation; either version 2 of the License, or
+ ! (at your option) any later version.
+ !
+ ! This program is distributed in the hope that it will be useful,
+ ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+ ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ ! GNU General Public License for more details.
+ !
+ ! You should have received a copy of the GNU General Public License along
+ ! with this program; if not, write to the Free Software Foundation, Inc.,
+ ! 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ !
+ !=====================================================================
+ */
 
 #include <stdio.h>
 #include <cuda.h>
@@ -51,8 +50,6 @@ __global__ void prepare_boundary_potential_on_device(float* d_potential_dot_dot_
                                                      int* d_ibool_interfaces_ext_mesh) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
-  //int bx = blockIdx.y*gridDim.x+blockIdx.x;
-  //int tx = threadIdx.x;
   int iinterface=0;  
   
   for( iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
@@ -144,8 +141,6 @@ __global__ void assemble_boundary_potential_on_device(float* d_potential_dot_dot
                                                       int* d_ibool_interfaces_ext_mesh) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
-  //int bx = blockIdx.y*gridDim.x+blockIdx.x;
-  //int tx = threadIdx.x;
   int iinterface=0;  
 
   for( iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
@@ -186,11 +181,19 @@ void FC_FUNC_(transfer_and_assemble_potential_to_device,
 TRACE("transfer_and_assemble_potential_to_device");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
+  //double start_time = get_time();
+  // cudaEvent_t start, stop; 
+  // float time; 
+  // cudaEventCreate(&start); 
+  // cudaEventCreate(&stop); 
+  // cudaEventRecord( start, 0 );
 
+  // copies buffer onto GPU  
   cudaMemcpy(mp->d_send_potential_dot_dot_buffer, buffer_recv_scalar_ext_mesh, 
              *max_nibool_interfaces_ext_mesh* *num_interfaces_ext_mesh*sizeof(real), cudaMemcpyHostToDevice);
 
-  int blocksize = 256;
+  // assembles on GPU
+  int blocksize = 256;  
   int size_padded = ((int)ceil(((double)*max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
@@ -201,12 +204,7 @@ TRACE("transfer_and_assemble_potential_to_device");
 
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
-  //double start_time = get_time();
-  // cudaEvent_t start, stop; 
-  // float time; 
-  // cudaEventCreate(&start); 
-  // cudaEventCreate(&stop); 
-  // cudaEventRecord( start, 0 );
+
   if(*FORWARD_OR_ADJOINT == 1) { 
     //assemble forward field
     assemble_boundary_potential_on_device<<<grid,threads>>>(mp->d_potential_dot_dot_acoustic, 
@@ -226,13 +224,15 @@ TRACE("transfer_and_assemble_potential_to_device");
                                                             mp->d_ibool_interfaces_ext_mesh);    
   }
   
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   // cudaEventRecord( stop, 0 );
   // cudaEventSynchronize( stop );
   // cudaEventElapsedTime( &time, start, stop );
   // cudaEventDestroy( start );
   // cudaEventDestroy( stop );
   // printf("Boundary Assemble Kernel Execution Time: %f ms\n",time);
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  //double end_time = get_time();
+  //printf("Elapsed time: %e\n",end_time-start_time);
   exit_on_cuda_error("transfer_and_assemble_potential_to_device");
 #endif  
 }
@@ -267,6 +267,7 @@ void FC_FUNC_(compute_forces_acoustic_cuda,
                                             int* SIMULATION_TYPE) {
 
 TRACE("compute_forces_acoustic_cuda");
+  //double start_time = get_time();
   
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper
 
@@ -284,12 +285,19 @@ TRACE("compute_forces_acoustic_cuda");
   Kernel_2_acoustic(num_elements, mp, *iphase, *SIMULATION_TYPE);  
   
   cudaThreadSynchronize();
-/* MPI_Barrier(MPI_COMM_WORLD); */
+
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  /* MPI_Barrier(MPI_COMM_WORLD); */
+  //double end_time = get_time();
+  //printf("Elapsed time: %e\n",end_time-start_time);
+#endif
 }
 
 
 /* ----------------------------------------------------------------------------------------------- */
+
 /* KERNEL 2 */
+
 /* ----------------------------------------------------------------------------------------------- */
 
 void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIMULATION_TYPE)
@@ -358,11 +366,12 @@ void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIM
 #endif
 }
 
+/* ----------------------------------------------------------------------------------------------- */
 
 /* KERNEL 2 on device*/
 
-//typedef double reald;
-//typedef float reald;
+/* ----------------------------------------------------------------------------------------------- */
+
 
 __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
                                       int* d_phase_ispec_inner_acoustic, 
@@ -374,15 +383,9 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
                                       float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,
                                       float* d_rhostore){
     
-  /* int bx = blockIdx.y*blockDim.x+blockIdx.x; //possible bug in original code*/
   int bx = blockIdx.y*gridDim.x+blockIdx.x;
-  /* int bx = blockIdx.x; */
   int tx = threadIdx.x;
 
-  
-  
-  //const int NGLLX = 5;
-  // const int NGLL2 = 25; 
   const int NGLL3 = 125;
   const int NGLL3_ALIGN = 128;
     
@@ -466,23 +469,23 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
         }
 #else
 
-            temp1l = s_dummy_loc[K*NGLL2+J*NGLLX]*hprime_xx[I]
-                    + s_dummy_loc[K*NGLL2+J*NGLLX+1]*hprime_xx[NGLLX+I]
-                    + s_dummy_loc[K*NGLL2+J*NGLLX+2]*hprime_xx[2*NGLLX+I]
-                    + s_dummy_loc[K*NGLL2+J*NGLLX+3]*hprime_xx[3*NGLLX+I]
-                    + s_dummy_loc[K*NGLL2+J*NGLLX+4]*hprime_xx[4*NGLLX+I];	    
-	    
-            temp2l = s_dummy_loc[K*NGLL2+I]*hprime_xx[J]
-                    + s_dummy_loc[K*NGLL2+NGLLX+I]*hprime_xx[NGLLX+J]
-                    + s_dummy_loc[K*NGLL2+2*NGLLX+I]*hprime_xx[2*NGLLX+J]
-                    + s_dummy_loc[K*NGLL2+3*NGLLX+I]*hprime_xx[3*NGLLX+J]
-                    + s_dummy_loc[K*NGLL2+4*NGLLX+I]*hprime_xx[4*NGLLX+J];
+        temp1l = s_dummy_loc[K*NGLL2+J*NGLLX]*hprime_xx[I]
+                + s_dummy_loc[K*NGLL2+J*NGLLX+1]*hprime_xx[NGLLX+I]
+                + s_dummy_loc[K*NGLL2+J*NGLLX+2]*hprime_xx[2*NGLLX+I]
+                + s_dummy_loc[K*NGLL2+J*NGLLX+3]*hprime_xx[3*NGLLX+I]
+                + s_dummy_loc[K*NGLL2+J*NGLLX+4]*hprime_xx[4*NGLLX+I];	    
+  
+        temp2l = s_dummy_loc[K*NGLL2+I]*hprime_xx[J]
+                + s_dummy_loc[K*NGLL2+NGLLX+I]*hprime_xx[NGLLX+J]
+                + s_dummy_loc[K*NGLL2+2*NGLLX+I]*hprime_xx[2*NGLLX+J]
+                + s_dummy_loc[K*NGLL2+3*NGLLX+I]*hprime_xx[3*NGLLX+J]
+                + s_dummy_loc[K*NGLL2+4*NGLLX+I]*hprime_xx[4*NGLLX+J];
 
-            temp3l = s_dummy_loc[J*NGLLX+I]*hprime_xx[K]
-                    + s_dummy_loc[NGLL2+J*NGLLX+I]*hprime_xx[NGLLX+K]
-                    + s_dummy_loc[2*NGLL2+J*NGLLX+I]*hprime_xx[2*NGLLX+K]
-                    + s_dummy_loc[3*NGLL2+J*NGLLX+I]*hprime_xx[3*NGLLX+K]
-                    + s_dummy_loc[4*NGLL2+J*NGLLX+I]*hprime_xx[4*NGLLX+K];
+        temp3l = s_dummy_loc[J*NGLLX+I]*hprime_xx[K]
+                + s_dummy_loc[NGLL2+J*NGLLX+I]*hprime_xx[NGLLX+K]
+                + s_dummy_loc[2*NGLL2+J*NGLLX+I]*hprime_xx[2*NGLLX+K]
+                + s_dummy_loc[3*NGLL2+J*NGLLX+I]*hprime_xx[3*NGLLX+K]
+                + s_dummy_loc[4*NGLL2+J*NGLLX+I]*hprime_xx[4*NGLLX+K];
 
 #endif
 
@@ -546,25 +549,25 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
         }
 #else
 
-            temp1l = s_temp1[K*NGLL2+J*NGLLX]*hprimewgll_xx[I*NGLLX]
-                    + s_temp1[K*NGLL2+J*NGLLX+1]*hprimewgll_xx[I*NGLLX+1]
-                    + s_temp1[K*NGLL2+J*NGLLX+2]*hprimewgll_xx[I*NGLLX+2]
-                    + s_temp1[K*NGLL2+J*NGLLX+3]*hprimewgll_xx[I*NGLLX+3]
-                    + s_temp1[K*NGLL2+J*NGLLX+4]*hprimewgll_xx[I*NGLLX+4];
-	    
+        temp1l = s_temp1[K*NGLL2+J*NGLLX]*hprimewgll_xx[I*NGLLX]
+                + s_temp1[K*NGLL2+J*NGLLX+1]*hprimewgll_xx[I*NGLLX+1]
+                + s_temp1[K*NGLL2+J*NGLLX+2]*hprimewgll_xx[I*NGLLX+2]
+                + s_temp1[K*NGLL2+J*NGLLX+3]*hprimewgll_xx[I*NGLLX+3]
+                + s_temp1[K*NGLL2+J*NGLLX+4]*hprimewgll_xx[I*NGLLX+4];
+  
 
-            temp2l = s_temp2[K*NGLL2+I]*hprimewgll_xx[J*NGLLX]
-                    + s_temp2[K*NGLL2+NGLLX+I]*hprimewgll_xx[J*NGLLX+1]
-                    + s_temp2[K*NGLL2+2*NGLLX+I]*hprimewgll_xx[J*NGLLX+2]
-                    + s_temp2[K*NGLL2+3*NGLLX+I]*hprimewgll_xx[J*NGLLX+3]
-                    + s_temp2[K*NGLL2+4*NGLLX+I]*hprimewgll_xx[J*NGLLX+4];
+        temp2l = s_temp2[K*NGLL2+I]*hprimewgll_xx[J*NGLLX]
+                + s_temp2[K*NGLL2+NGLLX+I]*hprimewgll_xx[J*NGLLX+1]
+                + s_temp2[K*NGLL2+2*NGLLX+I]*hprimewgll_xx[J*NGLLX+2]
+                + s_temp2[K*NGLL2+3*NGLLX+I]*hprimewgll_xx[J*NGLLX+3]
+                + s_temp2[K*NGLL2+4*NGLLX+I]*hprimewgll_xx[J*NGLLX+4];
 
 
-            temp3l = s_temp3[J*NGLLX+I]*hprimewgll_xx[K*NGLLX]
-                    + s_temp3[NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+1]
-                    + s_temp3[2*NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+2]
-                    + s_temp3[3*NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+3]
-                    + s_temp3[4*NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+4];
+        temp3l = s_temp3[J*NGLLX+I]*hprimewgll_xx[K*NGLLX]
+                + s_temp3[NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+1]
+                + s_temp3[2*NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+2]
+                + s_temp3[3*NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+3]
+                + s_temp3[4*NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+4];
 
 
 #endif
@@ -582,7 +585,7 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
       // d_accel[iglob*3 + 1] -= (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l);
       // d_accel[iglob*3 + 2] -= (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);		
 	
-	atomicAdd(&d_potential_dot_dot_acoustic[iglob],-(fac1*temp1l + fac2*temp2l + fac3*temp3l));		
+        atomicAdd(&d_potential_dot_dot_acoustic[iglob],-(fac1*temp1l + fac2*temp2l + fac3*temp3l));		
 	
 #endif
     }
@@ -594,7 +597,9 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
 
 
 /* ----------------------------------------------------------------------------------------------- */
+
 /* KERNEL 3 */
+
 /* ----------------------------------------------------------------------------------------------- */
 
 
@@ -717,11 +722,11 @@ TRACE("kernel_3_b_acoustic_cuda");
 
 
 /* ----------------------------------------------------------------------------------------------- */
+
 /* KERNEL for enforce free surface */
+
 /* ----------------------------------------------------------------------------------------------- */
 
-#define INDEX(i,j,k,ispec) i + (j)*5 + (k)*25 + (ispec)*125
-#define INDEX_IJK(x,y,z) x + (y)*3 + (z)*3*25
 
 __global__ void enforce_free_surface_cuda_kernel(
                                        float* potential_acoustic, 
@@ -748,17 +753,17 @@ __global__ void enforce_free_surface_cuda_kernel(
     if( ispec_is_acoustic[ispec] == 1 ){
   
       // gets global point index
-      int tx = threadIdx.x + threadIdx.y*blockDim.x;  
+      int igll = threadIdx.x + threadIdx.y*blockDim.x;  
 
 //#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING    
-//      if( tx > 25-1 ){printf("device tx: %i \n",tx);}
+//      if( igll > 25-1 ){printf("device igll: %i \n",igll);}
 //#endif
     
-      int i = free_surface_ijk[INDEX_IJK(0,tx,iface)] - 1;
-      int j = free_surface_ijk[INDEX_IJK(1,tx,iface)] - 1;
-      int k = free_surface_ijk[INDEX_IJK(2,tx,iface)] - 1;
+      int i = free_surface_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)] - 1; // (1,igll,iface)
+      int j = free_surface_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)] - 1;
+      int k = free_surface_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)] - 1;
       
-      int iglob = ibool[INDEX(i,j,k,ispec)] - 1;
+      int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)] - 1;
       
       // sets potentials to zero at free surface
       potential_acoustic[iglob] = 0;
@@ -766,7 +771,7 @@ __global__ void enforce_free_surface_cuda_kernel(
       potential_dot_dot_acoustic[iglob] = 0; 
 
 //#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING    
-//    if( ispec == 160 && tx < 25 ){printf("device: %i %i %i %i %i \n",tx,i,j,k,iglob);}
+//    if( ispec == 160 && igll < 25 ){printf("device: %i %i %i %i %i \n",igll,i,j,k,iglob);}
 //#endif
     }
   }  

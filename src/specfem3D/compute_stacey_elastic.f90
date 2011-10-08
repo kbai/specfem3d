@@ -84,6 +84,8 @@
   integer :: ispec,iglob,i,j,k,iface,igll
   !integer:: reclen1,reclen2
 
+  ! checks if anything to do
+  if( num_abs_boundary_faces == 0 ) return
 
 ! adjoint simulations:
   if (SIMULATION_TYPE == 3 .and. num_abs_boundary_faces > 0)  then
@@ -162,10 +164,8 @@
 
   else 
     ! GPU_MODE == .true.
-    call compute_stacey_elastic_cuda(Mesh_pointer, NSPEC_AB, NGLOB_AB, phase_is_inner,&
-          num_abs_boundary_faces, SIMULATION_TYPE, NSTEP, NGLOB_ADJOINT,&
-          b_num_abs_boundary_faces, b_reclen_field,b_absorb_field, &
-          SAVE_FORWARD,it)
+    call compute_stacey_elastic_cuda(Mesh_pointer,phase_is_inner, &
+                        SIMULATION_TYPE,SAVE_FORWARD,b_absorb_field)
   endif
 
   ! adjoint simulations: stores absorbed wavefield part

@@ -1,3 +1,31 @@
+/*
+ !=====================================================================
+ !
+ !               S p e c f e m 3 D  V e r s i o n  2 . 0
+ !               ---------------------------------------
+ !
+ !          Main authors: Dimitri Komatitsch and Jeroen Tromp
+ !    Princeton University, USA and University of Pau / CNRS / INRIA
+ ! (c) Princeton University / California Institute of Technology and University of Pau / CNRS / INRIA
+ !                            April 2011
+ !
+ ! This program is free software; you can redistribute it and/or modify
+ ! it under the terms of the GNU General Public License as published by
+ ! the Free Software Foundation; either version 2 of the License, or
+ ! (at your option) any later version.
+ !
+ ! This program is distributed in the hope that it will be useful,
+ ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+ ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ ! GNU General Public License for more details.
+ !
+ ! You should have received a copy of the GNU General Public License along
+ ! with this program; if not, write to the Free Software Foundation, Inc.,
+ ! 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ !
+ !=====================================================================
+ */
+
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
@@ -8,12 +36,6 @@
 #include "config.h"
 #include "mesh_constants_cuda.h"
 
-//#define INDEX2(xsize,x,y) x + (y)*xsize
-//#define INDEX3(xsize,ysize,x,y,z) x + (y)*xsize + (z)*xsize*ysize
-//#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + (y)*xsize + (z)*xsize*ysize + (i)*xsize*ysize*zsize
-//#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + (y)*xsize + (z)*xsize*ysize + (i)*xsize*ysize*zsize + (j)*xsize*ysize*zsize*isize
-//
-//#define ENABLE_VERY_SLOW_ERROR_CHECKING
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -49,9 +71,6 @@ __global__ void transfer_stations_fields_from_device_kernel(int* number_receiver
   }
 }
 
-/* ----------------------------------------------------------------------------------------------- */
-
-//extern "C" void pause_for_debuger(int);
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -223,11 +242,7 @@ TRACE("transfer_field_acoustic_from_device");
                                                                          mp->d_station_seismo_potential,
                                                                          d_potential);
   
-  
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  exit_on_cuda_error("transfer_stations_fields_acoustic_from_device_kernel");
-#endif
-  
+    
   print_CUDA_error_if_any(cudaMemcpy(mp->h_station_seismo_potential,mp->d_station_seismo_potential,
                                      mp->nrec_local*125*sizeof(float),cudaMemcpyDeviceToHost),500);
   
@@ -249,6 +264,9 @@ TRACE("transfer_field_acoustic_from_device");
     //memcpy(&(h_potential[iglob]),&(mp->h_station_seismo_potential[irec_local*125]),125*sizeof(float));
     
   }
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  exit_on_cuda_error("transfer_field_acoustic_from_device");
+#endif  
 }
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -313,6 +331,7 @@ TRACE("transfer_station_fields_acoustic_from_device");
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   //double end_time = get_time();
   //printf("Elapsed time: %e\n",end_time-start_time);
+  exit_on_cuda_error("transfer_station_fields_acoustic_from_device");  
 #endif
 }
 

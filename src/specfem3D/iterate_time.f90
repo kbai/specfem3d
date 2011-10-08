@@ -659,7 +659,7 @@
 
   
   ! frees allocated memory on GPU
-  call prepare_cleanup_device(Mesh_pointer,num_abs_boundary_faces, &
+  call prepare_cleanup_device(Mesh_pointer, &
                               SIMULATION_TYPE,ACOUSTIC_SIMULATION,ELASTIC_SIMULATION, &
                               ABSORBING_CONDITIONS,NOISE_TOMOGRAPHY,COMPUTE_AND_STORE_STRAIN, &
                               ATTENUATION)

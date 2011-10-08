@@ -452,23 +452,9 @@ subroutine compute_forces_elastic()
                         GPU_MODE,Mesh_pointer)
 
 ! acoustic coupling
-    if( ACOUSTIC_SIMULATION ) then
-      
-      ! daniel: workaround - todo on GPU
-      ! transfers potentials to CPU
-      if(GPU_MODE) then 
-        call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
-        call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc,accel,Mesh_pointer)
-        ! backward simulation
-        if( SIMULATION_TYPE == 3 ) then
-          call transfer_fields_acoustic_from_device(NGLOB_AB,b_potential_acoustic, &
-                              b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer) 
-          call transfer_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel,Mesh_pointer) 
-        endif
-      endif
-    
-      call compute_coupling_elastic_ac(NSPEC_AB,NGLOB_AB, &
+    if( ACOUSTIC_SIMULATION ) then      
+      if( .NOT. GPU_MODE ) then    
+        call compute_coupling_elastic_ac(NSPEC_AB,NGLOB_AB, &
                         ibool,accel,potential_dot_dot_acoustic, &
                         num_coupling_ac_el_faces, &
                         coupling_ac_el_ispec,coupling_ac_el_ijk, &
@@ -476,25 +462,22 @@ subroutine compute_forces_elastic()
                         coupling_ac_el_jacobian2Dw, &
                         ispec_is_inner,phase_is_inner)
 
-      ! adjoint simulations
-      if( SIMULATION_TYPE == 3 ) &
-        call compute_coupling_elastic_ac(NSPEC_ADJOINT,NGLOB_ADJOINT, &
+        ! adjoint simulations
+        if( SIMULATION_TYPE == 3 ) &
+          call compute_coupling_elastic_ac(NSPEC_ADJOINT,NGLOB_ADJOINT, &
                         ibool,b_accel,b_potential_dot_dot_acoustic, &
                         num_coupling_ac_el_faces, &
                         coupling_ac_el_ispec,coupling_ac_el_ijk, &
                         coupling_ac_el_normal, &
                         coupling_ac_el_jacobian2Dw, &
                         ispec_is_inner,phase_is_inner)
-
-      ! daniel: workaround - todo on GPU
-      ! transfers potentials to CPU
-      if(GPU_MODE) then 
-        ! only accel/b_accel is updated above
-        call transfer_fields_to_device(NDIM*NGLOB_AB,displ,veloc,accel, Mesh_pointer) 
-        if( SIMULATION_TYPE == 3 ) &
-          call transfer_fields_to_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer) 
+      else
+        ! on GPU
+        if( num_coupling_ac_el_faces > 0 ) &
+          call compute_coupling_elastic_ac_cuda(Mesh_pointer,phase_is_inner, &
+                                              num_coupling_ac_el_faces,SIMULATION_TYPE)
+      
       endif
-                        
     endif
 
 
@@ -615,16 +598,21 @@ subroutine compute_forces_elastic()
        b_accel(3,:) = b_accel(3,:)*rmass(:)
     endif !adjoint
  else ! GPU_MODE == 1    
-    call kernel_3_cuda(Mesh_pointer, NGLOB_AB, deltatover2,SIMULATION_TYPE,b_deltatover2)
+    call kernel_3_a_cuda(Mesh_pointer, NGLOB_AB, deltatover2,SIMULATION_TYPE,b_deltatover2,OCEANS)
  endif
 
 ! updates acceleration with ocean load term
   if(OCEANS) then
-    call elastic_ocean_load(NSPEC_AB,NGLOB_AB, &
+    if( .NOT. GPU_MODE ) then
+      call elastic_ocean_load(NSPEC_AB,NGLOB_AB, &
                         ibool,rmass,rmass_ocean_load,accel, &
                         free_surface_normal,free_surface_ijk,free_surface_ispec, &
                         num_free_surface_faces,SIMULATION_TYPE, &
                         NGLOB_ADJOINT,b_accel)
+    else
+      ! on GPU
+      call elastic_ocean_load_cuda(Mesh_pointer,SIMULATION_TYPE)
+    endif
   endif
 
 ! updates velocities
@@ -648,6 +636,8 @@ subroutine compute_forces_elastic()
      veloc(:,:) = veloc(:,:) + deltatover2*accel(:,:)
      ! adjoint simulations
      if (SIMULATION_TYPE == 3) b_veloc(:,:) = b_veloc(:,:) + b_deltatover2*b_accel(:,:)
+  else ! GPU_MODE == 1    
+    if( OCEANS ) call kernel_3_b_cuda(Mesh_pointer, NGLOB_AB, deltatover2,SIMULATION_TYPE,b_deltatover2)  
   endif
 
 

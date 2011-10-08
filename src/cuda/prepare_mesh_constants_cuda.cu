@@ -1,3 +1,31 @@
+/*
+ !=====================================================================
+ !
+ !               S p e c f e m 3 D  V e r s i o n  2 . 0
+ !               ---------------------------------------
+ !
+ !          Main authors: Dimitri Komatitsch and Jeroen Tromp
+ !    Princeton University, USA and University of Pau / CNRS / INRIA
+ ! (c) Princeton University / California Institute of Technology and University of Pau / CNRS / INRIA
+ !                            April 2011
+ !
+ ! This program is free software; you can redistribute it and/or modify
+ ! it under the terms of the GNU General Public License as published by
+ ! the Free Software Foundation; either version 2 of the License, or
+ ! (at your option) any later version.
+ !
+ ! This program is distributed in the hope that it will be useful,
+ ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+ ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ ! GNU General Public License for more details.
+ !
+ ! You should have received a copy of the GNU General Public License along
+ ! with this program; if not, write to the Free Software Foundation, Inc.,
+ ! 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ !
+ !=====================================================================
+ */
+
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
@@ -87,7 +115,7 @@ void print_CUDA_error_if_any(cudaError_t err, int num)
 {
   if (cudaSuccess != err)
   {
-    printf("\nCUDA error !!!!! <%s> !!!!! \nat CUDA call # %d\n",cudaGetErrorString(err),num);
+    printf("\nCUDA error !!!!! <%s> !!!!! \nat CUDA call error code: # %d\n",cudaGetErrorString(err),num);
     fflush(stdout);
 #ifdef USE_MPI
     MPI_Abort(MPI_COMM_WORLD,1);
@@ -217,12 +245,12 @@ void FC_FUNC_(prepare_constants_device,
                                         float* h_hprimewgll_xx,
                                         float* h_wgllwgll_xy, 
                                         float* h_wgllwgll_xz,
-                                        float* h_wgllwgll_yz,            
+                                        float* h_wgllwgll_yz,        
+                                        int* ABSORBING_CONDITIONS,    
                                         int* h_abs_boundary_ispec, int* h_abs_boundary_ijk,
                                         float* h_abs_boundary_normal,
                                         float* h_abs_boundary_jacobian2Dw,
-                                        float* h_b_absorb_field,
-                                        int* num_abs_boundary_faces, int* b_num_abs_boundary_faces,
+                                        int* h_num_abs_boundary_faces,
                                         int* h_ispec_is_inner, 
                                         int* NSOURCES,
                                         float* h_sourcearrays,
@@ -328,29 +356,30 @@ TRACE("prepare_constants_device");
               
 
   // absorbing boundaries
-  if( *num_abs_boundary_faces > 0 ){  
+  mp->d_num_abs_boundary_faces = *h_num_abs_boundary_faces;
+  if( *ABSORBING_CONDITIONS == 1 && mp->d_num_abs_boundary_faces > 0 ){  
     print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_abs_boundary_ispec,
-                                       (*num_abs_boundary_faces)*sizeof(int)),1101);
+                                       (mp->d_num_abs_boundary_faces)*sizeof(int)),1101);
     print_CUDA_error_if_any(cudaMemcpy(mp->d_abs_boundary_ispec, h_abs_boundary_ispec,
-                                       (*num_abs_boundary_faces)*sizeof(int),
+                                       (mp->d_num_abs_boundary_faces)*sizeof(int),
                                        cudaMemcpyHostToDevice),1102);
     
     print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_abs_boundary_ijk,
-                                       3*25*(*num_abs_boundary_faces)*sizeof(int)),1103);
+                                       3*25*(mp->d_num_abs_boundary_faces)*sizeof(int)),1103);
     print_CUDA_error_if_any(cudaMemcpy(mp->d_abs_boundary_ijk, h_abs_boundary_ijk,
-                                       3*25*(*num_abs_boundary_faces)*sizeof(int),
+                                       3*25*(mp->d_num_abs_boundary_faces)*sizeof(int),
                                        cudaMemcpyHostToDevice),1104);
     
     print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_abs_boundary_normal,
-                                       3*25*(*num_abs_boundary_faces)*sizeof(int)),1105);
+                                       3*25*(mp->d_num_abs_boundary_faces)*sizeof(int)),1105);
     print_CUDA_error_if_any(cudaMemcpy(mp->d_abs_boundary_normal, h_abs_boundary_normal,
-                                       3*25*(*num_abs_boundary_faces)*sizeof(int),
+                                       3*25*(mp->d_num_abs_boundary_faces)*sizeof(int),
                                        cudaMemcpyHostToDevice),1106);
     
     print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_abs_boundary_jacobian2Dw,
-                                       25*(*num_abs_boundary_faces)*sizeof(float)),1107);
+                                       25*(mp->d_num_abs_boundary_faces)*sizeof(float)),1107);
     print_CUDA_error_if_any(cudaMemcpy(mp->d_abs_boundary_jacobian2Dw, h_abs_boundary_jacobian2Dw,
-                                       25*(*num_abs_boundary_faces)*sizeof(float),
+                                       25*(mp->d_num_abs_boundary_faces)*sizeof(float),
                                        cudaMemcpyHostToDevice),1108);  
   }
   
@@ -476,7 +505,13 @@ void FC_FUNC_(prepare_fields_acoustic_device,
                                               float* b_absorb_potential,
                                               int* SIMULATION_TYPE,
                                               float* rho_ac_kl,
-                                              float* kappa_ac_kl
+                                              float* kappa_ac_kl,
+                                              int* ELASTIC_SIMULATION,
+                                              int* num_coupling_ac_el_faces,
+                                              int* coupling_ac_el_ispec,
+                                              int* coupling_ac_el_ijk,
+                                              float* coupling_ac_el_normal,
+                                              float* coupling_ac_el_jacobian2Dw                                              
                                               ) {
   
   TRACE("prepare_fields_acoustic_device");
@@ -567,6 +602,31 @@ void FC_FUNC_(prepare_fields_acoustic_device,
                                      mp->nrec_local*125*sizeof(float)),9107);
   mp->h_station_seismo_potential = (float*)malloc(mp->nrec_local*125*sizeof(float));
   if( mp->h_station_seismo_potential == NULL) exit_on_error("error allocating h_station_seismo_potential");
+
+
+  // coupling with elastic parts
+  if( *ELASTIC_SIMULATION == 1 && *num_coupling_ac_el_faces > 0 ){
+    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_coupling_ac_el_ispec),
+                                       (*num_coupling_ac_el_faces)*sizeof(int)),9601); 
+    print_CUDA_error_if_any(cudaMemcpy(mp->d_coupling_ac_el_ispec,coupling_ac_el_ispec,
+                                       (*num_coupling_ac_el_faces)*sizeof(int),cudaMemcpyHostToDevice),9602);    
+
+    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_coupling_ac_el_ijk),
+                                       3*25*(*num_coupling_ac_el_faces)*sizeof(int)),9603); 
+    print_CUDA_error_if_any(cudaMemcpy(mp->d_coupling_ac_el_ijk,coupling_ac_el_ijk,
+                                       3*25*(*num_coupling_ac_el_faces)*sizeof(int),cudaMemcpyHostToDevice),9604);    
+
+    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_coupling_ac_el_normal),
+                                        3*25*(*num_coupling_ac_el_faces)*sizeof(float)),9605); 
+    print_CUDA_error_if_any(cudaMemcpy(mp->d_coupling_ac_el_normal,coupling_ac_el_normal,
+                                        3*25*(*num_coupling_ac_el_faces)*sizeof(float),cudaMemcpyHostToDevice),9606);    
+
+    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_coupling_ac_el_jacobian2Dw),
+                                        25*(*num_coupling_ac_el_faces)*sizeof(float)),9607);  
+    print_CUDA_error_if_any(cudaMemcpy(mp->d_coupling_ac_el_jacobian2Dw,coupling_ac_el_jacobian2Dw,
+                                        25*(*num_coupling_ac_el_faces)*sizeof(float),cudaMemcpyHostToDevice),9608);
+  
+  }
   
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING       
   exit_on_cuda_error("prepare_fields_acoustic_device");  
@@ -592,7 +652,7 @@ void FC_FUNC_(prepare_fields_elastic_device,
                                              int* ispec_is_elastic,
                                              int* ABSORBING_CONDITIONS,
                                              float* h_b_absorb_field,
-                                             int* b_num_abs_boundary_faces,
+                                             int* h_b_reclen_field,
                                              int* SIMULATION_TYPE,
                                              float* rho_kl,
                                              float* mu_kl,
@@ -609,8 +669,9 @@ void FC_FUNC_(prepare_fields_elastic_device,
                                              float* b_R_xx,float* b_R_yy,float* b_R_xy,float* b_R_xz,float* b_R_yz,
                                              float* one_minus_sum_beta,float* factor_common,
                                              float* alphaval,float* betaval,float* gammaval,
-                                             float* b_alphaval,float* b_betaval,float* b_gammaval                                             
-                                             ){
+                                             float* b_alphaval,float* b_betaval,float* b_gammaval,
+                                             int* OCEANS,float* rmass_ocean_load,
+                                             float* free_surface_normal,int* num_free_surface_faces){
   
 TRACE("prepare_fields_elastic_device");
   
@@ -656,12 +717,12 @@ TRACE("prepare_fields_elastic_device");
   mp->h_station_seismo_field = (float*)malloc(3*125*(mp->nrec_local)*sizeof(float));
   
   // absorbing conditions
-  if( *ABSORBING_CONDITIONS == 1 ){
-    mp->b_num_abs_boundary_faces = *b_num_abs_boundary_faces;
+  if( *ABSORBING_CONDITIONS == 1 && mp->d_num_abs_boundary_faces > 0){
+    mp->d_b_reclen_field = *h_b_reclen_field;
     print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_b_absorb_field), 
-                                       3*25*mp->b_num_abs_boundary_faces*sizeof(float)),8016);
+                                       mp->d_b_reclen_field),8016);
     print_CUDA_error_if_any(cudaMemcpy(mp->d_b_absorb_field, h_b_absorb_field,
-                                       3*25*mp->b_num_abs_boundary_faces*sizeof(float),cudaMemcpyHostToDevice),8017);
+                                       mp->d_b_reclen_field,cudaMemcpyHostToDevice),8017);
   }
 
   // kernel simulations
@@ -846,10 +907,20 @@ TRACE("prepare_fields_elastic_device");
       print_CUDA_error_if_any(cudaMemcpy(mp->d_b_gammaval ,b_gammaval,
                                          N_SLS*sizeof(float),cudaMemcpyHostToDevice),8439);
     }
-    
+  }
+
+  if( *OCEANS == 1 ){
+    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_rmass_ocean_load),sizeof(float)*mp->NGLOB_AB),8501);
+    print_CUDA_error_if_any(cudaMemcpy(mp->d_rmass_ocean_load,rmass_ocean_load,
+                                       sizeof(float)*mp->NGLOB_AB,cudaMemcpyHostToDevice),8502);    
+
+    mp->num_free_surface_faces = *num_free_surface_faces;
+    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_free_surface_normal),
+                                       3*25*(mp->num_free_surface_faces)*sizeof(float)),8503); 
+    print_CUDA_error_if_any(cudaMemcpy(mp->d_free_surface_normal,free_surface_normal,
+                                       3*25*(mp->num_free_surface_faces)*sizeof(float),cudaMemcpyHostToDevice),8504);    
     
   }
-  
   
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING       
   exit_on_cuda_error("prepare_fields_elastic_device");  
@@ -963,7 +1034,6 @@ void FC_FUNC_(prepare_fields_noise_device,
 extern "C"
 void FC_FUNC_(prepare_cleanup_device,
               PREPARE_CLEANUP_DEVICE)(long* Mesh_pointer_f,
-                                      int* num_abs_boundary_faces,
                                       int* SIMULATION_TYPE,
                                       int* ACOUSTIC_SIMULATION,
                                       int* ELASTIC_SIMULATION,
@@ -991,7 +1061,7 @@ TRACE("prepare_cleanup_device");
   cudaFree(mp->d_muv);
   
   // absorbing boundaries
-  if( *num_abs_boundary_faces > 0 ){ 
+  if( *ABSORBING_CONDITIONS == 1 && mp->d_num_abs_boundary_faces > 0 ){ 
     cudaFree(mp->d_abs_boundary_ispec);
     cudaFree(mp->d_abs_boundary_ijk);
     cudaFree(mp->d_abs_boundary_normal);
@@ -1064,7 +1134,7 @@ TRACE("prepare_cleanup_device");
     cudaFree(mp->d_ispec_is_elastic);
     cudaFree(mp->d_station_seismo_field);
     
-    if( *ABSORBING_CONDITIONS == 1 ) cudaFree(mp->d_b_absorb_field);
+    if( *ABSORBING_CONDITIONS == 1 && mp->d_num_abs_boundary_faces > 0) cudaFree(mp->d_b_absorb_field);
 
     if( *SIMULATION_TYPE == 3 ) {
       cudaFree(mp->d_b_displ);

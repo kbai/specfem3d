@@ -1,3 +1,31 @@
+/*
+ !=====================================================================
+ !
+ !               S p e c f e m 3 D  V e r s i o n  2 . 0
+ !               ---------------------------------------
+ !
+ !          Main authors: Dimitri Komatitsch and Jeroen Tromp
+ !    Princeton University, USA and University of Pau / CNRS / INRIA
+ ! (c) Princeton University / California Institute of Technology and University of Pau / CNRS / INRIA
+ !                            April 2011
+ !
+ ! This program is free software; you can redistribute it and/or modify
+ ! it under the terms of the GNU General Public License as published by
+ ! the Free Software Foundation; either version 2 of the License, or
+ ! (at your option) any later version.
+ !
+ ! This program is distributed in the hope that it will be useful,
+ ! but WITHOUT ANY WARRANTY; without even the implied warranty of
+ ! MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ ! GNU General Public License for more details.
+ !
+ ! You should have received a copy of the GNU General Public License along
+ ! with this program; if not, write to the Free Software Foundation, Inc.,
+ ! 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+ !
+ !=====================================================================
+ */
+
 #ifndef GPU_MESH_
 #define GPU_MESH_
 #include <sys/types.h>
@@ -28,7 +56,12 @@
 #define PRINT5(var,offset) // for(i=0;i<10;i++) printf("var(%d)=%f\n",i,var[offset+i]);
 #endif
 
+
 #define ENABLE_VERY_SLOW_ERROR_CHECKING
+
+/* ----------------------------------------------------------------------------------------------- */
+
+// indexing
 
 #define INDEX2(xsize,x,y) x + (y)*xsize
 #define INDEX3(xsize,ysize,x,y,z) x + (y)*xsize + (z)*xsize*ysize
@@ -43,6 +76,8 @@
 //#define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
 //#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
 //#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*j)))
+
+/* ----------------------------------------------------------------------------------------------- */
 
 #define MAX(x,y)                    (((x) < (y)) ? (y) : (x))
 
@@ -122,14 +157,17 @@ typedef struct mesh_ {
   int* d_ibool_interfaces_ext_mesh;
     
   //used for absorbing stacey boundaries
+  int d_num_abs_boundary_faces;
   int* d_abs_boundary_ispec;
   int* d_abs_boundary_ijk;
   float* d_abs_boundary_normal;
+  float* d_abs_boundary_jacobian2Dw;
+
+  float* d_b_absorb_field;
+  int d_b_reclen_field;
+  
   float* d_rho_vp;
   float* d_rho_vs;
-  float* d_abs_boundary_jacobian2Dw;
-  float* d_b_absorb_field;
-  int b_num_abs_boundary_faces;
   
   // inner / outer elements  
   int* d_ispec_is_inner;
@@ -214,6 +252,10 @@ typedef struct mesh_ {
   // noise sensitivity kernel
   float* d_Sigma_kl;
 
+  // oceans
+  float* d_rmass_ocean_load;
+  float* d_free_surface_normal;
+  
   // ------------------------------------------------------------------ //
   // acoustic wavefield
   // ------------------------------------------------------------------ //
@@ -244,6 +286,13 @@ typedef struct mesh_ {
   float* d_rho_ac_kl;
   float* d_kappa_ac_kl;
   
+  // coupling acoustic-elastic
+  int* d_coupling_ac_el_ispec;
+  int* d_coupling_ac_el_ijk;
+  float* d_coupling_ac_el_normal;
+  float* d_coupling_ac_el_jacobian2Dw;
+
+
   
 } Mesh;
 

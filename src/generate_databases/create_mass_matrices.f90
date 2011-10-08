@@ -184,8 +184,8 @@
 
         do igll=1,NGLLSQUARE
           ix_oceans = free_surface_ijk(1,igll,ispec2D)
-          iy_oceans = free_surface_ijk(1,igll,ispec2D)
-          iz_oceans = free_surface_ijk(1,igll,ispec2D)
+          iy_oceans = free_surface_ijk(2,igll,ispec2D)
+          iz_oceans = free_surface_ijk(3,igll,ispec2D)
 
           iglobnum=ibool(ix_oceans,iy_oceans,iz_oceans,ispec_oceans)
 

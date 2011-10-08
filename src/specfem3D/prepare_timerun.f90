@@ -541,6 +541,14 @@
 
         ! size of single record
         b_reclen_field = CUSTOM_REAL * NDIM * NGLLSQUARE * num_abs_boundary_faces
+
+        ! check integer size limit: size of b_reclen_field must fit onto an 4-byte integer 
+        if( num_abs_boundary_faces > 2147483647 / (CUSTOM_REAL * NDIM * NGLLSQUARE) ) then
+          print *,'reclen needed exceeds integer 4-byte limit: ',b_reclen_field
+          print *,'  ',CUSTOM_REAL, NDIM, NGLLSQUARE, num_abs_boundary_faces
+          print*,'bit size fortran: ',bit_size(b_reclen_field)
+          call exit_MPI(myrank,"error b_reclen_field integer limit")
+        endif
         
         ! total file size
         filesize = b_reclen_field
@@ -582,13 +590,21 @@
 
         ! size of single record
         b_reclen_potential = CUSTOM_REAL * NGLLSQUARE * num_abs_boundary_faces
+
+        ! check integer size limit: size of b_reclen_potential must fit onto an 4-byte integer 
+        if( num_abs_boundary_faces > 2147483647 / (CUSTOM_REAL * NGLLSQUARE) ) then
+          print *,'reclen needed exceeds integer 4-byte limit: ',b_reclen_potential
+          print *,'  ',CUSTOM_REAL, NGLLSQUARE, num_abs_boundary_faces
+          print*,'bit size fortran: ',bit_size(b_reclen_potential)
+          call exit_MPI(myrank,"error b_reclen_potential integer limit")
+        endif
         
         ! total file size (two lines to implicitly convert to 8-byte integers)
         filesize = b_reclen_potential
         filesize = filesize*NSTEP
 
         ! daniel: debug check size limit
-        !if( NSTEP > 2147483648 / b_reclen_potential ) then
+        !if( NSTEP > 2147483647 / b_reclen_potential ) then
         !  print *,'file size needed exceeds integer 4-byte limit: ',b_reclen_potential,NSTEP
         !  print *,'  ',CUSTOM_REAL, NGLLSQUARE, num_abs_boundary_faces,NSTEP
         !  print*,'file size fortran: ',filesize
@@ -739,10 +755,11 @@
                                   nibool_interfaces_ext_mesh, ibool_interfaces_ext_mesh, &
                                   hprime_xx, hprime_yy, hprime_zz, &
                                   hprimewgll_xx, wgllwgll_xy, wgllwgll_xz, wgllwgll_yz, &
+                                  ABSORBING_CONDITIONS, &
                                   abs_boundary_ispec, abs_boundary_ijk, &
                                   abs_boundary_normal, &
                                   abs_boundary_jacobian2Dw, &
-                                  b_absorb_field, num_abs_boundary_faces, b_num_abs_boundary_faces, &
+                                  num_abs_boundary_faces, &
                                   ispec_is_inner, &
                                   NSOURCES, sourcearrays, islice_selected_source, ispec_selected_source, &
                                   number_receiver_global, ispec_selected_rec, nrec, nrec_local, &
@@ -755,7 +772,10 @@
                                   ispec_is_acoustic, &
                                   NOISE_TOMOGRAPHY,num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
                                   ABSORBING_CONDITIONS,b_reclen_potential,b_absorb_potential, &
-                                  SIMULATION_TYPE,rho_ac_kl,kappa_ac_kl)
+                                  SIMULATION_TYPE,rho_ac_kl,kappa_ac_kl, &
+                                  ELASTIC_SIMULATION, num_coupling_ac_el_faces, &
+                                  coupling_ac_el_ispec,coupling_ac_el_ijk, &
+                                  coupling_ac_el_normal,coupling_ac_el_jacobian2Dw)
   
   ! prepares fields on GPU for elastic simulations 
   if( ELASTIC_SIMULATION ) &
@@ -763,7 +783,7 @@
                                   rmass,rho_vp,rho_vs, &
                                   num_phase_ispec_elastic,phase_ispec_inner_elastic, &
                                   ispec_is_elastic, &
-                                  ABSORBING_CONDITIONS,b_absorb_field,b_num_abs_boundary_faces, &
+                                  ABSORBING_CONDITIONS,b_absorb_field,b_reclen_field, &
                                   SIMULATION_TYPE,rho_kl,mu_kl,kappa_kl, &
                                   COMPUTE_AND_STORE_STRAIN, &
                                   epsilondev_xx,epsilondev_yy,epsilondev_xy,epsilondev_xz,epsilondev_yz, &
@@ -775,7 +795,9 @@
                                   b_R_xx,b_R_yy,b_R_xy,b_R_xz,b_R_yz, &
                                   one_minus_sum_beta,factor_common, &
                                   alphaval,betaval,gammaval, &
-                                  b_alphaval,b_betaval,b_gammaval)
+                                  b_alphaval,b_betaval,b_gammaval, &
+                                  OCEANS,rmass_ocean_load, &
+                                  free_surface_normal,num_free_surface_faces)
 
   ! prepares needed receiver array for adjoint runs
   if( SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3 ) &
@@ -819,9 +841,9 @@
   ! outputs usage 
   if( myrank == 0 ) then
     call get_free_device_memory(free_mb,used_mb,total_mb)
-    write(IMAIN,*)"  GPU usage: free  =",free_mb," MB"
-    write(IMAIN,*)"             used  =",used_mb," MB"
-    write(IMAIN,*)"             total =",total_mb," MB"
+    write(IMAIN,*)"  GPU usage: free  =",free_mb," MB",nint(free_mb/total_mb*100.0),"%"
+    write(IMAIN,*)"             used  =",used_mb," MB",nint(used_mb/total_mb*100.0),"%"
+    write(IMAIN,*)"             total =",total_mb," MB",nint(total_mb/total_mb*100.0),"%"
     write(IMAIN,*)
   endif    
 

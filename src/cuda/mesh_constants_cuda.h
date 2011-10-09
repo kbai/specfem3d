@@ -132,10 +132,8 @@ typedef struct mesh_ {
 
   // pointers to constant memory arrays
   float* d_hprime_xx; float* d_hprime_yy; float* d_hprime_zz;
-  float* d_hprimewgll_xx;
-  float* d_wgllwgll_xy;
-  float* d_wgllwgll_xz;
-  float* d_wgllwgll_yz;
+  float* d_hprimewgll_xx; float* d_hprimewgll_yy; float* d_hprimewgll_zz;
+  float* d_wgllwgll_xy; float* d_wgllwgll_xz; float* d_wgllwgll_yz;
 
   // ------------------------------------------------------------------ //
   // elastic wavefield parameters

@@ -41,9 +41,11 @@
 
 //  cuda constant arrays
 __constant__ float d_hprime_xx[NGLL2];
-__constant__ float d_hprime_yy[NGLL2];  // daniel: check if hprime_yy == hprime_xx
+__constant__ float d_hprime_yy[NGLL2];  // daniel: remove only if certain: check if hprime_yy == hprime_xx
 __constant__ float d_hprime_zz[NGLL2];  // daniel: check if hprime_zz == hprime_xx
 __constant__ float d_hprimewgll_xx[NGLL2];
+__constant__ float d_hprimewgll_yy[NGLL2]; // daniel: check if hprimewgll_yy == hprimewgll_xx
+__constant__ float d_hprimewgll_zz[NGLL2]; // daniel: remove only if certain...
 __constant__ float d_wgllwgll_xy[NGLL2];
 __constant__ float d_wgllwgll_xz[NGLL2];
 __constant__ float d_wgllwgll_yz[NGLL2];
@@ -52,8 +54,8 @@ __constant__ float d_wgllwgll_yz[NGLL2];
 void Kernel_2(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
 	      int COMPUTE_AND_STORE_STRAIN,int SIMULATION_TYPE,int ATTENUATION);
 
-__global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elastic, 
-                            int num_phase_ispec_elastic, int d_iphase, int* d_ibool);
+//__global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elastic, 
+//                            int num_phase_ispec_elastic, int d_iphase, int* d_ibool);
 
 __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
                               int* d_phase_ispec_inner_elastic, int num_phase_ispec_elastic, int d_iphase,
@@ -115,10 +117,9 @@ void FC_FUNC_(transfer_boundary_accel_from_device,
 TRACE("transfer_boundary_accel_from_device");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
-  
-
-  
+    
   int blocksize = 256;
+
   int size_padded = ((int)ceil(((double)*max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
@@ -459,10 +460,11 @@ void Kernel_2(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
 
     // debugging
     //printf("Starting with grid %dx%d for %d blocks\n",num_blocks_x,num_blocks_y,nb_blocks_to_compute);
-    float* d_debug, *h_debug;
-    h_debug = (float*)calloc(128,sizeof(float));
-    cudaMalloc((void**)&d_debug,128*sizeof(float));
-    cudaMemcpy(d_debug,h_debug,128*sizeof(float),cudaMemcpyHostToDevice);
+    float* d_debug;
+//    float* h_debug;
+//    h_debug = (float*)calloc(128,sizeof(float));
+//    cudaMalloc((void**)&d_debug,128*sizeof(float));
+//    cudaMemcpy(d_debug,h_debug,128*sizeof(float),cudaMemcpyHostToDevice);
     
     // Cuda timing
     // cudaEvent_t start, stop; 
@@ -503,8 +505,8 @@ void Kernel_2(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
     // 	printf("cudadebug[%d] = %e\n",i,h_debug[i]);
     //   }
     // }
-    free(h_debug);
-    cudaFree(d_debug);
+//    free(h_debug);
+//    cudaFree(d_debug);
  #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
     exit_on_cuda_error("Kernel_2_impl");
  #endif
@@ -556,27 +558,27 @@ void Kernel_2(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elastic, 
-                            int num_phase_ispec_elastic, int d_iphase, int* d_ibool) {
-  int bx = blockIdx.x;
-  int tx = threadIdx.x;
-  int working_element;
-  //int ispec;
-  //int NGLL3_ALIGN = 128;
-  if(tx==0 && bx==0) {
-
-    d_debug_output[0] = 420.0;
-
-    d_debug_output[2] = num_phase_ispec_elastic;
-    d_debug_output[3] = d_iphase;
-    working_element = d_phase_ispec_inner_elastic[bx + num_phase_ispec_elastic*(d_iphase-1)]-1;
-    d_debug_output[4] = working_element;
-    d_debug_output[5] = d_phase_ispec_inner_elastic[0];
-    /* d_debug_output[1] = d_ibool[working_element*NGLL3_ALIGN + tx]-1; */
-  }
-  /* d_debug_output[1+tx+128*bx] = 69.0; */
-  
-}
+//__global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elastic, 
+//                            int num_phase_ispec_elastic, int d_iphase, int* d_ibool) {
+//  int bx = blockIdx.x;
+//  int tx = threadIdx.x;
+//  int working_element;
+//  //int ispec;
+//  //int NGLL3_ALIGN = 128;
+//  if(tx==0 && bx==0) {
+//
+//    d_debug_output[0] = 420.0;
+//
+//    d_debug_output[2] = num_phase_ispec_elastic;
+//    d_debug_output[3] = d_iphase;
+//    working_element = d_phase_ispec_inner_elastic[bx + num_phase_ispec_elastic*(d_iphase-1)]-1;
+//    d_debug_output[4] = working_element;
+//    d_debug_output[5] = d_phase_ispec_inner_elastic[0];
+//    /* d_debug_output[1] = d_ibool[working_element*NGLL3_ALIGN + tx]-1; */
+//  }
+//  /* d_debug_output[1+tx+128*bx] = 69.0; */
+//  
+//}
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -917,13 +919,13 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
         tempy1l += s_tempy1[offset]*fac1;
         tempz1l += s_tempz1[offset]*fac1;
           
-        fac2 = d_hprimewgll_xx[J*NGLLX+l];
+        fac2 = d_hprimewgll_yy[J*NGLLX+l];
         offset = K*NGLL2+l*NGLLX+I;
         tempx2l += s_tempx2[offset]*fac2;
         tempy2l += s_tempy2[offset]*fac2;
         tempz2l += s_tempz2[offset]*fac2;
 
-        fac3 = d_hprimewgll_xx[K*NGLLX+l];
+        fac3 = d_hprimewgll_zz[K*NGLLX+l];
         offset = l*NGLL2+J*NGLLX+I;
         tempx3l += s_tempx3[offset]*fac3;
         tempy3l += s_tempy3[offset]*fac3;
@@ -958,41 +960,41 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
               + s_tempz1[K*NGLL2+J*NGLLX+3]*d_hprimewgll_xx[I*NGLLX+3]
               + s_tempz1[K*NGLL2+J*NGLLX+4]*d_hprimewgll_xx[I*NGLLX+4];
 
-      tempx2l = s_tempx2[K*NGLL2+I]*d_hprimewgll_xx[J*NGLLX]
-              + s_tempx2[K*NGLL2+NGLLX+I]*d_hprimewgll_xx[J*NGLLX+1]
-              + s_tempx2[K*NGLL2+2*NGLLX+I]*d_hprimewgll_xx[J*NGLLX+2]
-              + s_tempx2[K*NGLL2+3*NGLLX+I]*d_hprimewgll_xx[J*NGLLX+3]
-              + s_tempx2[K*NGLL2+4*NGLLX+I]*d_hprimewgll_xx[J*NGLLX+4];
+      tempx2l = s_tempx2[K*NGLL2+I]*d_hprimewgll_yy[J*NGLLX]
+              + s_tempx2[K*NGLL2+NGLLX+I]*d_hprimewgll_yy[J*NGLLX+1]
+              + s_tempx2[K*NGLL2+2*NGLLX+I]*d_hprimewgll_yy[J*NGLLX+2]
+              + s_tempx2[K*NGLL2+3*NGLLX+I]*d_hprimewgll_yy[J*NGLLX+3]
+              + s_tempx2[K*NGLL2+4*NGLLX+I]*d_hprimewgll_yy[J*NGLLX+4];
 
-      tempy2l = s_tempy2[K*NGLL2+I]*d_hprimewgll_xx[J*NGLLX]
-              + s_tempy2[K*NGLL2+NGLLX+I]*d_hprimewgll_xx[J*NGLLX+1]
-              + s_tempy2[K*NGLL2+2*NGLLX+I]*d_hprimewgll_xx[J*NGLLX+2]
-              + s_tempy2[K*NGLL2+3*NGLLX+I]*d_hprimewgll_xx[J*NGLLX+3]
-              + s_tempy2[K*NGLL2+4*NGLLX+I]*d_hprimewgll_xx[J*NGLLX+4];
+      tempy2l = s_tempy2[K*NGLL2+I]*d_hprimewgll_yy[J*NGLLX]
+              + s_tempy2[K*NGLL2+NGLLX+I]*d_hprimewgll_yy[J*NGLLX+1]
+              + s_tempy2[K*NGLL2+2*NGLLX+I]*d_hprimewgll_yy[J*NGLLX+2]
+              + s_tempy2[K*NGLL2+3*NGLLX+I]*d_hprimewgll_yy[J*NGLLX+3]
+              + s_tempy2[K*NGLL2+4*NGLLX+I]*d_hprimewgll_yy[J*NGLLX+4];
 
-      tempz2l = s_tempz2[K*NGLL2+I]*d_hprimewgll_xx[J*NGLLX]
-              + s_tempz2[K*NGLL2+NGLLX+I]*d_hprimewgll_xx[J*NGLLX+1]
-              + s_tempz2[K*NGLL2+2*NGLLX+I]*d_hprimewgll_xx[J*NGLLX+2]
-              + s_tempz2[K*NGLL2+3*NGLLX+I]*d_hprimewgll_xx[J*NGLLX+3]
-              + s_tempz2[K*NGLL2+4*NGLLX+I]*d_hprimewgll_xx[J*NGLLX+4];
+      tempz2l = s_tempz2[K*NGLL2+I]*d_hprimewgll_yy[J*NGLLX]
+              + s_tempz2[K*NGLL2+NGLLX+I]*d_hprimewgll_yy[J*NGLLX+1]
+              + s_tempz2[K*NGLL2+2*NGLLX+I]*d_hprimewgll_yy[J*NGLLX+2]
+              + s_tempz2[K*NGLL2+3*NGLLX+I]*d_hprimewgll_yy[J*NGLLX+3]
+              + s_tempz2[K*NGLL2+4*NGLLX+I]*d_hprimewgll_yy[J*NGLLX+4];
 
-      tempx3l = s_tempx3[J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX]
-              + s_tempx3[NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+1]
-              + s_tempx3[2*NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+2]
-              + s_tempx3[3*NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+3]
-              + s_tempx3[4*NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+4];
+      tempx3l = s_tempx3[J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX]
+              + s_tempx3[NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+1]
+              + s_tempx3[2*NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+2]
+              + s_tempx3[3*NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+3]
+              + s_tempx3[4*NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+4];
 
-      tempy3l = s_tempy3[J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX]
-              + s_tempy3[NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+1]
-              + s_tempy3[2*NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+2]
-              + s_tempy3[3*NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+3]
-              + s_tempy3[4*NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+4];
+      tempy3l = s_tempy3[J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX]
+              + s_tempy3[NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+1]
+              + s_tempy3[2*NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+2]
+              + s_tempy3[3*NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+3]
+              + s_tempy3[4*NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+4];
 
-      tempz3l = s_tempz3[J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX]
-              + s_tempz3[NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+1]
-              + s_tempz3[2*NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+2]
-              + s_tempz3[3*NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+3]
-              + s_tempz3[4*NGLL2+J*NGLLX+I]*d_hprimewgll_xx[K*NGLLX+4];
+      tempz3l = s_tempz3[J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX]
+              + s_tempz3[NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+1]
+              + s_tempz3[2*NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+2]
+              + s_tempz3[3*NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+3]
+              + s_tempz3[4*NGLL2+J*NGLLX+I]*d_hprimewgll_zz[K*NGLLX+4];
 
 #endif
 
@@ -1301,13 +1303,45 @@ void setConst_hprimewgll_xx(float* array,Mesh* mp)
   cudaError_t err = cudaMemcpyToSymbol(d_hprimewgll_xx, array, NGLL2*sizeof(float));
   if (err != cudaSuccess)
   {
-    fprintf(stderr, "Error in setConst_hprime_xx: %s\n", cudaGetErrorString(err));
+    fprintf(stderr, "Error in setConst_hprimewgll_xx: %s\n", cudaGetErrorString(err));
     exit(1);
   }
   
   err = cudaGetSymbolAddress((void**)&(mp->d_hprimewgll_xx),"d_hprimewgll_xx");
   if(err != cudaSuccess) {
     fprintf(stderr, "Error with d_hprimewgll_xx: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }        
+}
+
+void setConst_hprimewgll_yy(float* array,Mesh* mp)
+{
+  cudaError_t err = cudaMemcpyToSymbol(d_hprimewgll_yy, array, NGLL2*sizeof(float));
+  if (err != cudaSuccess)
+  {
+    fprintf(stderr, "Error in setConst_hprimewgll_yy: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }
+  
+  err = cudaGetSymbolAddress((void**)&(mp->d_hprimewgll_yy),"d_hprimewgll_yy");
+  if(err != cudaSuccess) {
+    fprintf(stderr, "Error with d_hprimewgll_yy: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }        
+}
+
+void setConst_hprimewgll_zz(float* array,Mesh* mp)
+{
+  cudaError_t err = cudaMemcpyToSymbol(d_hprimewgll_zz, array, NGLL2*sizeof(float));
+  if (err != cudaSuccess)
+  {
+    fprintf(stderr, "Error in setConst_hprimewgll_zz: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }
+  
+  err = cudaGetSymbolAddress((void**)&(mp->d_hprimewgll_zz),"d_hprimewgll_zz");
+  if(err != cudaSuccess) {
+    fprintf(stderr, "Error with d_hprimewgll_zz: %s\n", cudaGetErrorString(err));
     exit(1);
   }        
 }

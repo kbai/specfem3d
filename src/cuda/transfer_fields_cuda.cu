@@ -503,6 +503,36 @@ TRACE("transfer_b_fields_acoustic_from_device");
 #endif
 }
 
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(transfer_potential_dot_dot_from_device,
+              TRNASFER_B_ACCEL_FROM_DEVICE)(int* size, float* potential_dot_dot_acoustic,long* Mesh_pointer_f) {
+  
+  TRACE("transfer_potential_dot_dot_from_device");
+  
+  Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
+  
+  print_CUDA_error_if_any(cudaMemcpy(potential_dot_dot_acoustic,mp->d_potential_dot_dot_acoustic,
+                                     sizeof(float)*(*size),cudaMemcpyDeviceToHost),50041);
+  
+}
+
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(transfer_b_potential_dot_dot_from_device,
+              TRNASFER_B_ACCEL_FROM_DEVICE)(int* size, float* b_potential_dot_dot_acoustic,long* Mesh_pointer_f) {
+  
+  TRACE("transfer_b_potential_dot_dot_from_device");
+  
+  Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
+  
+  print_CUDA_error_if_any(cudaMemcpy(b_potential_dot_dot_acoustic,mp->d_b_potential_dot_dot_acoustic,
+                                     sizeof(float)*(*size),cudaMemcpyDeviceToHost),50042);
+  
+}
+
 
 /* ----------------------------------------------------------------------------------------------- */
 

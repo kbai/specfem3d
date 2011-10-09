@@ -239,13 +239,9 @@ void FC_FUNC_(prepare_constants_device,
                                         int* h_ibool, 
                                         int* num_interfaces_ext_mesh, int* max_nibool_interfaces_ext_mesh,
                                         int* h_nibool_interfaces_ext_mesh, int* h_ibool_interfaces_ext_mesh,
-                                        float* h_hprime_xx, 
-                                        float* h_hprime_yy, 
-                                        float* h_hprime_zz, 
-                                        float* h_hprimewgll_xx,
-                                        float* h_wgllwgll_xy, 
-                                        float* h_wgllwgll_xz,
-                                        float* h_wgllwgll_yz,        
+                                        float* h_hprime_xx,float* h_hprime_yy,float* h_hprime_zz, 
+                                        float* h_hprimewgll_xx,float* h_hprimewgll_yy,float* h_hprimewgll_zz,
+                                        float* h_wgllwgll_xy,float* h_wgllwgll_xz,float* h_wgllwgll_yz,        
                                         int* ABSORBING_CONDITIONS,    
                                         int* h_abs_boundary_ispec, int* h_abs_boundary_ijk,
                                         float* h_abs_boundary_normal,
@@ -309,6 +305,8 @@ TRACE("prepare_constants_device");
   setConst_hprime_yy(h_hprime_yy,mp);
   setConst_hprime_zz(h_hprime_zz,mp);
   setConst_hprimewgll_xx(h_hprimewgll_xx,mp);
+  setConst_hprimewgll_yy(h_hprimewgll_yy,mp);
+  setConst_hprimewgll_zz(h_hprimewgll_zz,mp);
   setConst_wgllwgll_xy(h_wgllwgll_xy,mp);
   setConst_wgllwgll_xz(h_wgllwgll_xz,mp);
   setConst_wgllwgll_yz(h_wgllwgll_yz,mp);

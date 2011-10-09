@@ -247,7 +247,8 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
                                        float* d_potential_acoustic, float* d_potential_dot_dot_acoustic, 
                                        float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz, 
                                        float* d_gammax, float* d_gammay, float* d_gammaz, 
-                                       float* hprime_xx, float* hprimewgll_xx, 
+                                       float* hprime_xx, float* hprime_yy, float* hprime_zz, 
+                                       float* hprimewgll_xx, float* hprimewgll_yy, float* hprimewgll_zz, 
                                        float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,                                       
                                        float* d_rhostore);
 
@@ -335,7 +336,8 @@ void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIM
     						 mp->d_xix, mp->d_xiy, mp->d_xiz,
     						 mp->d_etax, mp->d_etay, mp->d_etaz,
     						 mp->d_gammax, mp->d_gammay, mp->d_gammaz,
-                 mp->d_hprime_xx, mp->d_hprimewgll_xx, 
+                 mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz, 
+                 mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz, 
                  mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,                 
     						 mp->d_rhostore);
 
@@ -346,7 +348,8 @@ void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIM
                   mp->d_xix, mp->d_xiy, mp->d_xiz,
                   mp->d_etax, mp->d_etay, mp->d_etaz,
                   mp->d_gammax, mp->d_gammay, mp->d_gammaz,
-                  mp->d_hprime_xx, mp->d_hprimewgll_xx, 
+                  mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz, 
+                  mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz,
                   mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,                 
                   mp->d_rhostore);
     }
@@ -379,7 +382,8 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
                                       float* d_potential_acoustic, float* d_potential_dot_dot_acoustic, 
                                       float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz, 
                                       float* d_gammax, float* d_gammay, float* d_gammaz, 
-                                      float* hprime_xx, float* hprimewgll_xx, 
+                                      float* hprime_xx, float* hprime_yy, float* hprime_zz, 
+                                      float* hprimewgll_xx, float* hprimewgll_yy, float* hprimewgll_zz,
                                       float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,
                                       float* d_rhostore){
     
@@ -458,12 +462,12 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
             offset1 = K*NGLL2+J*NGLLX+l;
             temp1l += s_dummy_loc[offset1]*hp1;
 	    
-            // daniel: assumes that hprime_xx = hprime_yy = hprime_zz
-            hp2 = hprime_xx[l*NGLLX+J];
+            // daniel: not more assumes that hprime_xx = hprime_yy = hprime_zz
+            hp2 = hprime_yy[l*NGLLX+J];
             offset2 = K*NGLL2+l*NGLLX+I;
             temp2l += s_dummy_loc[offset2]*hp2;
 
-            hp3 = hprime_xx[l*NGLLX+K];
+            hp3 = hprime_zz[l*NGLLX+K];
             offset3 = l*NGLL2+J*NGLLX+I;
             temp3l += s_dummy_loc[offset3]*hp3;
         }
@@ -475,17 +479,17 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
                 + s_dummy_loc[K*NGLL2+J*NGLLX+3]*hprime_xx[3*NGLLX+I]
                 + s_dummy_loc[K*NGLL2+J*NGLLX+4]*hprime_xx[4*NGLLX+I];	    
   
-        temp2l = s_dummy_loc[K*NGLL2+I]*hprime_xx[J]
-                + s_dummy_loc[K*NGLL2+NGLLX+I]*hprime_xx[NGLLX+J]
-                + s_dummy_loc[K*NGLL2+2*NGLLX+I]*hprime_xx[2*NGLLX+J]
-                + s_dummy_loc[K*NGLL2+3*NGLLX+I]*hprime_xx[3*NGLLX+J]
-                + s_dummy_loc[K*NGLL2+4*NGLLX+I]*hprime_xx[4*NGLLX+J];
+        temp2l = s_dummy_loc[K*NGLL2+I]*hprime_yy[J]
+                + s_dummy_loc[K*NGLL2+NGLLX+I]*hprime_yy[NGLLX+J]
+                + s_dummy_loc[K*NGLL2+2*NGLLX+I]*hprime_yy[2*NGLLX+J]
+                + s_dummy_loc[K*NGLL2+3*NGLLX+I]*hprime_yy[3*NGLLX+J]
+                + s_dummy_loc[K*NGLL2+4*NGLLX+I]*hprime_yy[4*NGLLX+J];
 
-        temp3l = s_dummy_loc[J*NGLLX+I]*hprime_xx[K]
-                + s_dummy_loc[NGLL2+J*NGLLX+I]*hprime_xx[NGLLX+K]
-                + s_dummy_loc[2*NGLL2+J*NGLLX+I]*hprime_xx[2*NGLLX+K]
-                + s_dummy_loc[3*NGLL2+J*NGLLX+I]*hprime_xx[3*NGLLX+K]
-                + s_dummy_loc[4*NGLL2+J*NGLLX+I]*hprime_xx[4*NGLLX+K];
+        temp3l = s_dummy_loc[J*NGLLX+I]*hprime_zz[K]
+                + s_dummy_loc[NGLL2+J*NGLLX+I]*hprime_zz[NGLLX+K]
+                + s_dummy_loc[2*NGLL2+J*NGLLX+I]*hprime_zz[2*NGLLX+K]
+                + s_dummy_loc[3*NGLL2+J*NGLLX+I]*hprime_zz[3*NGLLX+K]
+                + s_dummy_loc[4*NGLL2+J*NGLLX+I]*hprime_zz[4*NGLLX+K];
 
 #endif
 
@@ -538,12 +542,12 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
             offset1 = K*NGLL2+J*NGLLX+l;
             temp1l += s_temp1[offset1]*fac1;
           
-            //daniel: assumes hprimewgll_xx = hprimewgll_yy = hprimewgll_zz
-            fac2 = hprimewgll_xx[J*NGLLX+l];
+            //daniel: not more assumes hprimewgll_xx = hprimewgll_yy = hprimewgll_zz
+            fac2 = hprimewgll_yy[J*NGLLX+l];
             offset2 = K*NGLL2+l*NGLLX+I;
             temp2l += s_temp2[offset2]*fac2;
 
-            fac3 = hprimewgll_xx[K*NGLLX+l];
+            fac3 = hprimewgll_zz[K*NGLLX+l];
             offset3 = l*NGLL2+J*NGLLX+I;
             temp3l += s_temp3[offset3]*fac3;
         }
@@ -556,18 +560,18 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
                 + s_temp1[K*NGLL2+J*NGLLX+4]*hprimewgll_xx[I*NGLLX+4];
   
 
-        temp2l = s_temp2[K*NGLL2+I]*hprimewgll_xx[J*NGLLX]
-                + s_temp2[K*NGLL2+NGLLX+I]*hprimewgll_xx[J*NGLLX+1]
-                + s_temp2[K*NGLL2+2*NGLLX+I]*hprimewgll_xx[J*NGLLX+2]
-                + s_temp2[K*NGLL2+3*NGLLX+I]*hprimewgll_xx[J*NGLLX+3]
-                + s_temp2[K*NGLL2+4*NGLLX+I]*hprimewgll_xx[J*NGLLX+4];
+        temp2l = s_temp2[K*NGLL2+I]*hprimewgll_yy[J*NGLLX]
+                + s_temp2[K*NGLL2+NGLLX+I]*hprimewgll_yy[J*NGLLX+1]
+                + s_temp2[K*NGLL2+2*NGLLX+I]*hprimewgll_yy[J*NGLLX+2]
+                + s_temp2[K*NGLL2+3*NGLLX+I]*hprimewgll_yy[J*NGLLX+3]
+                + s_temp2[K*NGLL2+4*NGLLX+I]*hprimewgll_yy[J*NGLLX+4];
 
 
-        temp3l = s_temp3[J*NGLLX+I]*hprimewgll_xx[K*NGLLX]
-                + s_temp3[NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+1]
-                + s_temp3[2*NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+2]
-                + s_temp3[3*NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+3]
-                + s_temp3[4*NGLL2+J*NGLLX+I]*hprimewgll_xx[K*NGLLX+4];
+        temp3l = s_temp3[J*NGLLX+I]*hprimewgll_zz[K*NGLLX]
+                + s_temp3[NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+1]
+                + s_temp3[2*NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+2]
+                + s_temp3[3*NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+3]
+                + s_temp3[4*NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+4];
 
 
 #endif

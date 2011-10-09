@@ -267,6 +267,9 @@ TRACE("get_max_accel");
 
 /* ----------------------------------------------------------------------------------------------- */
 
+// ACOUSTIC simulations
+
+/* ----------------------------------------------------------------------------------------------- */
 
 __global__ void get_maximum_kernel(float* array, int size, float* d_max){
   
@@ -439,7 +442,109 @@ TRACE("get_norm_acoustic_from_device_cuda");
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING       
   //double end_time = get_time();
   //printf("Elapsed time: %e\n",end_time-start_time);
-  exit_on_cuda_error("after get_maximum_kernel");  
+  exit_on_cuda_error("after get_norm_acoustic_from_device_cuda");  
+#endif      
+}
+
+/* ----------------------------------------------------------------------------------------------- */
+
+// ELASTIC simulations
+
+/* ----------------------------------------------------------------------------------------------- */
+
+__global__ void get_maximum_vector_kernel(float* array, int size, float* d_max){
+  
+  // reduction example:
+  __shared__ float sdata[256] ;
+  
+  // load shared mem
+  unsigned int tid = threadIdx.x;
+  unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
+  
+  // loads values into shared memory: assume array is a vector array 
+  sdata[tid] = (i < size) ? sqrt(array[i*3]*array[i*3]
+                                 + array[i*3+1]*array[i*3+1]
+                                 + array[i*3+2]*array[i*3+2]) : 0.0 ;
+  
+  __syncthreads();
+  
+  // do reduction in shared mem
+  for(unsigned int s=blockDim.x/2; s>0; s>>=1) 
+  {
+    if (tid < s){
+      // summation: 
+      //sdata[tid] += sdata[tid + s];
+      // maximum: 
+      if( sdata[tid] < sdata[tid + s] ) sdata[tid] = sdata[tid + s];
+    }
+    __syncthreads();
+  }
+  
+  // write result for this block to global mem
+  if (tid == 0) d_max[blockIdx.x] = sdata[0];  
+  
+}
+
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(get_norm_elastic_from_device_cuda,
+              GET_NORM_ELASTIC_FROM_DEVICE_CUDA)(float* norm, 
+                                                 long* Mesh_pointer_f,
+                                                 int* SIMULATION_TYPE) {
+  
+  TRACE("get_norm_elastic_from_device_cuda");
+  //double start_time = get_time();
+  
+  Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
+  float max;
+  float *d_max;
+  
+  max = 0;
+  
+  // launch simple reduction kernel
+  float* h_max;
+  int blocksize = 256;
+  
+  int num_blocks_x = ceil(mp->NGLOB_AB/blocksize);
+  //printf("num_blocks_x %i \n",num_blocks_x);
+  
+  h_max = (float*) calloc(num_blocks_x,sizeof(float));    
+  cudaMalloc((void**)&d_max,num_blocks_x*sizeof(float));
+  
+  dim3 grid(num_blocks_x,1);
+  dim3 threads(blocksize,1,1);
+  
+  if(*SIMULATION_TYPE == 1 ){       
+    get_maximum_vector_kernel<<<grid,threads>>>(mp->d_displ,
+                                                mp->NGLOB_AB,
+                                                d_max);    
+  }
+  
+  if(*SIMULATION_TYPE == 3 ){
+    get_maximum_vector_kernel<<<grid,threads>>>(mp->d_b_displ,
+                                                mp->NGLOB_AB,
+                                                d_max);    
+  }    
+  
+  print_CUDA_error_if_any(cudaMemcpy(h_max,d_max,num_blocks_x*sizeof(float),cudaMemcpyDeviceToHost),222);
+  
+  // determines max for all blocks
+  max = h_max[0];
+  for(int i=1;i<num_blocks_x;i++) {
+    if( max < h_max[i]) max = h_max[i];
+  }
+  
+  cudaFree(d_max);
+  free(h_max);
+  
+  // return result
+  *norm = max;    
+  
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING       
+  //double end_time = get_time();
+  //printf("Elapsed time: %e\n",end_time-start_time);
+  exit_on_cuda_error("after get_norm_elastic_from_device_cuda");  
 #endif      
 }
 

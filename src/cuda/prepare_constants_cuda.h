@@ -29,6 +29,25 @@
 #ifndef CUDA_HEADER_H
 #define CUDA_HEADER_H
 
+/* ----------------------------------------------------------------------------------------------- */
+
+// setters for these const arrays (very ugly hack, but will have to do)
+
+// elastic
+void setConst_hprime_xx(float* array,Mesh* mp);
+void setConst_hprime_yy(float* array,Mesh* mp);
+void setConst_hprime_zz(float* array,Mesh* mp);
+
+void setConst_hprimewgll_xx(float* array,Mesh* mp);
+void setConst_hprimewgll_yy(float* array,Mesh* mp);
+void setConst_hprimewgll_zz(float* array,Mesh* mp);
+
+void setConst_wgllwgll_xy(float* array,Mesh* mp);
+void setConst_wgllwgll_xz(float* array, Mesh* mp);
+void setConst_wgllwgll_yz(float* array, Mesh* mp);
+
+/* ----------------------------------------------------------------------------------------------- */
+
 /* CUDA specific things from specfem3D_kernels.cu */
 
 #ifdef USE_TEXTURES
@@ -99,22 +118,7 @@
     }
   }
 
-#endif
-
-/* ----------------------------------------------------------------------------------------------- */
-
-// setters for these const arrays (very ugly hack, but will have to do)
-
-// elastic
-void setConst_hprime_xx(float* array,Mesh* mp);
-void setConst_hprime_yy(float* array,Mesh* mp);
-void setConst_hprime_zz(float* array,Mesh* mp);
-
-void setConst_hprimewgll_xx(float* array,Mesh* mp);
-
-void setConst_wgllwgll_xy(float* array,Mesh* mp);
-void setConst_wgllwgll_xz(float* array, Mesh* mp);
-void setConst_wgllwgll_yz(float* array, Mesh* mp);
+#endif // USE_TEXTURES
 
 
 #endif //CUDA_HEADER_H

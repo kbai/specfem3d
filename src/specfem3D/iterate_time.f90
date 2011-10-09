@@ -149,21 +149,25 @@
              ihours_remain,iminutes_remain,iseconds_remain,int_t_remain, &
              ihours_total,iminutes_total,iseconds_total,int_t_total
   
-  if(GPU_MODE) then
-    ! way 1: copy whole fields   
-    ! elastic wavefield
-    if( ELASTIC_SIMULATION ) then  
-      call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
-      ! backward/reconstructed wavefield     
-      if(SIMULATION_TYPE==3) &
-        call transfer_b_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
-    endif
-    
-  endif
+!  if(GPU_MODE) then
+!    ! way 1: copy whole fields   
+!    ! elastic wavefield
+!    if( ELASTIC_SIMULATION ) then  
+!      call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+!      ! backward/reconstructed wavefield     
+!      if(SIMULATION_TYPE==3) &
+!        call transfer_b_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
+!    endif    
+!  endif
 
 ! compute maximum of norm of displacement in each slice
   if( ELASTIC_SIMULATION ) then
-    Usolidnorm = maxval(sqrt(displ(1,:)**2 + displ(2,:)**2 + displ(3,:)**2))
+    if( GPU_MODE) then
+      ! way 2: just get maximum of field from GPU                    
+      call get_norm_elastic_from_device_cuda(Usolidnorm,Mesh_pointer,1)
+    else
+      Usolidnorm = maxval(sqrt(displ(1,:)**2 + displ(2,:)**2 + displ(3,:)**2))
+    endif
   else
     if( ACOUSTIC_SIMULATION ) then
       if(GPU_MODE) then
@@ -181,7 +185,12 @@
 ! adjoint simulations
   if( SIMULATION_TYPE == 3 ) then
     if( ELASTIC_SIMULATION ) then
-      b_Usolidnorm = maxval(sqrt(b_displ(1,:)**2 + b_displ(2,:)**2 + b_displ(3,:)**2))
+      ! way 2
+      if(GPU_MODE) then
+        call get_norm_elastic_from_device_cuda(b_Usolidnorm,Mesh_pointer,3)      
+      else
+        b_Usolidnorm = maxval(sqrt(b_displ(1,:)**2 + b_displ(2,:)**2 + b_displ(3,:)**2))
+      endif
     else
       if( ACOUSTIC_SIMULATION ) then
         ! way 2

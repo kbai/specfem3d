@@ -71,8 +71,7 @@
 
   ! updates kernels on GPU
   if(GPU_MODE) then
-    call compute_kernels_cuda(Mesh_pointer,NOISE_TOMOGRAPHY,ELASTIC_SIMULATION,SAVE_MOHO_MESH, &
-                          deltat)
+    call compute_kernels_elastic_cuda(Mesh_pointer,deltat)
                           
     ! for noise simulations --- source strength kernel
     if (NOISE_TOMOGRAPHY == 3)  &
@@ -188,13 +187,6 @@
 
     ! kernels are done
     return
-
-    !daniel
-    !call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
-    !                        potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
-    !call transfer_b_fields_acoustic_from_device(NGLOB_AB,b_potential_acoustic, &
-    !                        b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer)    
-    
   endif
 
   ! updates kernels
@@ -256,6 +248,18 @@
   ! local parameters
   real(kind=CUSTOM_REAL),dimension(NDIM,NGLLX,NGLLY,NGLLZ):: b_accel_elm,accel_elm
   integer :: i,j,k,ispec,iglob
+
+  !daniel: todo - workaround to do this on GPU?
+  if( GPU_MODE) then
+    if( ACOUSTIC_SIMULATION) then
+      call transfer_potential_dot_dot_from_device(NGLOB_AB,potential_dot_dot_acoustic, Mesh_pointer)    
+      call transfer_b_potential_dot_dot_from_device(NGLOB_AB,b_potential_dot_dot_acoustic, Mesh_pointer)    
+    endif    
+    if( ELASTIC_SIMULATION ) then
+      call transfer_accel_from_device(NGLOB_AB*NDIM,accel,Mesh_pointer)
+      call transfer_b_accel_from_device(NGLOB_AB*NDIM,b_accel,Mesh_pointer)      
+    endif    
+  endif
 
   ! loops over all elements
   do ispec = 1, NSPEC_AB

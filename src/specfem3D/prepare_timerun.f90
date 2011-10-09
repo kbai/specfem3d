@@ -754,7 +754,8 @@
                                   num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh, &
                                   nibool_interfaces_ext_mesh, ibool_interfaces_ext_mesh, &
                                   hprime_xx, hprime_yy, hprime_zz, &
-                                  hprimewgll_xx, wgllwgll_xy, wgllwgll_xz, wgllwgll_yz, &
+                                  hprimewgll_xx, hprimewgll_yy, hprimewgll_zz, &
+                                  wgllwgll_xy, wgllwgll_xz, wgllwgll_yz, &
                                   ABSORBING_CONDITIONS, &
                                   abs_boundary_ispec, abs_boundary_ijk, &
                                   abs_boundary_normal, &

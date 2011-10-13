@@ -147,6 +147,9 @@ CUDA_OBJECTS = \
 	$O/write_seismograms_cuda.cuda.o \
 	$O/save_and_compare_cpu_vs_gpu.cudacc.o 
 
+CUDA_STUBS = \
+	$O/specfem3D_gpu_cuda_method_stubs.cudacc.o
+
 # solver objects - no statically allocated arrays anymore
 SOLVER_ARRAY_OBJECTS = \
 	$O/program_specfem3D.o \
@@ -195,7 +198,8 @@ SOLVER_ARRAY_OBJECTS = \
 LIBSPECFEM = $L/libspecfem.a
 
 # objects for the pure Fortran version
-@COND_PYRE_FALSE@XSPECFEM_OBJECTS = $(SOLVER_ARRAY_OBJECTS) $(LIBSPECFEM) $(CUDA_OBJECTS)
+@COND_PYRE_FALSE@@COND_CUDA_TRUE@XSPECFEM_OBJECTS = $(SOLVER_ARRAY_OBJECTS) $(LIBSPECFEM) $(CUDA_OBJECTS)
+@COND_PYRE_FALSE@@COND_CUDA_FALSE@XSPECFEM_OBJECTS = $(SOLVER_ARRAY_OBJECTS) $(LIBSPECFEM) $(CUDA_STUBS)
 
 ####
 #### targets

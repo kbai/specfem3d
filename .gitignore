@@ -1,3 +1,4 @@
+*~
 Makefile
 config.h
 config.log
@@ -252,3 +253,4 @@ src/specfem3D/specfem_par_movie.mod
 src/specfem3D/specfem_par_poroelastic.mod
 src/decompose_mesh_SCOTCH/scotch_5.1.11/src/libscotch/Makefile
 src/decompose_mesh_SCOTCH/scotch_5.1.11/src/scotch/Makefile
+

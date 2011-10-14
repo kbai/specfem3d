@@ -333,7 +333,11 @@ void FC_FUNC_(prepare_constants_device,
                                         int* h_ispec_selected_rec,
                                         int* nrec_f,
                                         int* nrec_local_f,
-                                        int* SIMULATION_TYPE){}
+                                        int* SIMULATION_TYPE)
+{
+  fprintf(stderr,"ERROR: GPU_MODE enabled without GPU/CUDA Support. To enable GPU support, reconfigure with --with-cuda flag.\n");
+  exit(1);
+}
 
 void FC_FUNC_(prepare_adjoint_sim2_or_3_constants_device,
               PREPARE_ADJOINT_SIM2_OR_3_CONSTANTS_DEVICE)(

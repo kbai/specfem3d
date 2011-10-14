@@ -131,7 +131,7 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
        tempx1,tempx2,tempx3,tempy1,tempy2,tempy3,tempz1,tempz2,tempz3  
 
   ! real(kind=CUSTOM_REAL), dimension(NDIM,NGLOB_AB,NUM_THREADS) :: accel_omp
-  real(kind=CUSTOM_REAL), dimension(:,:,:),allocatable :: accel_omp
+  ! real(kind=CUSTOM_REAL), dimension(:,:,:),allocatable :: accel_omp
   ! local attenuation parameters
   real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ) :: epsilondev_xx_loc, &
        epsilondev_yy_loc, epsilondev_xy_loc, epsilondev_xz_loc, epsilondev_yz_loc
@@ -177,7 +177,7 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
   NUM_THREADS = OMP_GET_MAX_THREADS()
   
   
-  allocate(accel_omp(NDIM,NGLOB_AB,NUM_THREADS))
+  ! allocate(accel_omp(NDIM,NGLOB_AB,NUM_THREADS))
   
   ! allocate local arrays
   allocate(dummyx_loc(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
@@ -206,7 +206,10 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
     num_elements = nspec_outer_elastic
   else
     num_elements = nspec_inner_elastic
-  endif  
+ endif
+ ! "start" timer
+ start_time = omp_get_wtime()
+  
   !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(&
   !$OMP R_xx_val1,R_yy_val1,R_xx_val2,R_yy_val2,R_xx_val3,R_yy_val3,&
   !$OMP factor_loc,alphaval_loc,betaval_loc,gammaval_loc,&
@@ -229,8 +232,7 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
   thread_id = OMP_get_thread_num()+1
   ! thread_id = 1
 
-  ! "start" timer
-  start_time = omp_get_wtime()
+  
   
   ! accel_omp(:,:,thread_id) = 0.0
   !$OMP DO

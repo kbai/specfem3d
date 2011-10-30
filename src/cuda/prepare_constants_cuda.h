@@ -91,10 +91,10 @@ void setConst_wgllwgll_yz(float* array, Mesh* mp);
   void bindTexturesPotential(float* d_potential_acoustic)
   {
     cudaError_t err;
-    
+
     cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<float>();
-    
-    err = cudaBindTexture(NULL,tex_potential_acoustic, d_potential_acoustic, 
+
+    err = cudaBindTexture(NULL,tex_potential_acoustic, d_potential_acoustic,
                           channelDescFloat, NGLOB*sizeof(float));
     if (err != cudaSuccess)
     {
@@ -106,10 +106,10 @@ void setConst_wgllwgll_yz(float* array, Mesh* mp);
   void bindTexturesPotential_dot_dot(float* d_potential_dot_dot_acoustic)
   {
     cudaError_t err;
-    
+
     cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<float>();
-    
-    err = cudaBindTexture(NULL,tex_potential_dot_dot_acoustic, d_potential_dot_dot_acoustic, 
+
+    err = cudaBindTexture(NULL,tex_potential_dot_dot_acoustic, d_potential_dot_dot_acoustic,
                           channelDescFloat, NGLOB*sizeof(float));
     if (err != cudaSuccess)
     {

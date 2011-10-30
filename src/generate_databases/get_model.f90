@@ -69,8 +69,6 @@
   ! use acoustic domains for simulation
   logical,parameter :: USE_PURE_ACOUSTIC_MOD = .false.
 
-
-
   ! initializes element domain flags
   ispec_is_acoustic(:) = .false.
   ispec_is_elastic(:) = .false.
@@ -387,7 +385,7 @@
 
   ! anisotropy
   logical :: ANISOTROPY
-  
+
   ! local parameters
   real(kind=CUSTOM_REAL) :: vp,vs,rho,qmu_atten
   real(kind=CUSTOM_REAL) :: c11,c12,c13,c14,c15,c16,c22,c23,c24,c25, &
@@ -492,7 +490,7 @@
               idomain_id = materials_ext_mesh(6,iflag)
 
            else if ( mat_ext_mesh(2,ispec) == 2 ) then
-              
+
               imaterial_PB = abs(imaterial_id)
               ! material definition undefined, uses definition from tomography model
               ! GLL point location

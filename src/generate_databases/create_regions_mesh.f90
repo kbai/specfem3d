@@ -299,7 +299,7 @@ subroutine create_regions_mesh_ext(ibool, &
                         materials_ext_mesh,nmat_ext_mesh, &
                         undef_mat_prop,nundefMat_ext_mesh, &
                         ANISOTROPY,LOCAL_PATH)
-  
+
 ! sets up absorbing/free surface boundaries
   call sync_all()
   if( myrank == 0) then
@@ -353,7 +353,9 @@ subroutine create_regions_mesh_ext(ibool, &
                         jacobianstore, rho_vp,rho_vs,qmu_attenuation_store, &
                         rhostore,kappastore,mustore, &
                         rmass,rmass_acoustic,rmass_solid_poroelastic,rmass_fluid_poroelastic, &
-                        OCEANS,rmass_ocean_load,NGLOB_OCEAN,ibool,xstore_dummy,ystore_dummy,zstore_dummy, &
+                        OCEANS,rmass_ocean_load,NGLOB_OCEAN, &
+                        ibool, &
+                        xstore_dummy,ystore_dummy,zstore_dummy, &
                         abs_boundary_normal,abs_boundary_jacobian2Dw, &
                         abs_boundary_ijk,abs_boundary_ispec,num_abs_boundary_faces, &
                         free_surface_normal,free_surface_jacobian2Dw, &
@@ -362,7 +364,8 @@ subroutine create_regions_mesh_ext(ibool, &
                         coupling_ac_el_ijk,coupling_ac_el_ispec,num_coupling_ac_el_faces, &
                         num_interfaces_ext_mesh,my_neighbours_ext_mesh,nibool_interfaces_ext_mesh, &
                         max_interface_size_ext_mesh,ibool_interfaces_ext_mesh, &
-                        prname,SAVE_MESH_FILES,ANISOTROPY,NSPEC_ANISO, &
+                        prname,SAVE_MESH_FILES, &
+                        ANISOTROPY,NSPEC_ANISO, &
                         c11store,c12store,c13store,c14store,c15store,c16store, &
                         c22store,c23store,c24store,c25store,c26store,c33store, &
                         c34store,c35store,c36store,c44store,c45store,c46store, &

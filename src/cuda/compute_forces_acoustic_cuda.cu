@@ -42,22 +42,22 @@
 
 // prepares a device array with with all inter-element edge-nodes -- this
 // is followed by a memcpy and MPI operations
-__global__ void prepare_boundary_potential_on_device(float* d_potential_dot_dot_acoustic, 
+__global__ void prepare_boundary_potential_on_device(float* d_potential_dot_dot_acoustic,
                                                      float* d_send_potential_dot_dot_buffer,
-                                                     int num_interfaces_ext_mesh, 
+                                                     int num_interfaces_ext_mesh,
                                                      int max_nibool_interfaces_ext_mesh,
                                                      int* d_nibool_interfaces_ext_mesh,
                                                      int* d_ibool_interfaces_ext_mesh) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
-  int iinterface=0;  
-  
+  int iinterface=0;
+
   for( iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
     if(id<d_nibool_interfaces_ext_mesh[iinterface]) {
       d_send_potential_dot_dot_buffer[(id + max_nibool_interfaces_ext_mesh*iinterface)] =
         d_potential_dot_dot_acoustic[(d_ibool_interfaces_ext_mesh[id+max_nibool_interfaces_ext_mesh*iinterface]-1)];
     }
-  }  
+  }
 
 }
 
@@ -66,22 +66,24 @@ __global__ void prepare_boundary_potential_on_device(float* d_potential_dot_dot_
 
 // prepares and transfers the inter-element edge-nodes to the host to be MPI'd
 extern "C"
-void FC_FUNC_(transfer_boundary_potential_from_device,
-              TRANSFER_BOUNDARY_POTENTIAL_FROM_DEVICE)(
-                                              int* size, 
-                                              long* Mesh_pointer_f, 
-                                              float* potential_dot_dot_acoustic, 
+void FC_FUNC_(transfer_boun_pot_from_device,
+              TRANSFER_BOUN_POT_FROM_DEVICE)(
+                                              int* size,
+                                              long* Mesh_pointer_f,
+                                              float* potential_dot_dot_acoustic,
                                               float* send_potential_dot_dot_buffer,
-                                              int* num_interfaces_ext_mesh, 
+                                              int* num_interfaces_ext_mesh,
                                               int* max_nibool_interfaces_ext_mesh,
-                                              int* nibool_interfaces_ext_mesh, 
+                                              int* nibool_interfaces_ext_mesh,
                                               int* ibool_interfaces_ext_mesh,
                                               int* FORWARD_OR_ADJOINT){
 
-TRACE("transfer_boundary_potential_from_device");
+TRACE("transfer_boun_pot_from_device");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
-  
+
+  if( *num_interfaces_ext_mesh == 0 ) return;
+
   int blocksize = 256;
   int size_padded = ((int)ceil(((double)*max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
   int num_blocks_x = size_padded/blocksize;
@@ -90,11 +92,11 @@ TRACE("transfer_boundary_potential_from_device");
     num_blocks_x = ceil(num_blocks_x/2.0);
     num_blocks_y = num_blocks_y*2;
   }
-  
+
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
-    
-  if(*FORWARD_OR_ADJOINT == 1) {  
+
+  if(*FORWARD_OR_ADJOINT == 1) {
     prepare_boundary_potential_on_device<<<grid,threads>>>(mp->d_potential_dot_dot_acoustic,
                                                          mp->d_send_potential_dot_dot_buffer,
                                                          *num_interfaces_ext_mesh,
@@ -108,17 +110,12 @@ TRACE("transfer_boundary_potential_from_device");
                                                            *num_interfaces_ext_mesh,
                                                            *max_nibool_interfaces_ext_mesh,
                                                            mp->d_nibool_interfaces_ext_mesh,
-                                                           mp->d_ibool_interfaces_ext_mesh);    
+                                                           mp->d_ibool_interfaces_ext_mesh);
   }
-  
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  exit_on_cuda_error("prepare_boundary_kernel");
-#endif
 
-  
   cudaMemcpy(send_potential_dot_dot_buffer,mp->d_send_potential_dot_dot_buffer,
-	      *max_nibool_interfaces_ext_mesh* *num_interfaces_ext_mesh*sizeof(real),cudaMemcpyDeviceToHost);
-  
+        *max_nibool_interfaces_ext_mesh* *num_interfaces_ext_mesh*sizeof(realw),cudaMemcpyDeviceToHost);
+
   // finish timing of kernel+memcpy
   // cudaEventRecord( stop, 0 );
   // cudaEventSynchronize( stop );
@@ -126,22 +123,24 @@ TRACE("transfer_boundary_potential_from_device");
   // cudaEventDestroy( start );
   // cudaEventDestroy( stop );
   // printf("boundary xfer d->h Time: %f ms\n",time);
-  
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  exit_on_cuda_error("prepare_boundary_kernel");
+#endif
 }
 
 
 /* ----------------------------------------------------------------------------------------------- */
 
 
-__global__ void assemble_boundary_potential_on_device(float* d_potential_dot_dot_acoustic, 
+__global__ void assemble_boundary_potential_on_device(float* d_potential_dot_dot_acoustic,
                                                       float* d_send_potential_dot_dot_buffer,
-                                                      int num_interfaces_ext_mesh, 
+                                                      int num_interfaces_ext_mesh,
                                                       int max_nibool_interfaces_ext_mesh,
                                                       int* d_nibool_interfaces_ext_mesh,
                                                       int* d_ibool_interfaces_ext_mesh) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
-  int iinterface=0;  
+  int iinterface=0;
 
   for( iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
     if(id<d_nibool_interfaces_ext_mesh[iinterface]) {
@@ -149,7 +148,7 @@ __global__ void assemble_boundary_potential_on_device(float* d_potential_dot_dot
       // for testing atomic operations against not atomic operations (0.1ms vs. 0.04 ms)
       // d_potential_dot_dot_acoustic[3*(d_ibool_interfaces_ext_mesh[id+max_nibool_interfaces_ext_mesh*iinterface]-1)] +=
       // d_send_potential_dot_dot_buffer[3*(id + max_nibool_interfaces_ext_mesh*iinterface)];
-            
+
       atomicAdd(&d_potential_dot_dot_acoustic[(d_ibool_interfaces_ext_mesh[id+max_nibool_interfaces_ext_mesh*iinterface]-1)],
                 d_send_potential_dot_dot_buffer[(id + max_nibool_interfaces_ext_mesh*iinterface)]);
     }
@@ -166,34 +165,34 @@ __global__ void assemble_boundary_potential_on_device(float* d_potential_dot_dot
 
 /* ----------------------------------------------------------------------------------------------- */
 
-extern "C"  
-void FC_FUNC_(transfer_and_assemble_potential_to_device,
-              TRANSFER_AND_ASSEMBLE_POTENTIAL_TO_DEVICE)(
-                                                long* Mesh_pointer, 
-                                                real* potential_dot_dot_acoustic, 
-                                                real* buffer_recv_scalar_ext_mesh,
-                                                int* num_interfaces_ext_mesh, 
+extern "C"
+void FC_FUNC_(transfer_asmbl_pot_to_device,
+              TRANSFER_ASMBL_POT_TO_DEVICE)(
+                                                long* Mesh_pointer,
+                                                realw* potential_dot_dot_acoustic,
+                                                realw* buffer_recv_scalar_ext_mesh,
+                                                int* num_interfaces_ext_mesh,
                                                 int* max_nibool_interfaces_ext_mesh,
-                                                int* nibool_interfaces_ext_mesh, 
+                                                int* nibool_interfaces_ext_mesh,
                                                 int* ibool_interfaces_ext_mesh,
                                                 int* FORWARD_OR_ADJOINT) {
 
-TRACE("transfer_and_assemble_potential_to_device");
+TRACE("transfer_asmbl_pot_to_device");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
   //double start_time = get_time();
-  // cudaEvent_t start, stop; 
-  // float time; 
-  // cudaEventCreate(&start); 
-  // cudaEventCreate(&stop); 
+  // cudaEvent_t start, stop;
+  // float time;
+  // cudaEventCreate(&start);
+  // cudaEventCreate(&stop);
   // cudaEventRecord( start, 0 );
 
-  // copies buffer onto GPU  
-  cudaMemcpy(mp->d_send_potential_dot_dot_buffer, buffer_recv_scalar_ext_mesh, 
-             *max_nibool_interfaces_ext_mesh* *num_interfaces_ext_mesh*sizeof(real), cudaMemcpyHostToDevice);
+  // copies buffer onto GPU
+  cudaMemcpy(mp->d_send_potential_dot_dot_buffer, buffer_recv_scalar_ext_mesh,
+             *max_nibool_interfaces_ext_mesh* *num_interfaces_ext_mesh*sizeof(realw), cudaMemcpyHostToDevice);
 
   // assembles on GPU
-  int blocksize = 256;  
+  int blocksize = 256;
   int size_padded = ((int)ceil(((double)*max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
@@ -205,25 +204,25 @@ TRACE("transfer_and_assemble_potential_to_device");
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
 
-  if(*FORWARD_OR_ADJOINT == 1) { 
+  if(*FORWARD_OR_ADJOINT == 1) {
     //assemble forward field
-    assemble_boundary_potential_on_device<<<grid,threads>>>(mp->d_potential_dot_dot_acoustic, 
+    assemble_boundary_potential_on_device<<<grid,threads>>>(mp->d_potential_dot_dot_acoustic,
                                                           mp->d_send_potential_dot_dot_buffer,
                                                           *num_interfaces_ext_mesh,
                                                           *max_nibool_interfaces_ext_mesh,
                                                           mp->d_nibool_interfaces_ext_mesh,
                                                           mp->d_ibool_interfaces_ext_mesh);
   }
-  else if(*FORWARD_OR_ADJOINT == 3) { 
+  else if(*FORWARD_OR_ADJOINT == 3) {
     //assemble reconstructed/backward field
-    assemble_boundary_potential_on_device<<<grid,threads>>>(mp->d_b_potential_dot_dot_acoustic, 
+    assemble_boundary_potential_on_device<<<grid,threads>>>(mp->d_b_potential_dot_dot_acoustic,
                                                             mp->d_send_potential_dot_dot_buffer,
                                                             *num_interfaces_ext_mesh,
                                                             *max_nibool_interfaces_ext_mesh,
                                                             mp->d_nibool_interfaces_ext_mesh,
-                                                            mp->d_ibool_interfaces_ext_mesh);    
+                                                            mp->d_ibool_interfaces_ext_mesh);
   }
-  
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   // cudaEventRecord( stop, 0 );
   // cudaEventSynchronize( stop );
@@ -233,8 +232,8 @@ TRACE("transfer_and_assemble_potential_to_device");
   // printf("Boundary Assemble Kernel Execution Time: %f ms\n",time);
   //double end_time = get_time();
   //printf("Elapsed time: %e\n",end_time-start_time);
-  exit_on_cuda_error("transfer_and_assemble_potential_to_device");
-#endif  
+  exit_on_cuda_error("transfer_asmbl_pot_to_device");
+#endif
 }
 
 
@@ -242,14 +241,14 @@ TRACE("transfer_and_assemble_potential_to_device");
 
 void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIMULATION_TYPE);
 
-__global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,int* d_phase_ispec_inner_acoustic, 
+__global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,int* d_phase_ispec_inner_acoustic,
                                        int num_phase_ispec_acoustic, int d_iphase,
-                                       float* d_potential_acoustic, float* d_potential_dot_dot_acoustic, 
-                                       float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz, 
-                                       float* d_gammax, float* d_gammay, float* d_gammaz, 
-                                       float* hprime_xx, float* hprime_yy, float* hprime_zz, 
-                                       float* hprimewgll_xx, float* hprimewgll_yy, float* hprimewgll_zz, 
-                                       float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,                                       
+                                       float* d_potential_acoustic, float* d_potential_dot_dot_acoustic,
+                                       float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz,
+                                       float* d_gammax, float* d_gammay, float* d_gammaz,
+                                       float* hprime_xx, float* hprime_yy, float* hprime_zz,
+                                       float* hprimewgll_xx, float* hprimewgll_yy, float* hprimewgll_zz,
+                                       float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,
                                        float* d_rhostore);
 
 
@@ -269,29 +268,31 @@ void FC_FUNC_(compute_forces_acoustic_cuda,
 
 TRACE("compute_forces_acoustic_cuda");
   //double start_time = get_time();
-  
+
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper
 
   int num_elements;
-  
+
   if( *iphase == 1 )
     num_elements = *nspec_outer_acoustic;
   else
-    num_elements = *nspec_inner_acoustic;  
+    num_elements = *nspec_inner_acoustic;
 
-  //int myrank;  
+  if( num_elements == 0 ) return;
+
+  //int myrank;
   /* MPI_Comm_rank(MPI_COMM_WORLD,&myrank); */
   /* if(myrank==0) { */
-  
-  Kernel_2_acoustic(num_elements, mp, *iphase, *SIMULATION_TYPE);  
-  
-  cudaThreadSynchronize();
 
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  Kernel_2_acoustic(num_elements, mp, *iphase, *SIMULATION_TYPE);
+
+  //cudaThreadSynchronize();
+
+//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   /* MPI_Barrier(MPI_COMM_WORLD); */
   //double end_time = get_time();
   //printf("Elapsed time: %e\n",end_time-start_time);
-#endif
+//#endif
 }
 
 
@@ -303,14 +304,14 @@ TRACE("compute_forces_acoustic_cuda");
 
 void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIMULATION_TYPE)
 {
-    
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("before acoustic kernel Kernel 2");
 #endif
-    
+
     /* if the grid can handle the number of blocks, we let it be 1D */
     /* grid_2_x = nb_elem_color; */
-    /* nb_elem_color is just how many blocks we are computing now */    
+    /* nb_elem_color is just how many blocks we are computing now */
 
     int num_blocks_x = nb_blocks_to_compute;
     int num_blocks_y = 1;
@@ -318,49 +319,53 @@ void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIM
       num_blocks_x = ceil(num_blocks_x/2.0);
       num_blocks_y = num_blocks_y*2;
     }
-    
-    int threads_2 = 128;//BLOCK_SIZE_K2;
-    dim3 grid_2(num_blocks_x,num_blocks_y);    
 
-    
+    int threads_2 = 128;//BLOCK_SIZE_K2;
+    dim3 grid_2(num_blocks_x,num_blocks_y);
+
+
     // Cuda timing
-    // cudaEvent_t start, stop; 
-    // float time; 
-    // cudaEventCreate(&start); 
-    // cudaEventCreate(&stop); 
+    // cudaEvent_t start, stop;
+    // float time;
+    // cudaEventCreate(&start);
+    // cudaEventCreate(&stop);
     // cudaEventRecord( start, 0 );
-    
-    Kernel_2_acoustic_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,mp->NGLOB_AB, mp->d_ibool,
-    						 mp->d_phase_ispec_inner_acoustic, mp->num_phase_ispec_acoustic, d_iphase,
-    						 mp->d_potential_acoustic, mp->d_potential_dot_dot_acoustic,
-    						 mp->d_xix, mp->d_xiy, mp->d_xiz,
-    						 mp->d_etax, mp->d_etay, mp->d_etaz,
-    						 mp->d_gammax, mp->d_gammay, mp->d_gammaz,
-                 mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz, 
-                 mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz, 
-                 mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,                 
-    						 mp->d_rhostore);
+
+    Kernel_2_acoustic_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,
+                                                           mp->NGLOB_AB, mp->d_ibool,
+                                                           mp->d_phase_ispec_inner_acoustic,
+                                                           mp->num_phase_ispec_acoustic, d_iphase,
+                                                           mp->d_potential_acoustic, mp->d_potential_dot_dot_acoustic,
+                                                           mp->d_xix, mp->d_xiy, mp->d_xiz,
+                                                           mp->d_etax, mp->d_etay, mp->d_etaz,
+                                                           mp->d_gammax, mp->d_gammay, mp->d_gammaz,
+                                                           mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz,
+                                                           mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz,
+                                                           mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
+                                                           mp->d_rhostore);
 
     if(SIMULATION_TYPE == 3) {
-      Kernel_2_acoustic_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,mp->NGLOB_AB, mp->d_ibool,
-                  mp->d_phase_ispec_inner_acoustic,mp->num_phase_ispec_acoustic, d_iphase,
-                  mp->d_b_potential_acoustic, mp->d_b_potential_dot_dot_acoustic,
-                  mp->d_xix, mp->d_xiy, mp->d_xiz,
-                  mp->d_etax, mp->d_etay, mp->d_etaz,
-                  mp->d_gammax, mp->d_gammay, mp->d_gammaz,
-                  mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz, 
-                  mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz,
-                  mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,                 
-                  mp->d_rhostore);
+      Kernel_2_acoustic_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,
+                                                            mp->NGLOB_AB, mp->d_ibool,
+                                                            mp->d_phase_ispec_inner_acoustic,
+                                                            mp->num_phase_ispec_acoustic, d_iphase,
+                                                            mp->d_b_potential_acoustic, mp->d_b_potential_dot_dot_acoustic,
+                                                            mp->d_xix, mp->d_xiy, mp->d_xiz,
+                                                            mp->d_etax, mp->d_etay, mp->d_etaz,
+                                                            mp->d_gammax, mp->d_gammay, mp->d_gammaz,
+                                                            mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz,
+                                                            mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz,
+                                                            mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
+                                                            mp->d_rhostore);
     }
-    
+
     // cudaEventRecord( stop, 0 );
     // cudaEventSynchronize( stop );
     // cudaEventElapsedTime( &time, start, stop );
     // cudaEventDestroy( start );
     // cudaEventDestroy( stop );
     // printf("Kernel2 Execution Time: %f ms\n",time);
-        
+
     /* cudaThreadSynchronize(); */
     /* TRACE("Kernel 2 finished"); */
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
@@ -377,26 +382,26 @@ void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIM
 
 
 __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
-                                      int* d_phase_ispec_inner_acoustic, 
+                                      int* d_phase_ispec_inner_acoustic,
                                       int num_phase_ispec_acoustic, int d_iphase,
-                                      float* d_potential_acoustic, float* d_potential_dot_dot_acoustic, 
-                                      float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz, 
-                                      float* d_gammax, float* d_gammay, float* d_gammaz, 
-                                      float* hprime_xx, float* hprime_yy, float* hprime_zz, 
+                                      float* d_potential_acoustic, float* d_potential_dot_dot_acoustic,
+                                      float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz,
+                                      float* d_gammax, float* d_gammay, float* d_gammaz,
+                                      float* hprime_xx, float* hprime_yy, float* hprime_zz,
                                       float* hprimewgll_xx, float* hprimewgll_yy, float* hprimewgll_zz,
                                       float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,
                                       float* d_rhostore){
-    
+
   int bx = blockIdx.y*gridDim.x+blockIdx.x;
   int tx = threadIdx.x;
 
   const int NGLL3 = 125;
   const int NGLL3_ALIGN = 128;
-    
+
   int K = (tx/NGLL2);
   int J = ((tx-K*NGLL2)/NGLLX);
   int I = (tx-K*NGLL2-J*NGLLX);
-    
+
   int active,offset,offset1,offset2,offset3;
   int iglob = 0;
   int working_element;
@@ -409,33 +414,33 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
     int l;
     float hp1,hp2,hp3;
 #endif
-    
+
     __shared__ reald s_dummy_loc[NGLL3];
-    
+
     __shared__ reald s_temp1[NGLL3];
     __shared__ reald s_temp2[NGLL3];
     __shared__ reald s_temp3[NGLL3];
-    
+
 // use only NGLL^3 = 125 active threads, plus 3 inactive/ghost threads,
 // because we used memory padding from NGLL^3 = 125 to 128 to get coalescent memory accesses
     active = (tx < NGLL3 && bx < nb_blocks_to_compute) ? 1:0;
-    
+
 // copy from global memory to shared memory
 // each thread writes one of the NGLL^3 = 125 data points
     if (active) {
       // iphase-1 and working_element-1 for Fortran->C array conventions
       working_element = d_phase_ispec_inner_acoustic[bx + num_phase_ispec_acoustic*(d_iphase-1)]-1;
-      // iglob = d_ibool[working_element*NGLL3_ALIGN + tx]-1;                 
+      // iglob = d_ibool[working_element*NGLL3_ALIGN + tx]-1;
       iglob = d_ibool[working_element*125 + tx]-1;
-      
+
 #ifdef USE_TEXTURES
         s_dummy_loc[tx] = tex1Dfetch(tex_potential_acoustic, iglob);
 #else
-	// changing iglob indexing to match fortran row changes fast style
+  // changing iglob indexing to match fortran row changes fast style
         s_dummy_loc[tx] = d_potential_acoustic[iglob];
 #endif
-    }  
-  
+    }
+
 // synchronize all the threads (one thread for each of the NGLL grid points of the
 // current spectral element) because we need the whole element to be ready in order
 // to be able to compute the matrix products along cut planes of the 3D element below
@@ -446,9 +451,9 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
     if (active) {
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-//      if(iglob == 0 )printf("kernel 2: iglob %i  hprime_xx %f %f %f \n",iglob,hprime_xx[0],hprime_xx[1],hprime_xx[2]);  
+//      if(iglob == 0 )printf("kernel 2: iglob %i  hprime_xx %f %f %f \n",iglob,hprime_xx[0],hprime_xx[1],hprime_xx[2]);
 #endif
-      
+
 
 #ifndef MANUALLY_UNROLLED_LOOPS
 
@@ -461,7 +466,7 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
             hp1 = hprime_xx[l*NGLLX+I];
             offset1 = K*NGLL2+J*NGLLX+l;
             temp1l += s_dummy_loc[offset1]*hp1;
-	    
+
             // daniel: not more assumes that hprime_xx = hprime_yy = hprime_zz
             hp2 = hprime_yy[l*NGLLX+J];
             offset2 = K*NGLL2+l*NGLLX+I;
@@ -477,8 +482,8 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
                 + s_dummy_loc[K*NGLL2+J*NGLLX+1]*hprime_xx[NGLLX+I]
                 + s_dummy_loc[K*NGLL2+J*NGLLX+2]*hprime_xx[2*NGLLX+I]
                 + s_dummy_loc[K*NGLL2+J*NGLLX+3]*hprime_xx[3*NGLLX+I]
-                + s_dummy_loc[K*NGLL2+J*NGLLX+4]*hprime_xx[4*NGLLX+I];	    
-  
+                + s_dummy_loc[K*NGLL2+J*NGLLX+4]*hprime_xx[4*NGLLX+I];
+
         temp2l = s_dummy_loc[K*NGLL2+I]*hprime_yy[J]
                 + s_dummy_loc[K*NGLL2+NGLLX+I]*hprime_yy[NGLLX+J]
                 + s_dummy_loc[K*NGLL2+2*NGLLX+I]*hprime_yy[2*NGLLX+J]
@@ -511,15 +516,15 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
                           +xizl*(etaxl*gammayl-etayl*gammaxl));
 
         // derivatives of potential
-        dpotentialdxl = xixl*temp1l + etaxl*temp2l + gammaxl*temp3l;	
+        dpotentialdxl = xixl*temp1l + etaxl*temp2l + gammaxl*temp3l;
         dpotentialdyl = xiyl*temp1l + etayl*temp2l + gammayl*temp3l;
         dpotentialdzl = xizl*temp1l + etazl*temp2l + gammazl*temp3l;
-	
+
         // density (reciproc)
         rho_invl = 1.f / d_rhostore[offset];
 
         // form the dot product with the test vector
-        s_temp1[tx] = jacobianl * rho_invl * (dpotentialdxl*xixl + dpotentialdyl*xiyl + dpotentialdzl*xizl);	
+        s_temp1[tx] = jacobianl * rho_invl * (dpotentialdxl*xixl + dpotentialdyl*xiyl + dpotentialdzl*xizl);
         s_temp2[tx] = jacobianl * rho_invl * (dpotentialdxl*etaxl + dpotentialdyl*etayl + dpotentialdzl*etazl);
         s_temp3[tx] = jacobianl * rho_invl * (dpotentialdxl*gammaxl + dpotentialdyl*gammayl + dpotentialdzl*gammazl);
     }
@@ -541,7 +546,7 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
             fac1 = hprimewgll_xx[I*NGLLX+l];
             offset1 = K*NGLL2+J*NGLLX+l;
             temp1l += s_temp1[offset1]*fac1;
-          
+
             //daniel: not more assumes hprimewgll_xx = hprimewgll_yy = hprimewgll_zz
             fac2 = hprimewgll_yy[J*NGLLX+l];
             offset2 = K*NGLL2+l*NGLLX+I;
@@ -558,7 +563,7 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
                 + s_temp1[K*NGLL2+J*NGLLX+2]*hprimewgll_xx[I*NGLLX+2]
                 + s_temp1[K*NGLL2+J*NGLLX+3]*hprimewgll_xx[I*NGLLX+3]
                 + s_temp1[K*NGLL2+J*NGLLX+4]*hprimewgll_xx[I*NGLLX+4];
-  
+
 
         temp2l = s_temp2[K*NGLL2+I]*hprimewgll_yy[J*NGLLX]
                 + s_temp2[K*NGLL2+NGLLX+I]*hprimewgll_yy[J*NGLLX+1]
@@ -581,16 +586,16 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
         fac3 = wgllwgll_xy[J*NGLLX+I];
 
 #ifdef USE_TEXTURES
-        d_potential_dot_dot_acoustic[iglob] = tex1Dfetch(tex_potential_dot_dot_acoustic, iglob) 
+        d_potential_dot_dot_acoustic[iglob] = tex1Dfetch(tex_potential_dot_dot_acoustic, iglob)
                                               - (fac1*temp1l + fac2*temp2l + fac3*temp3l);
 #else
-	/* OLD version that uses coloring to get around race condition. About 1.6x faster */
+  /* OLD version that uses coloring to get around race condition. About 1.6x faster */
       // d_accel[iglob*3] -= (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l);
       // d_accel[iglob*3 + 1] -= (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l);
-      // d_accel[iglob*3 + 2] -= (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);		
-	
-        atomicAdd(&d_potential_dot_dot_acoustic[iglob],-(fac1*temp1l + fac2*temp2l + fac3*temp3l));		
-	
+      // d_accel[iglob*3 + 2] -= (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
+
+        atomicAdd(&d_potential_dot_dot_acoustic[iglob],-(fac1*temp1l + fac2*temp2l + fac3*temp3l));
+
 #endif
     }
 
@@ -607,31 +612,31 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
 /* ----------------------------------------------------------------------------------------------- */
 
 
-__global__ void kernel_3_a_acoustic_cuda_device(float* potential_dot_dot_acoustic, 
+__global__ void kernel_3_a_acoustic_cuda_device(float* potential_dot_dot_acoustic,
                                                 int size,
                                                 float* rmass_acoustic) {
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
-  
+
   /* because of block and grid sizing problems, there is a small */
   /* amount of buffer at the end of the calculation */
-  if(id < size) {     
+  if(id < size) {
     // multiplies pressure with the inverse of the mass matrix
-    potential_dot_dot_acoustic[id] = potential_dot_dot_acoustic[id]*rmass_acoustic[id];     
+    potential_dot_dot_acoustic[id] = potential_dot_dot_acoustic[id]*rmass_acoustic[id];
   }
 }
 
 /* ----------------------------------------------------------------------------------------------- */
 
 __global__ void kernel_3_b_acoustic_cuda_device(float* potential_dot_acoustic,
-                                                float* potential_dot_dot_acoustic, 
+                                                float* potential_dot_dot_acoustic,
                                                 int size,
-                                                real deltatover2, 
+                                                realw deltatover2,
                                                 float* rmass_acoustic) {
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
-  
+
   /* because of block and grid sizing problems, there is a small */
   /* amount of buffer at the end of the calculation */
-  if(id < size) {     
+  if(id < size) {
     // Newmark time scheme: corrector term
     potential_dot_acoustic[id] = potential_dot_acoustic[id] + deltatover2*potential_dot_dot_acoustic[id];
   }
@@ -642,7 +647,7 @@ __global__ void kernel_3_b_acoustic_cuda_device(float* potential_dot_acoustic,
 extern "C"
 void FC_FUNC_(kernel_3_a_acoustic_cuda,KERNEL_3_ACOUSTIC_CUDA)(
                              long* Mesh_pointer,
-                             int* size_F, 
+                             int* size_F,
                              int* SIMULATION_TYPE) {
 
 TRACE("kernel_3_a_acoustic_cuda");
@@ -660,17 +665,17 @@ TRACE("kernel_3_a_acoustic_cuda");
    }
    dim3 grid(num_blocks_x,num_blocks_y);
    dim3 threads(blocksize,1,1);
-   
-   kernel_3_a_acoustic_cuda_device<<< grid, threads>>>(mp->d_potential_dot_dot_acoustic, 
-                                                       size,  
+
+   kernel_3_a_acoustic_cuda_device<<< grid, threads>>>(mp->d_potential_dot_dot_acoustic,
+                                                       size,
                                                        mp->d_rmass_acoustic);
 
    if(*SIMULATION_TYPE == 3) {
-     kernel_3_a_acoustic_cuda_device<<< grid, threads>>>(mp->d_b_potential_dot_dot_acoustic, 
+     kernel_3_a_acoustic_cuda_device<<< grid, threads>>>(mp->d_b_potential_dot_dot_acoustic,
                                                          size,
                                                          mp->d_rmass_acoustic);
    }
-   
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   //printf("checking updatedispl_kernel launch...with %dx%d blocks\n",num_blocks_x,num_blocks_y);
   exit_on_cuda_error("after kernel 3 a");
@@ -682,18 +687,18 @@ TRACE("kernel_3_a_acoustic_cuda");
 extern "C"
 void FC_FUNC_(kernel_3_b_acoustic_cuda,KERNEL_3_ACOUSTIC_CUDA)(
                                                              long* Mesh_pointer,
-                                                             int* size_F, 
-                                                             float* deltatover2_F, 
-                                                             int* SIMULATION_TYPE, 
+                                                             int* size_F,
+                                                             float* deltatover2_F,
+                                                             int* SIMULATION_TYPE,
                                                              float* b_deltatover2_F) {
 
 TRACE("kernel_3_b_acoustic_cuda");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); // get Mesh from fortran integer wrapper
   int size = *size_F;
-  real deltatover2 = *deltatover2_F;
-  real b_deltatover2 = *b_deltatover2_F;
-  
+  realw deltatover2 = *deltatover2_F;
+  realw b_deltatover2 = *b_deltatover2_F;
+
   int blocksize=128;
   int size_padded = ((int)ceil(((double)size)/((double)blocksize)))*blocksize;
   int num_blocks_x = size_padded/blocksize;
@@ -704,19 +709,19 @@ TRACE("kernel_3_b_acoustic_cuda");
   }
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
-  
-  kernel_3_b_acoustic_cuda_device<<< grid, threads>>>(mp->d_potential_dot_acoustic, 
-                                                    mp->d_potential_dot_dot_acoustic, 
-                                                    size, deltatover2, 
+
+  kernel_3_b_acoustic_cuda_device<<< grid, threads>>>(mp->d_potential_dot_acoustic,
+                                                    mp->d_potential_dot_dot_acoustic,
+                                                    size, deltatover2,
                                                     mp->d_rmass_acoustic);
-  
+
   if(*SIMULATION_TYPE == 3) {
-    kernel_3_b_acoustic_cuda_device<<< grid, threads>>>(mp->d_b_potential_dot_acoustic, 
-                                                      mp->d_b_potential_dot_dot_acoustic, 
+    kernel_3_b_acoustic_cuda_device<<< grid, threads>>>(mp->d_b_potential_dot_acoustic,
+                                                      mp->d_b_potential_dot_dot_acoustic,
                                                       size, b_deltatover2,
                                                       mp->d_rmass_acoustic);
   }
-  
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   //printf("checking updatedispl_kernel launch...with %dx%d blocks\n",num_blocks_x,num_blocks_y);
   exit_on_cuda_error("after kernel 3 b");
@@ -733,68 +738,71 @@ TRACE("kernel_3_b_acoustic_cuda");
 
 
 __global__ void enforce_free_surface_cuda_kernel(
-                                       float* potential_acoustic, 
+                                       float* potential_acoustic,
                                        float* potential_dot_acoustic,
-                                       float* potential_dot_dot_acoustic, 
+                                       float* potential_dot_dot_acoustic,
                                        int num_free_surface_faces,
                                        int* free_surface_ispec,
                                        int* free_surface_ijk,
                                        int* ibool,
                                        int* ispec_is_acoustic) {
   // gets spectral element face id
-  int iface = blockIdx.x + gridDim.x*blockIdx.y;   
-  
+  int iface = blockIdx.x + gridDim.x*blockIdx.y;
+
   // for all faces on free surface
   if( iface < num_free_surface_faces ){
-  
+
     int ispec = free_surface_ispec[iface]-1;
 
-//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING    
+//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
 //  if( iface > 648-1 ){printf("device iface: %i \n",iface);}
 //#endif
-  
-    // checks if element is in acoustic domain
-    if( ispec_is_acoustic[ispec] == 1 ){
-  
-      // gets global point index
-      int igll = threadIdx.x + threadIdx.y*blockDim.x;  
 
-//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING    
+    // checks if element is in acoustic domain
+    if( ispec_is_acoustic[ispec] ){
+
+      // gets global point index
+      int igll = threadIdx.x + threadIdx.y*blockDim.x;
+
+//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
 //      if( igll > 25-1 ){printf("device igll: %i \n",igll);}
 //#endif
-    
+
       int i = free_surface_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)] - 1; // (1,igll,iface)
       int j = free_surface_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)] - 1;
       int k = free_surface_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)] - 1;
-      
+
       int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)] - 1;
-      
+
       // sets potentials to zero at free surface
       potential_acoustic[iglob] = 0;
       potential_dot_acoustic[iglob] = 0;
-      potential_dot_dot_acoustic[iglob] = 0; 
+      potential_dot_dot_acoustic[iglob] = 0;
 
-//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING    
+//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
 //    if( ispec == 160 && igll < 25 ){printf("device: %i %i %i %i %i \n",igll,i,j,k,iglob);}
 //#endif
     }
-  }  
+  }
 }
 
 /* ----------------------------------------------------------------------------------------------- */
 
 extern "C"
-void FC_FUNC_(acoustic_enforce_free_surface_cuda,
-              ACOUSTIC_ENFORCE_FREE_SURFACE_CUDA)(long* Mesh_pointer_f, 
+void FC_FUNC_(acoustic_enforce_free_surf_cuda,
+              ACOUSTIC_ENFORCE_FREE_SURF_CUDA)(long* Mesh_pointer_f,
                                                   int* SIMULATION_TYPE,
                                                   int* ABSORB_FREE_SURFACE) {
-  
-TRACE("acoustic_enforce_free_surface_cuda");
+
+TRACE("acoustic_enforce_free_surf_cuda");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
-  
+
   // checks if anything to do
   if( *ABSORB_FREE_SURFACE == 0 ){
+
+    // does not absorb free surface, thus we enforce the potential to be zero at surface
+
     // block sizes
     int num_blocks_x = mp->num_free_surface_faces;
     int num_blocks_y = 1;
@@ -808,45 +816,45 @@ TRACE("acoustic_enforce_free_surface_cuda");
     //#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
     // debugging
     //int* d_debug;
-    //printf("acoustic_enforce_free_surface_cuda ...\n");
+    //printf("acoustic_enforce_free_surf_cuda ...\n");
     //print_CUDA_error_if_any(cudaMalloc((void**)&d_debug,128*sizeof(int)),999);
 
     //int* h_debug;
     //h_debug = (int*) calloc(128,sizeof(int));
     //for(int i=0;i<128;i++){h_debug[i] = 0;}
     //cudaMemcpy(d_debug,h_debug,128*sizeof(int),cudaMemcpyHostToDevice);
-    
-    //printf("acoustic_enforce_free_surface_cuda start...\n");
+
+    //printf("acoustic_enforce_free_surf_cuda start...\n");
     //doesnt' work...: printf("free_surface_ispec: %i %i %i \n",mp->d_free_surface_ispec[0],mp->d_free_surface_ispec[1],mp->d_free_surface_ispec[2]);
     //printf("free_surface_ispec: %i \n",mp->num_free_surface_faces);
 
     //cudaThreadSynchronize();
     //#endif
-    
+
     // sets potentials to zero at free surface
-    enforce_free_surface_cuda_kernel<<<grid,threads>>>(mp->d_potential_acoustic, 
-                                                       mp->d_potential_dot_acoustic, 
+    enforce_free_surface_cuda_kernel<<<grid,threads>>>(mp->d_potential_acoustic,
+                                                       mp->d_potential_dot_acoustic,
                                                        mp->d_potential_dot_dot_acoustic,
                                                        mp->num_free_surface_faces,
-                                                       mp->d_free_surface_ispec, 
+                                                       mp->d_free_surface_ispec,
                                                        mp->d_free_surface_ijk,
                                                        mp->d_ibool,
                                                        mp->d_ispec_is_acoustic);
     // for backward/reconstructed potentials
     if(*SIMULATION_TYPE == 3) {
-      enforce_free_surface_cuda_kernel<<<grid,threads>>>(mp->d_b_potential_acoustic, 
-                                                         mp->d_b_potential_dot_acoustic, 
+      enforce_free_surface_cuda_kernel<<<grid,threads>>>(mp->d_b_potential_acoustic,
+                                                         mp->d_b_potential_dot_acoustic,
                                                          mp->d_b_potential_dot_dot_acoustic,
                                                          mp->num_free_surface_faces,
-                                                         mp->d_free_surface_ispec, 
+                                                         mp->d_free_surface_ispec,
                                                          mp->d_free_surface_ijk,
                                                          mp->d_ibool,
-                                                         mp->d_ispec_is_acoustic);      
-                                                         
+                                                         mp->d_ispec_is_acoustic);
+
     }
     //#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
     //cudaThreadSynchronize();
-    //cudaMemcpy(h_debug,d_debug,128*sizeof(int),cudaMemcpyDeviceToHost);    
+    //cudaMemcpy(h_debug,d_debug,128*sizeof(int),cudaMemcpyDeviceToHost);
     //for(int i=0;i<25;i++) {printf("ispec d_debug = %d \n",h_debug[i]);}
     //cudaFree(d_debug);
     //free(h_debug);
@@ -854,9 +862,9 @@ TRACE("acoustic_enforce_free_surface_cuda");
     //#endif
 
   }
-  
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("enforce_free_surface_cuda");
-#endif  
+#endif
 }
 

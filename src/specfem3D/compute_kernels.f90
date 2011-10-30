@@ -48,7 +48,7 @@
   if ( APPROXIMATE_HESS_KL ) then
     call compute_kernels_hessian()
   endif
-  
+
   end subroutine compute_kernels
 
 
@@ -72,7 +72,7 @@
   ! updates kernels on GPU
   if(GPU_MODE) then
     call compute_kernels_elastic_cuda(Mesh_pointer,deltat)
-                          
+
     ! for noise simulations --- source strength kernel
     if (NOISE_TOMOGRAPHY == 3)  &
       call compute_kernels_strength_noise(NGLLSQUARE*num_free_surface_faces,ibool, &
@@ -82,11 +82,11 @@
                         NSPEC_AB,NGLOB_AB, &
                         num_free_surface_faces,free_surface_ispec,free_surface_ijk,&
                         GPU_MODE,Mesh_pointer)
-  
+
     ! kernels are done
     return
   endif
-  
+
   ! updates kernels on CPU
   do ispec = 1, NSPEC_AB
 
@@ -143,7 +143,7 @@
     endif !ispec_is_elastic
 
   enddo
-  
+
   ! moho kernel
   if( SAVE_MOHO_MESH ) then
       call compute_boundary_kernel()
@@ -158,7 +158,7 @@
                         NSPEC_AB,NGLOB_AB, &
                         num_free_surface_faces,free_surface_ispec,free_surface_ijk,&
                         GPU_MODE,Mesh_pointer)
-  
+
   end subroutine compute_kernels_el
 
 !
@@ -249,21 +249,20 @@
   real(kind=CUSTOM_REAL),dimension(NDIM,NGLLX,NGLLY,NGLLZ):: b_accel_elm,accel_elm
   integer :: i,j,k,ispec,iglob
 
-  !daniel: todo - workaround to do this on GPU?
-  if( GPU_MODE) then
-    if( ACOUSTIC_SIMULATION) then
-      call transfer_potential_dot_dot_from_device(NGLOB_AB,potential_dot_dot_acoustic, Mesh_pointer)    
-      call transfer_b_potential_dot_dot_from_device(NGLOB_AB,b_potential_dot_dot_acoustic, Mesh_pointer)    
-    endif    
-    if( ELASTIC_SIMULATION ) then
-      call transfer_accel_from_device(NGLOB_AB*NDIM,accel,Mesh_pointer)
-      call transfer_b_accel_from_device(NGLOB_AB*NDIM,b_accel,Mesh_pointer)      
-    endif    
+  ! updates kernels on GPU
+  if(GPU_MODE) then
+
+    ! computes contribution to density and bulk modulus kernel
+    call compute_kernels_hess_cuda(Mesh_pointer,deltat, &
+                                  ELASTIC_SIMULATION,ACOUSTIC_SIMULATION)
+
+    ! done on GPU
+    return
   endif
 
   ! loops over all elements
   do ispec = 1, NSPEC_AB
-  
+
     ! acoustic domains
     if( ispec_is_acoustic(ispec) ) then
 
@@ -280,7 +279,7 @@
                       hprime_xx,hprime_yy,hprime_zz, &
                       xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
                       ibool,rhostore)
-    
+
       do k = 1, NGLLZ
         do j = 1, NGLLY
           do i = 1, NGLLX
@@ -293,7 +292,7 @@
 
           enddo
         enddo
-      enddo    
+      enddo
     endif
 
     ! elastic domains
@@ -310,9 +309,9 @@
 
           enddo
         enddo
-      enddo    
+      enddo
     endif
-    
+
   enddo
 
   end subroutine compute_kernels_hessian

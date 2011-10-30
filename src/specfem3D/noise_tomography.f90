@@ -75,7 +75,7 @@
 
   end subroutine noise_distribution_direction
 
-subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_in, &
+  subroutine noise_distribution_dir_non_uni(xcoord_in,ycoord_in,zcoord_in, &
                   normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
                   mask_noise_out)
   implicit none
@@ -88,7 +88,7 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
 !PB VARIABLES TO DEFINE THE REGION OF NOISE
   real(kind=CUSTOM_REAL) :: xcoord,ycoord,zcoord,xcoord_center,ycoord_center
   real :: lon,lat,colat,lon_cn,lat_cn,dsigma,d,dmax
-  
+
   ! coordinates "x/y/zcoord_in" actually contain r theta phi, therefore convert back to x y z
   ! call rthetaphi_2_xyz(xcoord,ycoord,zcoord, xcoord_in,ycoord_in,zcoord_in)
   xcoord=xcoord_in
@@ -111,7 +111,9 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
    colat=atan(sqrt(xcoord**2+ycoord**2)/zcoord)
    lat=(PI/2)-colat
 
-!PB CALCULATE THE DISTANCE BETWEEN CENTER OF NOISE REGION AND EACH POINT OF THE MODEL'S FREE SURFACE  !PB dsigma IS THE "3D" ANGLE BETWEEN THE TWO POINTS, THEN d = R*dsigma   
+!PB CALCULATE THE DISTANCE BETWEEN CENTER OF NOISE REGION AND EACH
+! POINT OF THE MODEL'S FREE SURFACE  !PB dsigma IS THE "3D" ANGLE BETWEEN
+! THE TWO POINTS, THEN d = R*dsigma
   dsigma=acos(sin(lon)*sin(lon_cn)+cos(lon)*cos(lon_cn)*cos(lat-lat_cn))
   d=sqrt(xcoord**2+ycoord**2+zcoord**2)*dsigma
 
@@ -155,8 +157,8 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   !******************************** change your noise characteristics above ****************************************
   !*****************************************************************************************************************
 
-  end subroutine noise_distribution_direction_non_uniform
-  
+  end subroutine noise_distribution_dir_non_uni
+
 ! =============================================================================================================
 ! =============================================================================================================
 ! =============================================================================================================
@@ -165,7 +167,7 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   subroutine read_parameters_noise(myrank,nrec,NSTEP,nmovie_points, &
                                    islice_selected_rec,xi_receiver,eta_receiver,gamma_receiver,nu, &
                                    noise_sourcearray,xigll,yigll,zigll, &
-                                   ibool, &                                   
+                                   ibool, &
                                    xstore,ystore,zstore, &
                                    irec_master_noise,normal_x_noise,normal_y_noise,normal_z_noise,mask_noise, &
                                    NSPEC_AB_VAL,NGLOB_AB_VAL, &
@@ -174,9 +176,9 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   implicit none
   include "constants.h"
   ! input parameters
-  integer :: myrank, nrec, NSTEP, nmovie_points 
+  integer :: myrank, nrec, NSTEP, nmovie_points
   integer :: NSPEC_AB_VAL,NGLOB_AB_VAL
-  
+
   integer, dimension(nrec) :: islice_selected_rec
 
   integer, dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB_VAL) :: ibool
@@ -187,23 +189,23 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   double precision, dimension(NDIM,NDIM,nrec) :: nu
   real(kind=CUSTOM_REAL), dimension(NGLOB_AB_VAL) :: xstore,ystore,zstore
 
-  integer :: num_free_surface_faces 
+  integer :: num_free_surface_faces
   integer, dimension(num_free_surface_faces) :: free_surface_ispec
   integer, dimension(3,NGLLSQUARE,num_free_surface_faces) :: free_surface_ijk
-  
+
   logical, dimension(NSPEC_AB_VAL) :: ispec_is_acoustic
 
 !daniel: from global code...
   !integer, dimension(NSPEC2D_TOP_VAL) :: ibelm_top ! equals free_surface_ispec
   !integer :: NSPEC2D_TOP_VAL ! equals num_free_surface_faces
   !integer :: nspec_top ! equals num_free_surface_faces
-  
+
   ! output parameters
   integer :: irec_master_noise
   real(kind=CUSTOM_REAL) :: noise_sourcearray(NDIM,NGLLX,NGLLY,NGLLZ,NSTEP)
   real(kind=CUSTOM_REAL), dimension(nmovie_points) :: normal_x_noise,normal_y_noise,normal_z_noise,mask_noise
   ! local parameters
-  integer :: ipoin,ispec,i,j,k,iglob,ios,iface,igll 
+  integer :: ipoin,ispec,i,j,k,iglob,ios,iface,igll
   real(kind=CUSTOM_REAL) :: normal_x_noise_out,normal_y_noise_out,normal_z_noise_out,mask_noise_out
   character(len=256) :: filename
 
@@ -212,7 +214,7 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   open(unit=IIN_NOISE,file=trim(filename),status='old',action='read',iostat=ios)
   if( ios /= 0 ) &
     call exit_MPI(myrank, 'file '//trim(filename)//' does NOT exist! This file contains the ID of the master receiver')
-  
+
   read(IIN_NOISE,*,iostat=ios) irec_master_noise
   if( ios /= 0 ) call exit_MPI(myrank,'error reading file irec_master_noise')
   close(IIN_NOISE)
@@ -274,11 +276,11 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
         !           mask_noise_out)
 
         ! Setup for NOISE_TOMOGRAPHY by Piero Basini
-        call noise_distribution_direction_non_uniform(xstore(iglob), &
+        call noise_distribution_dir_non_uni(xstore(iglob), &
              ystore(iglob),zstore(iglob), &
              normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
              mask_noise_out)
-        
+
         normal_x_noise(ipoin) = normal_x_noise_out
         normal_y_noise(ipoin) = normal_y_noise_out
         normal_z_noise(ipoin) = normal_z_noise_out
@@ -401,19 +403,19 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
 
     ! size of single record
     reclen=CUSTOM_REAL*NDIM*NGLLSQUARE*NSPEC_TOP
-     
-    ! check integer size limit: size of b_reclen_field must fit onto an 4-byte integer 
+
+    ! check integer size limit: size of b_reclen_field must fit onto an 4-byte integer
     if( NSPEC_TOP > 2147483647 / (CUSTOM_REAL * NGLLSQUARE * NDIM) ) then
       print *,'reclen of noise surface_movie needed exceeds integer 4-byte limit: ',reclen
       print *,'  ',CUSTOM_REAL, NDIM, NGLLSQUARE, NSPEC_TOP
       print*,'bit size fortran: ',bit_size(NSPEC_TOP)
       call exit_MPI(myrank,"error NSPEC_TOP integer limit")
     endif
-     
+
     ! total file size
     filesize = reclen
     filesize = filesize*NSTEP
-     
+
     write(outputname,"('/proc',i6.6,'_surface_movie')") myrank
     if (NOISE_TOMOGRAPHY==1) call open_file_abs_w(2,trim(LOCAL_PATH)//trim(outputname), &
                                       len_trim(trim(LOCAL_PATH)//trim(outputname)), &
@@ -551,9 +553,9 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
 
   ! adds noise source (only if this proc carries the noise)
   if(myrank == islice_selected_rec(irec_master_noise)) then
-    
+
     ispec = ispec_selected_rec(irec_master_noise)
-    
+
     ! adds nosie source contributions
     do k=1,NGLLZ
       do j=1,NGLLY
@@ -598,15 +600,15 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   !integer :: NSPEC2D_TOP_VAL ! equals num_free_surface_faces
   !integer, dimension(NSPEC2D_TOP_VAL) :: ibelm_top ! equals free_surface_ispec
   !integer :: ispec2D ! equals iface
-  
+
   ! local parameters
-  integer :: ispec,i,j,k,iglob,iface,igll 
+  integer :: ispec,i,j,k,iglob,iface,igll
   real(kind=CUSTOM_REAL),dimension(NDIM,NGLLSQUARE,num_free_surface_faces) :: noise_surface_movie
   integer(kind=8) :: Mesh_pointer
-  logical :: GPU_MODE  
+  logical :: GPU_MODE
 
   if(.NOT. GPU_MODE) then
-     ! loops over surface points   
+     ! loops over surface points
      ! get coordinates of surface mesh and surface displacement
      do iface = 1, num_free_surface_faces
 
@@ -658,7 +660,7 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   real(kind=CUSTOM_REAL), dimension(NDIM,NGLOB_AB_VAL) :: accel ! both input and output
   real(kind=CUSTOM_REAL), dimension(nmovie_points) :: normal_x_noise,normal_y_noise,normal_z_noise, mask_noise
 
-  integer :: num_free_surface_faces 
+  integer :: num_free_surface_faces
   integer, dimension(num_free_surface_faces) :: free_surface_ispec
   integer, dimension(3,NGLLSQUARE,num_free_surface_faces) :: free_surface_ijk
   real(kind=CUSTOM_REAL) :: free_surface_jacobian2Dw(NGLLSQUARE,num_free_surface_faces)
@@ -667,10 +669,10 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   !integer :: nspec_top ! equals num_free_surface_faces
   !integer :: NSPEC2D_TOP_VAL ! equal num_free_surface_faces
   !integer, dimension(NSPEC2D_TOP_VAL) :: ibelm_top ! equals free_surface_ispec
-  !real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NSPEC2D_TOP_VAL) :: jacobian2D_top 
+  !real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NSPEC2D_TOP_VAL) :: jacobian2D_top
                     ! equals to:                   free_surface_jacobian2Dw including weights wgllwgll
   !real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY) :: wgllwgll_xy
-  
+
   ! local parameters
   integer :: ipoin,ispec,i,j,k,iglob,iface,igll
   real(kind=CUSTOM_REAL) :: eta
@@ -680,19 +682,19 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   integer(kind=8) :: Mesh_pointer
   logical :: GPU_MODE
   integer :: NOISE_TOMOGRAPHY
-  
+
   ! read surface movie
   call read_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
 
   if(GPU_MODE) then
-     call noise_read_add_surface_movie_cuda(Mesh_pointer, noise_surface_movie,&
-          num_free_surface_faces,NOISE_TOMOGRAPHY)
+     call noise_read_add_surface_movie_cu(Mesh_pointer, noise_surface_movie,&
+                                          num_free_surface_faces,NOISE_TOMOGRAPHY)
   else ! GPU_MODE==0
 
      ! get coordinates of surface mesh and surface displacement
      ipoin = 0
 
-     ! loops over surface points      
+     ! loops over surface points
      ! puts noise distrubution and direction onto the surface points
      do iface = 1, num_free_surface_faces
 
@@ -711,7 +713,7 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
                 noise_surface_movie(3,igll,iface) * normal_z_noise(ipoin)
 
            accel(1,iglob) = accel(1,iglob) + eta * mask_noise(ipoin) * normal_x_noise(ipoin) &
-                * free_surface_jacobian2Dw(igll,iface) 
+                * free_surface_jacobian2Dw(igll,iface)
            accel(2,iglob) = accel(2,iglob) + eta * mask_noise(ipoin) * normal_y_noise(ipoin) &
                 * free_surface_jacobian2Dw(igll,iface)
            accel(3,iglob) = accel(3,iglob) + eta * mask_noise(ipoin) * normal_z_noise(ipoin) &
@@ -742,13 +744,13 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   integer :: it
   integer :: nmovie_points
   integer :: NSPEC_AB_VAL,NGLOB_AB_VAL
-  
+
   integer, dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB_VAL) :: ibool
   real(kind=CUSTOM_REAL) :: deltat
   real(kind=CUSTOM_REAL), dimension(NDIM,NGLOB_AB_VAL) :: displ
   real(kind=CUSTOM_REAL), dimension(nmovie_points) :: normal_x_noise,normal_y_noise,normal_z_noise
 
-  integer :: num_free_surface_faces 
+  integer :: num_free_surface_faces
   integer, dimension(num_free_surface_faces) :: free_surface_ispec
   integer, dimension(3,NGLLSQUARE,num_free_surface_faces) :: free_surface_ijk
 
@@ -768,7 +770,7 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   ! GPU_MODE parameters
   integer(kind=8) :: Mesh_pointer
   logical :: GPU_MODE
-  
+
   ! read surface movie, needed for Sigma_kl
   call read_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
 
@@ -806,7 +808,7 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
      enddo
 
   else ! GPU_MODE==1
-     call compute_kernels_strength_noise_cuda(Mesh_pointer, noise_surface_movie,num_free_surface_faces,deltat)
+     call compute_kernels_strgth_noise_cu(Mesh_pointer, noise_surface_movie,num_free_surface_faces,deltat)
   endif ! GPU_MODE
 
   end subroutine compute_kernels_strength_noise
@@ -828,7 +830,7 @@ subroutine noise_distribution_direction_non_uniform(xcoord_in,ycoord_in,zcoord_i
   character(len=256) :: prname
 
   call create_name_database(prname,myrank,LOCAL_PATH)
-  
+
   open(unit=IOUT_NOISE,file=trim(prname)//'sigma_kernel.bin',status='unknown', &
         form='unformatted',action='write')
   write(IOUT_NOISE) Sigma_kl

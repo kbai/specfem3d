@@ -73,6 +73,11 @@
 ! for optimized routines by Deville et al. (2002)
   integer, parameter :: m1 = NGLLX, m2 = NGLLX * NGLLY
 
+!!-----------------------------------------------------------
+!!
+!! seismogram and i/o output
+!!
+!!-----------------------------------------------------------
 ! ouput format of seismograms, ASCII or binary
   logical, parameter :: SEISMOGRAMS_BINARY = .false.
 ! output format of seismograms, Seismic Unix (binary with 240-byte-headers)
@@ -104,6 +109,12 @@
 ! ignore variable name field (junk) at the beginning of each input line
   logical, parameter :: IGNORE_JUNK = .true.,DONT_IGNORE_JUNK = .false.
 
+!!-----------------------------------------------------------
+!!
+!! source/receiver setup
+!!
+!!-----------------------------------------------------------
+
 ! flag to print the details of source location
   logical, parameter :: SHOW_DETAILS_LOCATE_SOURCE = .false.
 
@@ -126,6 +137,12 @@
 ! use directory OUTPUT_FILES/ for seismogram output
   logical,parameter :: USE_OUTPUT_FILES_PATH = .true.
 
+!!-----------------------------------------------------------
+!!
+!! absorption and PML
+!!
+!!-----------------------------------------------------------
+
 ! absorb top surface
 ! (defined in mesh as 'free_surface_file')
   logical,parameter :: ABSORB_FREE_SURFACE = .false.
@@ -135,6 +152,12 @@
 ! (only acoustic domains supported...)
 ! (user parameters can be specified in PML_init.f90)
   logical,parameter :: ABSORB_USE_PML = .false.
+
+!!-----------------------------------------------------------
+!!
+!! directory structure
+!!
+!!-----------------------------------------------------------
 
 ! paths for inputs and outputs files
   character(len=256), parameter :: IN_DATA_FILES_PATH = '../in_data_files/'
@@ -197,6 +220,12 @@
   logical, parameter :: EXTERNAL_MESH_MOVIE_SURFACE = .false.
   logical, parameter :: EXTERNAL_MESH_CREATE_SHAKEMAP = .false.
 
+!!-----------------------------------------------------------
+!!
+!! image outputs
+!!
+!!-----------------------------------------------------------
+
 ! plots VTK cross-section planes instead of model surface
 ! (EXPERIMENTAL feature)
 ! (requires EXTERNAL_MESH_MOVIE_SURFACE set to true)
@@ -217,6 +246,17 @@
 ! sensitive to actual size of model, assumes reference sphere of radius 1
 ! this is an absolute value for normalized coordinates in the Earth
   double precision, parameter :: SMALLVAL_TOL = 1.d-10
+
+!!-----------------------------------------------------------
+!!
+!! mesh optimization
+!!
+!!-----------------------------------------------------------
+
+! add mesh coloring for the GPU + MPI implementation
+  logical, parameter :: USE_MESH_COLORING_GPU = .false.
+  integer, parameter :: MAX_NUMBER_OF_COLORS = 10000
+  integer, parameter :: NGNOD_HEXAHEDRA = 8
 
 !------------------------------------------------------
 !----------- do not modify anything below -------------

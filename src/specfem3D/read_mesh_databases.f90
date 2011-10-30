@@ -34,7 +34,7 @@
   use specfem_par_poroelastic
   implicit none
   real(kind=CUSTOM_REAL):: minl,maxl,min_all,max_all
-  integer :: ier
+  integer :: ier,inum
 
 ! start reading the databasesa
 
@@ -163,14 +163,21 @@
             factor_common(N_SLS,NGLLX,NGLLY,NGLLZ,NSPEC_ATTENUATION_AB),stat=ier)
     if( ier /= 0 ) stop 'error allocating array one_minus_sum_beta etc.'
 
+    ! reads mass matrices
     read(27) rmass
+
     if( OCEANS ) then
       ! ocean mass matrix
       allocate(rmass_ocean_load(NGLOB_AB),stat=ier)
       if( ier /= 0 ) stop 'error allocating array rmass_ocean_load'
       read(27) rmass_ocean_load
+    else
+      ! dummy allocation
+      allocate(rmass_ocean_load(1),stat=ier)
+      if( ier /= 0 ) stop 'error allocating dummy array rmass_ocean_load'
     endif
-    !pll
+
+    !pll material parameters for stacey conditions
     read(27) rho_vp
     read(27) rho_vs
 
@@ -209,11 +216,13 @@
           abs_boundary_ijk(3,NGLLSQUARE,num_abs_boundary_faces), &
           abs_boundary_jacobian2Dw(NGLLSQUARE,num_abs_boundary_faces), &
           abs_boundary_normal(NDIM,NGLLSQUARE,num_abs_boundary_faces),stat=ier)
-    if( ier /= 0 ) stop 'error allocating array abs_boundary_ispec etc.'
-  read(27) abs_boundary_ispec
-  read(27) abs_boundary_ijk
-  read(27) abs_boundary_jacobian2Dw
-  read(27) abs_boundary_normal
+  if( ier /= 0 ) stop 'error allocating array abs_boundary_ispec etc.'
+  if( num_abs_boundary_faces > 0 ) then
+    read(27) abs_boundary_ispec
+    read(27) abs_boundary_ijk
+    read(27) abs_boundary_jacobian2Dw
+    read(27) abs_boundary_normal
+  endif
 
 ! free surface
   read(27) num_free_surface_faces
@@ -221,34 +230,43 @@
           free_surface_ijk(3,NGLLSQUARE,num_free_surface_faces), &
           free_surface_jacobian2Dw(NGLLSQUARE,num_free_surface_faces), &
           free_surface_normal(NDIM,NGLLSQUARE,num_free_surface_faces),stat=ier)
-    if( ier /= 0 ) stop 'error allocating array free_surface_ispec etc.'
-  read(27) free_surface_ispec
-  read(27) free_surface_ijk
-  read(27) free_surface_jacobian2Dw
-  read(27) free_surface_normal
-
+  if( ier /= 0 ) stop 'error allocating array free_surface_ispec etc.'
+  if( num_free_surface_faces > 0 ) then
+    read(27) free_surface_ispec
+    read(27) free_surface_ijk
+    read(27) free_surface_jacobian2Dw
+    read(27) free_surface_normal
+  endif
 ! acoustic-elastic coupling surface
   read(27) num_coupling_ac_el_faces
   allocate(coupling_ac_el_normal(NDIM,NGLLSQUARE,num_coupling_ac_el_faces), &
           coupling_ac_el_jacobian2Dw(NGLLSQUARE,num_coupling_ac_el_faces), &
           coupling_ac_el_ijk(3,NGLLSQUARE,num_coupling_ac_el_faces), &
           coupling_ac_el_ispec(num_coupling_ac_el_faces),stat=ier)
-    if( ier /= 0 ) stop 'error allocating array coupling_ac_el_normal etc.'
-  read(27) coupling_ac_el_ispec
-  read(27) coupling_ac_el_ijk
-  read(27) coupling_ac_el_jacobian2Dw
-  read(27) coupling_ac_el_normal
+  if( ier /= 0 ) stop 'error allocating array coupling_ac_el_normal etc.'
+  if( num_coupling_ac_el_faces > 0 ) then
+    read(27) coupling_ac_el_ispec
+    read(27) coupling_ac_el_ijk
+    read(27) coupling_ac_el_jacobian2Dw
+    read(27) coupling_ac_el_normal
+  endif
 
 ! MPI interfaces
   read(27) num_interfaces_ext_mesh
-  read(27) max_nibool_interfaces_ext_mesh
   allocate(my_neighbours_ext_mesh(num_interfaces_ext_mesh), &
-    nibool_interfaces_ext_mesh(num_interfaces_ext_mesh), &
-    ibool_interfaces_ext_mesh(max_nibool_interfaces_ext_mesh,num_interfaces_ext_mesh),stat=ier)
+          nibool_interfaces_ext_mesh(num_interfaces_ext_mesh),stat=ier)
   if( ier /= 0 ) stop 'error allocating array my_neighbours_ext_mesh etc.'
-  read(27) my_neighbours_ext_mesh
-  read(27) nibool_interfaces_ext_mesh
-  read(27) ibool_interfaces_ext_mesh
+  if( num_interfaces_ext_mesh > 0 ) then
+    read(27) max_nibool_interfaces_ext_mesh
+    allocate(ibool_interfaces_ext_mesh(max_nibool_interfaces_ext_mesh,num_interfaces_ext_mesh),stat=ier)
+    if( ier /= 0 ) stop 'error allocating array ibool_interfaces_ext_mesh'
+    read(27) my_neighbours_ext_mesh
+    read(27) nibool_interfaces_ext_mesh
+    read(27) ibool_interfaces_ext_mesh
+  else
+    max_nibool_interfaces_ext_mesh = 0
+    allocate(ibool_interfaces_ext_mesh(0,0),stat=ier)
+  endif
 
   if( ANISOTROPY ) then
     read(27) c11store
@@ -276,6 +294,21 @@
 
   close(27)
 
+  call sum_all_i(count(ispec_is_acoustic(:)),inum)
+  if( myrank == 0 ) then
+    write(IMAIN,*) 'total acoustic elements:',inum
+  endif
+  call sum_all_i(count(ispec_is_elastic(:)),inum)
+  if( myrank == 0 ) then
+    write(IMAIN,*) 'total elastic elements :',inum
+  endif
+  call sum_all_i(num_interfaces_ext_mesh,inum)
+  if(myrank == 0) then
+    write(IMAIN,*) 'number of MPI partition interfaces: ',inum
+    write(IMAIN,*)
+  endif
+
+
 ! MPI communications
   allocate(buffer_send_vector_ext_mesh(NDIM,max_nibool_interfaces_ext_mesh,num_interfaces_ext_mesh), &
     buffer_recv_vector_ext_mesh(NDIM,max_nibool_interfaces_ext_mesh,num_interfaces_ext_mesh), &
@@ -289,6 +322,9 @@
 
 ! locate inner and outer elements
   call rmd_setup_inner_outer_elemnts()
+
+!daniel: todo mesh coloring
+!  call rmd_setup_color_perm()
 
 ! gets model dimensions
   minl = minval( xstore )
@@ -307,8 +343,10 @@
 
 ! check courant criteria on mesh
   if( ELASTIC_SIMULATION ) then
-    call check_mesh_resolution(myrank,NSPEC_AB,NGLOB_AB,ibool,xstore,ystore,zstore, &
-                        kappastore,mustore,rho_vp,rho_vs,DT,model_speed_max,min_resolved_period )
+    call check_mesh_resolution(myrank,NSPEC_AB,NGLOB_AB, &
+                              ibool,xstore,ystore,zstore, &
+                              kappastore,mustore,rho_vp,rho_vs, &
+                              DT,model_speed_max,min_resolved_period )
   else if( ACOUSTIC_SIMULATION ) then
       allocate(rho_vp(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
       if( ier /= 0 ) stop 'error allocating array rho_vp'
@@ -316,8 +354,10 @@
       if( ier /= 0 ) stop 'error allocating array rho_vs'
       rho_vp = sqrt( kappastore / rhostore ) * rhostore
       rho_vs = 0.0_CUSTOM_REAL
-      call check_mesh_resolution(myrank,NSPEC_AB,NGLOB_AB,ibool,xstore,ystore,zstore, &
-                        kappastore,mustore,rho_vp,rho_vs,DT,model_speed_max,min_resolved_period )
+      call check_mesh_resolution(myrank,NSPEC_AB,NGLOB_AB, &
+                                ibool,xstore,ystore,zstore, &
+                                kappastore,mustore,rho_vp,rho_vs, &
+                                DT,model_speed_max,min_resolved_period )
       deallocate(rho_vp,rho_vs)
   endif
 
@@ -340,6 +380,7 @@
   integer :: iinterface,ier
   character(len=256) :: filename
   logical,dimension(:),allocatable :: iglob_is_inner
+  real :: percentage_edge
 
   ! allocates arrays
   allocate(ispec_is_inner(NSPEC_AB),stat=ier)
@@ -363,7 +404,7 @@
       do j = 1, NGLLY
         do i = 1, NGLLX
           iglob = ibool(i,j,k,ispec)
-          ispec_is_inner(ispec) = iglob_is_inner(iglob) .and. ispec_is_inner(ispec)
+          ispec_is_inner(ispec) = ( iglob_is_inner(iglob) .and. ispec_is_inner(ispec) )
         enddo
       enddo
     enddo
@@ -397,6 +438,8 @@
     ! stores indices of inner and outer elements for faster(?) computation
     num_phase_ispec_acoustic = max(nspec_inner_acoustic,nspec_outer_acoustic)
     allocate( phase_ispec_inner_acoustic(num_phase_ispec_acoustic,2),stat=ier)
+    phase_ispec_inner_acoustic(:,:) = 0
+
     if( ier /= 0 ) stop 'error allocating array phase_ispec_inner_acoustic'
     nspec_inner_acoustic = 0
     nspec_outer_acoustic = 0
@@ -432,8 +475,12 @@
 
     ! stores indices of inner and outer elements for faster(?) computation
     num_phase_ispec_elastic = max(nspec_inner_elastic,nspec_outer_elastic)
+    if( num_phase_ispec_elastic <= 0 ) stop 'error elastic simulation: num_phase_ispec_elastic is zero'
+
     allocate( phase_ispec_inner_elastic(num_phase_ispec_elastic,2),stat=ier)
     if( ier /= 0 ) stop 'error allocating array phase_ispec_inner_elastic'
+    phase_ispec_inner_elastic(:,:) = 0
+
     nspec_inner_elastic = 0
     nspec_outer_elastic = 0
     do ispec = 1, NSPEC_AB
@@ -451,8 +498,300 @@
     !print *,'rank ',myrank,' elastic outer spec: ',nspec_outer_elastic
   endif
 
+  if(myrank == 0) then
+    percentage_edge = 100.*count(ispec_is_inner(:))/real(NSPEC_AB)
+    write(IMAIN,*) 'for overlapping of communications with calculations:'
+    write(IMAIN,*) '  percentage of   edge elements ',100. -percentage_edge,'%'
+    write(IMAIN,*) '  percentage of volume elements ',percentage_edge,'%'
+    write(IMAIN,*)
+  endif
+
+
   end subroutine rmd_setup_inner_outer_elemnts
 
+!
+!-------------------------------------------------------------------------------------------------
+!
+
+!daniel: todo mesh coloring
+  subroutine rmd_setup_color_perm()
+
+  use specfem_par
+  use specfem_par_elastic
+  use specfem_par_acoustic
+  implicit none
+  ! local parameters
+  ! added for color permutation
+  integer :: nb_colors_outer_elements,nb_colors_inner_elements
+  integer, dimension(:), allocatable :: perm
+  integer, dimension(:), allocatable :: first_elem_number_in_this_color
+  integer, dimension(:), allocatable :: num_of_elems_in_this_color
+
+  integer :: icolor,ispec,ispec_counter
+  integer :: nspec_outer,nspec_outer_min_global,nspec_outer_max_global
+
+  integer :: ispec_inner_acoustic,ispec_outer_acoustic
+  integer :: ispec_inner_elastic,ispec_outer_elastic
+  integer :: nspec,nglob
+
+  ! added for sorting
+  integer, dimension(:,:,:,:), allocatable :: temp_array_int
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: temp_array_real
+  logical, dimension(:), allocatable :: temp_array_logical_1D
+  !integer, dimension(:), allocatable :: temp_array_int_1D
+
+  nspec = NSPEC_AB
+  nglob = NGLOB_AB
+
+  !!!! David Michea: detection of the edges, coloring and permutation separately
+  allocate(perm(nspec))
+
+  ! implement mesh coloring for GPUs if needed, to create subsets of disconnected elements
+  ! to remove dependencies and the need for atomic operations in the sum of
+  ! elemental contributions in the solver
+  if(USE_MESH_COLORING_GPU) then
+
+    allocate(first_elem_number_in_this_color(MAX_NUMBER_OF_COLORS + 1))
+
+    call get_perm_color_faster(ispec_is_inner,ibool,perm,nspec,nglob, &
+                              nb_colors_outer_elements,nb_colors_inner_elements, &
+                              nspec_outer,first_elem_number_in_this_color,myrank)
+
+    ! for the last color, the next color is fictitious and its first (fictitious) element number is nspec + 1
+    first_elem_number_in_this_color(nb_colors_outer_elements + nb_colors_inner_elements + 1) = nspec + 1
+
+    allocate(num_of_elems_in_this_color(nb_colors_outer_elements + nb_colors_inner_elements))
+
+    ! save mesh coloring
+    open(unit=99,file=prname(1:len_trim(prname))//'num_of_elems_in_this_color.dat',status='unknown')
+
+    ! number of colors for outer elements
+    write(99,*) nb_colors_outer_elements
+
+    ! number of colors for inner elements
+    write(99,*) nb_colors_inner_elements
+
+    ! number of elements in each color
+    do icolor = 1, nb_colors_outer_elements + nb_colors_inner_elements
+      num_of_elems_in_this_color(icolor) = first_elem_number_in_this_color(icolor+1) - first_elem_number_in_this_color(icolor)
+      write(99,*) num_of_elems_in_this_color(icolor)
+    enddo
+    close(99)
+
+    ! check that the sum of all the numbers of elements found in each color is equal
+    ! to the total number of elements in the mesh
+    if(sum(num_of_elems_in_this_color) /= nspec) then
+      print *,'nspec = ',nspec
+      print *,'total number of elements in all the colors of the mesh = ',sum(num_of_elems_in_this_color)
+      call exit_MPI(myrank, 'incorrect total number of elements in all the colors of the mesh')
+    endif
+
+    ! check that the sum of all the numbers of elements found in each color for the outer elements is equal
+    ! to the total number of outer elements found in the mesh
+    if(sum(num_of_elems_in_this_color(1:nb_colors_outer_elements)) /= nspec_outer) then
+      print *,'nspec_outer = ',nspec_outer
+      print *,'total number of elements in all the colors of the mesh for outer elements = ',sum(num_of_elems_in_this_color)
+      call exit_MPI(myrank, 'incorrect total number of elements in all the colors of the mesh for outer elements')
+    endif
+
+    deallocate(first_elem_number_in_this_color)
+    deallocate(num_of_elems_in_this_color)
+
+  else
+
+!! DK DK for regular C + MPI version for CPUs: do not use colors but nonetheless put all the outer elements
+!! DK DK first in order to be able to overlap non-blocking MPI communications with calculations
+
+!! DK DK nov 2010, for Rosa Badia / StarSs:
+!! no need for mesh coloring, but need to implement inner/outer subsets for non blocking MPI for StarSs
+    ispec_counter = 0
+    perm(:) = 0
+
+    ! first generate all the outer elements
+    do ispec = 1,nspec
+      if( ispec_is_inner(ispec) .eqv. .false.) then
+        ispec_counter = ispec_counter + 1
+        perm(ispec) = ispec_counter
+      endif
+    enddo
+
+    ! make sure we have detected some outer elements
+    !if(ispec_counter <= 0) call exit_MPI(myrank, 'fatal error: no outer elements detected!')
+
+    ! store total number of outer elements
+    nspec_outer = ispec_counter
+
+    ! then generate all the inner elements
+    do ispec = 1,nspec
+      if( ispec_is_inner(ispec) .eqv. .true.) then
+        ispec_counter = ispec_counter + 1
+        perm(ispec) = ispec_counter - nspec_outer ! starts again at 1
+      endif
+    enddo
+
+    ! test that all the elements have been used once and only once
+    if(ispec_counter /= nspec) call exit_MPI(myrank, 'fatal error: ispec_counter not equal to nspec')
+
+    ! do basic checks
+    if(minval(perm) /= 1) call exit_MPI(myrank, 'minval(perm) should be 1')
+    !if(maxval(perm) /= nspec) call exit_MPI(myrank, 'maxval(perm) should be nspec')
+
+
+  endif
+
+  ! sets up elements for loops in acoustic simulations
+  if( ACOUSTIC_SIMULATION ) then
+    ispec_inner_acoustic = 0
+    ispec_outer_acoustic = 0
+    do ispec = 1, NSPEC_AB
+      if( ispec_is_acoustic(ispec) ) then
+        if( ispec_is_inner(ispec) .eqv. .true. ) then
+          !ispec_inner_acoustic = ispec_inner_acoustic + 1
+          ispec_inner_acoustic = perm(ispec)
+          if( ispec_inner_acoustic < 1 .or. ispec_inner_acoustic > num_phase_ispec_acoustic ) &
+            call exit_MPI(myrank,'error inner acoustic permutation')
+
+          phase_ispec_inner_acoustic(ispec_inner_acoustic,2) = ispec
+
+        else
+          !ispec_outer_acoustic = ispec_outer_acoustic + 1
+          ispec_outer_acoustic = perm(ispec)
+          if( ispec_outer_acoustic < 1 .or. ispec_outer_acoustic > num_phase_ispec_acoustic ) &
+            call exit_MPI(myrank,'error outer acoustic permutation')
+
+          phase_ispec_inner_acoustic(ispec_outer_acoustic,1) = ispec
+
+        endif
+      endif
+    enddo
+  endif
+
+  ! sets up elements for loops in elastic simulations
+  if( ELASTIC_SIMULATION ) then
+    ispec_inner_elastic = 0
+    ispec_outer_elastic = 0
+    do ispec = 1, NSPEC_AB
+      if( ispec_is_elastic(ispec) ) then
+        if( ispec_is_inner(ispec) .eqv. .true. ) then
+          !ispec_inner_elastic = ispec_inner_elastic + 1
+          ispec_inner_elastic = perm(ispec)
+          if( ispec_inner_elastic < 1 .or. ispec_inner_elastic > num_phase_ispec_elastic ) then
+            print*,'error: inner elastic permutation',ispec_inner_elastic,num_phase_ispec_elastic,nspec_outer
+            call exit_MPI(myrank,'error inner elastic permutation')
+          endif
+          phase_ispec_inner_elastic(ispec_inner_elastic,2) = ispec
+
+        else
+          !ispec_outer_elastic = ispec_outer_elastic + 1
+          ispec_outer_elastic = perm(ispec)
+          if( ispec_outer_elastic < 1 .or. ispec_outer_elastic > num_phase_ispec_elastic ) then
+            print*,'error: outer elastic permutation',ispec_outer_elastic,num_phase_ispec_elastic,nspec_outer
+            call exit_MPI(myrank,'error outer elastic permutation')
+          endif
+          phase_ispec_inner_elastic(ispec_outer_elastic,1) = ispec
+
+        endif
+      endif
+    enddo
+  endif
+
+  ! sorts array according to permutation
+  ! SORT_MESH_INNER_OUTER
+!daniel
+  if( .false. ) then
+
+    ! permutation of ibool
+    allocate(temp_array_int(NGLLX,NGLLY,NGLLZ,nspec))
+    call permute_elements_integer(ibool,temp_array_int,perm,nspec)
+    deallocate(temp_array_int)
+
+    ! element domain flags
+    allocate(temp_array_logical_1D(nglob))
+    temp_array_logical_1D(:) = ispec_is_acoustic
+    do ispec = 1, nspec
+      ispec_is_acoustic(perm(ispec)) = temp_array_logical_1D(ispec)
+    enddo
+    temp_array_logical_1D(:) = ispec_is_elastic
+    do ispec = 1, nspec
+      ispec_is_elastic(perm(ispec)) = temp_array_logical_1D(ispec)
+    enddo
+    !temp_array_logical_1D(:) = ispec_is_poroelastic
+    !do ispec = 1, nspec
+    !  ispec_is_poroelastic(perm(ispec)) = temp_array_logical_1D(ispec)
+    !enddo
+    deallocate(temp_array_logical_1D)
+
+    ! mesh arrays
+    allocate(temp_array_real(NGLLX,NGLLY,NGLLZ,nspec))
+    call permute_elements_real(xix,temp_array_real,perm,nspec)
+    call permute_elements_real(xiy,temp_array_real,perm,nspec)
+    call permute_elements_real(xiz,temp_array_real,perm,nspec)
+    call permute_elements_real(etax,temp_array_real,perm,nspec)
+    call permute_elements_real(etay,temp_array_real,perm,nspec)
+    call permute_elements_real(etaz,temp_array_real,perm,nspec)
+    call permute_elements_real(gammax,temp_array_real,perm,nspec)
+    call permute_elements_real(gammay,temp_array_real,perm,nspec)
+    call permute_elements_real(gammaz,temp_array_real,perm,nspec)
+    call permute_elements_real(jacobian,temp_array_real,perm,nspec)
+
+    call permute_elements_real(kappastore,temp_array_real,perm,nspec)
+    call permute_elements_real(mustore,temp_array_real,perm,nspec)
+
+    ! acoustic arrays
+    if( ACOUSTIC_SIMULATION ) then
+      call permute_elements_real(rhostore,temp_array_real,perm,nspec)
+    endif
+
+    ! elastic arrays
+    if( ELASTIC_SIMULATION ) then
+      call permute_elements_real(rho_vp,temp_array_real,perm,nspec)
+      call permute_elements_real(rho_vs,temp_array_real,perm,nspec)
+      if( ANISOTROPY ) then
+        call permute_elements_real(c11store,temp_array_real,perm,nspec)
+        call permute_elements_real(c12store,temp_array_real,perm,nspec)
+        call permute_elements_real(c13store,temp_array_real,perm,nspec)
+        call permute_elements_real(c14store,temp_array_real,perm,nspec)
+        call permute_elements_real(c15store,temp_array_real,perm,nspec)
+        call permute_elements_real(c16store,temp_array_real,perm,nspec)
+        call permute_elements_real(c22store,temp_array_real,perm,nspec)
+        call permute_elements_real(c23store,temp_array_real,perm,nspec)
+        call permute_elements_real(c24store,temp_array_real,perm,nspec)
+        call permute_elements_real(c25store,temp_array_real,perm,nspec)
+        call permute_elements_real(c33store,temp_array_real,perm,nspec)
+        call permute_elements_real(c34store,temp_array_real,perm,nspec)
+        call permute_elements_real(c35store,temp_array_real,perm,nspec)
+        call permute_elements_real(c36store,temp_array_real,perm,nspec)
+        call permute_elements_real(c44store,temp_array_real,perm,nspec)
+        call permute_elements_real(c45store,temp_array_real,perm,nspec)
+        call permute_elements_real(c46store,temp_array_real,perm,nspec)
+        call permute_elements_real(c55store,temp_array_real,perm,nspec)
+        call permute_elements_real(c56store,temp_array_real,perm,nspec)
+        call permute_elements_real(c66store,temp_array_real,perm,nspec)
+      endif
+    endif
+
+    deallocate(temp_array_real)
+  endif
+
+  ! user output
+  !call MPI_ALLREDUCE(nspec_outer,nspec_outer_min_global,1,MPI_INTEGER,MPI_MIN,MPI_COMM_WORLD,ier)
+  !call MPI_ALLREDUCE(nspec_outer,nspec_outer_max_global,1,MPI_INTEGER,MPI_MAX,MPI_COMM_WORLD,ier)
+  call min_all_i(nspec_outer,nspec_outer_min_global)
+  call max_all_i(nspec_outer,nspec_outer_max_global)
+  call min_all_i(nspec_outer,nspec_outer_min_global)
+  call max_all_i(nspec_outer,nspec_outer_max_global)
+
+  if(myrank == 0) then
+    write(IMAIN,*) 'mesh coloring:'
+    write(IMAIN,*) '  permutation   : use coloring = ',USE_MESH_COLORING_GPU
+    write(IMAIN,*) '  outer elements: min = ',nspec_outer_min_global
+    write(IMAIN,*) '                  max = ',nspec_outer_max_global
+    write(IMAIN,*)
+  endif
+
+  deallocate(perm)
+
+  end subroutine rmd_setup_color_perm
 
 !
 !-------------------------------------------------------------------------------------------------
@@ -513,7 +852,11 @@
     ! preconditioner
     if ( APPROXIMATE_HESS_KL ) then
       allocate(hess_kl(NGLLX,NGLLY,NGLLZ,NSPEC_ADJOINT),stat=ier)
-      if( ier /= 0 ) stop 'error allocating array hess_kl'    
+      if( ier /= 0 ) stop 'error allocating array hess_kl'
+    else
+      ! dummy allocation
+      allocate(hess_kl(0,0,0,0),stat=ier)
+      if( ier /= 0 ) stop 'error allocating dummy array hess_kl'
     endif
 
     ! MPI handling
@@ -569,13 +912,17 @@
             kappa_ac_kl(NGLLX,NGLLY,NGLLZ,NSPEC_ADJOINT), &
             alpha_ac_kl(NGLLX,NGLLY,NGLLZ,NSPEC_ADJOINT),stat=ier)
     if( ier /= 0 ) stop 'error allocating array rho_ac_kl etc.'
-    
+
     ! preconditioner
     if ( APPROXIMATE_HESS_KL ) then
       allocate(hess_ac_kl(NGLLX,NGLLY,NGLLZ,NSPEC_ADJOINT),stat=ier)
-      if( ier /= 0 ) stop 'error allocating array hess_ac_kl'    
+      if( ier /= 0 ) stop 'error allocating array hess_ac_kl'
+    else
+      ! dummy allocation
+      allocate(hess_ac_kl(0,0,0,0),stat=ier)
+      if( ier /= 0 ) stop 'error allocating dummy array hess_ac_kl'
     endif
-    
+
     ! MPI handling
     allocate(b_request_send_scalar_ext_mesh(num_interfaces_ext_mesh), &
       b_request_recv_scalar_ext_mesh(num_interfaces_ext_mesh), &

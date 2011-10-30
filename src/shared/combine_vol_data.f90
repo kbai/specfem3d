@@ -26,11 +26,11 @@
 
   module vtk
 
-    
+
     !-------------------------------------------------------------
     ! USER PARAMETER
 
-    ! outputs as VTK ASCII file 
+    ! outputs as VTK ASCII file
     logical,parameter :: USE_VTK_OUTPUT = .true.
 
     !-------------------------------------------------------------
@@ -38,7 +38,7 @@
 
     ! global point data
     real,dimension(:),allocatable :: total_dat
-    
+
   end module vtk
 
 !
@@ -61,7 +61,7 @@
   implicit none
 
   include 'constants.h'
-  
+
   ! data must be of dimension: (NGLLX,NGLLY,NGLLZ,NSPEC_AB)
   double precision,dimension(:,:,:,:),allocatable :: data
   ! real array for data
@@ -182,7 +182,7 @@
     mesh_file = trim(outdir) // '/' // trim(filename)//'.vtk'
     open(IOVTK,file=mesh_file(1:len_trim(mesh_file)),status='unknown',iostat=ios)
     if( ios /= 0 ) stop 'error opening vtk output file'
-    
+
     write(IOVTK,'(a)') '# vtk DataFile Version 3.1'
     write(IOVTK,'(a)') 'material model VTK file'
     write(IOVTK,'(a)') 'ASCII'
@@ -192,7 +192,7 @@
     mesh_file = trim(outdir) // '/' // trim(filename)//'.mesh'
     call open_file(trim(mesh_file)//char(0))
   endif
-  
+
   ! counts total number of points (all slices)
   npp = 0
   nee = 0
@@ -354,7 +354,7 @@
     ! close mesh file
     call close_file()
   endif
-  
+
   print *, 'Done writing '//trim(mesh_file)
 
   end program combine_paraview_data_ext_mesh
@@ -490,8 +490,8 @@
 
   ! writes out total number of points
   if (it == 1) then
-    if( USE_VTK_OUTPUT ) then      
-      write(IOVTK, '(a,i12,a)') 'POINTS ', npp, ' float'    
+    if( USE_VTK_OUTPUT ) then
+      write(IOVTK, '(a,i12,a)') 'POINTS ', npp, ' float'
       ! creates array to hold point data
       allocate(total_dat(npp),stat=ier)
       if( ier /= 0 ) stop 'error allocating total dat array'
@@ -543,7 +543,7 @@
       else
         call write_real(x)
         call write_real(y)
-        call write_real(z)      
+        call write_real(z)
         call write_real(dat(NGLLX,1,1,ispec))
       endif
       mask_ibool(iglob2) = .true.
@@ -556,7 +556,7 @@
       if( USE_VTK_OUTPUT ) then
         write(IOVTK,'(3e18.6)') x,y,z
         total_dat(np+numpoin) = dat(NGLLX,NGLLY,1,ispec)
-      else      
+      else
         call write_real(x)
         call write_real(y)
         call write_real(z)
@@ -571,8 +571,8 @@
       z = zstore(iglob4)
       if( USE_VTK_OUTPUT ) then
         write(IOVTK,'(3e18.6)') x,y,z
-        total_dat(np+numpoin) = dat(1,NGLLY,1,ispec)        
-      else      
+        total_dat(np+numpoin) = dat(1,NGLLY,1,ispec)
+      else
         call write_real(x)
         call write_real(y)
         call write_real(z)
@@ -587,8 +587,8 @@
       z = zstore(iglob5)
       if( USE_VTK_OUTPUT ) then
         write(IOVTK,'(3e18.6)') x,y,z
-        total_dat(np+numpoin) = dat(1,1,NGLLZ,ispec)        
-      else      
+        total_dat(np+numpoin) = dat(1,1,NGLLZ,ispec)
+      else
         call write_real(x)
         call write_real(y)
         call write_real(z)
@@ -603,8 +603,8 @@
       z = zstore(iglob6)
       if( USE_VTK_OUTPUT ) then
         write(IOVTK,'(3e18.6)') x,y,z
-        total_dat(np+numpoin) = dat(NGLLX,1,NGLLZ,ispec)        
-      else      
+        total_dat(np+numpoin) = dat(NGLLX,1,NGLLZ,ispec)
+      else
         call write_real(x)
         call write_real(y)
         call write_real(z)
@@ -619,8 +619,8 @@
       z = zstore(iglob7)
       if( USE_VTK_OUTPUT ) then
         write(IOVTK,'(3e18.6)') x,y,z
-        total_dat(np+numpoin) = dat(NGLLX,NGLLY,NGLLZ,ispec)        
-      else      
+        total_dat(np+numpoin) = dat(NGLLX,NGLLY,NGLLZ,ispec)
+      else
         call write_real(x)
         call write_real(y)
         call write_real(z)
@@ -635,8 +635,8 @@
       z = zstore(iglob8)
       if( USE_VTK_OUTPUT ) then
         write(IOVTK,'(3e18.6)') x,y,z
-        total_dat(np+numpoin) = dat(1,NGLLY,NGLLZ,ispec)        
-      else      
+        total_dat(np+numpoin) = dat(1,NGLLY,NGLLZ,ispec)
+      else
         call write_real(x)
         call write_real(y)
         call write_real(z)
@@ -673,13 +673,13 @@
 
   ! writes out total number of points
   if (it == 1) then
-    if( USE_VTK_OUTPUT ) then      
-      write(IOVTK, '(a,i12,a)') 'POINTS ', npp, ' float'    
+    if( USE_VTK_OUTPUT ) then
+      write(IOVTK, '(a,i12,a)') 'POINTS ', npp, ' float'
       ! creates array to hold point data
       allocate(total_dat(npp),stat=ier)
       if( ier /= 0 ) stop 'error allocating total dat array'
       total_dat(:) = 0.0
-    else  
+    else
       call write_integer(npp)
     endif
   endif
@@ -703,7 +703,7 @@
             if( USE_VTK_OUTPUT ) then
               write(IOVTK,'(3e18.6)') x,y,z
               total_dat(np+numpoin) = dat(i,j,k,ispec)
-            else            
+            else
               call write_real(x)
               call write_real(y)
               call write_real(z)
@@ -742,7 +742,7 @@
 
   ! outputs total number of elements for all slices
   if (it == 1) then
-    if( USE_VTK_OUTPUT ) then      
+    if( USE_VTK_OUTPUT ) then
       ! note: indices for vtk start at 0
       write(IOVTK,'(a,i12,i12)') "CELLS ",nee,nee*9
     else
@@ -821,7 +821,7 @@
     n7 = num_ibool(iglob7) -1 + np
     n8 = num_ibool(iglob8) -1 + np
 
-    if( USE_VTK_OUTPUT ) then  
+    if( USE_VTK_OUTPUT ) then
       write(IOVTK,'(9i12)') 8,n1,n2,n3,n4,n5,n6,n7,n8
     else
       call write_integer(n1)
@@ -833,9 +833,9 @@
       call write_integer(n7)
       call write_integer(n8)
     endif
-    
+
   enddo
-  
+
   ! elements written
   nelement = NSPEC_AB
 
@@ -869,10 +869,10 @@
 
   ! outputs total number of elements for all slices
   if (it == 1) then
-    if( USE_VTK_OUTPUT ) then      
+    if( USE_VTK_OUTPUT ) then
       ! note: indices for vtk start at 0
       write(IOVTK,'(a,i12,i12)') "CELLS ",nee,nee*9
-    else  
+    else
       !nee = nelement * num_node
       call write_integer(nee)
     endif
@@ -922,10 +922,10 @@
           n6 = num_ibool(iglob6)+np-1
           n7 = num_ibool(iglob7)+np-1
           n8 = num_ibool(iglob8)+np-1
-  
-          if( USE_VTK_OUTPUT ) then  
+
+          if( USE_VTK_OUTPUT ) then
             write(IOVTK,'(9i12)') 8,n1,n2,n3,n4,n5,n6,n7,n8
-          else          
+          else
             call write_integer(n1)
             call write_integer(n2)
             call write_integer(n3)

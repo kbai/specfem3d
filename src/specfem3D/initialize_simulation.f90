@@ -215,10 +215,10 @@
       stop 'GPU mode does not support SAVE_MOHO_MESH yet'
     if( ATTENUATION ) then
       if( N_SLS /= 3 ) &
-        stop 'GPU mode does not support N_SLS /= 3 yet'   
+        stop 'GPU mode does not support N_SLS /= 3 yet'
     endif
-    if( ANISOTROPY ) &  
-      stop 'GPU mode does not support ANISOTROPY yet'    
+    if( ANISOTROPY ) &
+      stop 'GPU mode does not support ANISOTROPY yet'
   endif
 
   ! absorbing surfaces

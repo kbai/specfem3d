@@ -42,14 +42,27 @@ module specfem_par
 
   implicit none
 
-! attenuation
-  integer :: NSPEC_ATTENUATION_AB
+! parameters deduced from parameters read from file
+  integer :: NPROC
+  integer :: NSPEC_AB, NGLOB_AB
+
+! mesh parameters
+  integer, dimension(:,:,:,:), allocatable :: ibool
+  real(kind=CUSTOM_REAL), dimension(:), allocatable :: xstore,ystore,zstore
+
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: &
+        xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz,jacobian
+
+! material properties
+  ! isotropic
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: kappastore,mustore
 
 ! CUDA mesh pointer<->integer wrapper
   integer(kind=8) :: Mesh_pointer
+
 ! Global GPU toggle. Set in Par_file
   logical :: GPU_MODE
-  
+
 ! use integer array to store topography values
   integer :: NX_TOPO,NY_TOPO
   double precision :: ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO
@@ -70,16 +83,10 @@ module specfem_par
   integer, dimension(:), allocatable :: free_surface_ispec
   integer :: num_free_surface_faces
 
-! mesh parameters
-  integer, dimension(:,:,:,:), allocatable :: ibool
-  real(kind=CUSTOM_REAL), dimension(:), allocatable :: xstore,ystore,zstore
+! attenuation
+  integer :: NSPEC_ATTENUATION_AB
+  character(len=256) prname_Q
 
-  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: &
-        xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz,jacobian
-
-! material properties
-  ! isotropic
-  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: kappastore,mustore
 
 ! additional mass matrix for ocean load
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: rmass_ocean_load
@@ -102,14 +109,15 @@ module specfem_par
   double precision, external :: comp_source_time_function
   double precision :: t0
   real(kind=CUSTOM_REAL) :: stf_used_total
-  integer :: NSOURCES
+  integer :: NSOURCES,nsources_local
 
 ! receiver information
   character(len=256) :: rec_filename,filtered_rec_filename,dummystring
   integer :: nrec,nrec_local,nrec_tot_found
   integer :: nrec_simulation
-  integer, allocatable, dimension(:) :: islice_selected_rec,ispec_selected_rec,number_receiver_global
-  double precision, allocatable, dimension(:) :: xi_receiver,eta_receiver,gamma_receiver
+  integer, dimension(:), allocatable :: islice_selected_rec,ispec_selected_rec
+  integer, dimension(:), allocatable :: number_receiver_global
+  double precision, dimension(:), allocatable :: xi_receiver,eta_receiver,gamma_receiver
   double precision, dimension(:,:), allocatable :: hpxir_store,hpetar_store,hpgammar_store
 
 ! timing information for the stations
@@ -144,13 +152,11 @@ module specfem_par
   double precision, external :: wtime
   double precision :: time_start
 
-! parameters read from parameter file
-  integer :: NPROC_XI,NPROC_ETA
-  integer :: NTSTEP_BETWEEN_OUTPUT_SEISMOS,NSTEP,UTM_PROJECTION_ZONE
+! parameters
   integer :: SIMULATION_TYPE
+  integer :: NTSTEP_BETWEEN_OUTPUT_SEISMOS,NSTEP,UTM_PROJECTION_ZONE
 
   double precision :: DT
-  double precision :: LATITUDE_MIN,LATITUDE_MAX,LONGITUDE_MIN,LONGITUDE_MAX
 
   logical :: ATTENUATION,USE_OLSEN_ATTENUATION, &
             OCEANS,TOPOGRAPHY,ABSORBING_CONDITIONS,ANISOTROPY
@@ -161,11 +167,11 @@ module specfem_par
 
   integer :: NTSTEP_BETWEEN_OUTPUT_INFO
 
-  character(len=256) OUTPUT_FILES,LOCAL_PATH,prname,prname_Q
+! parameters read from mesh parameter file
+  integer :: NPROC_XI,NPROC_ETA
+  double precision :: LATITUDE_MIN,LATITUDE_MAX,LONGITUDE_MIN,LONGITUDE_MAX
 
-! parameters deduced from parameters read from file
-  integer :: NPROC
-  integer :: NSPEC_AB, NGLOB_AB
+  character(len=256) OUTPUT_FILES,LOCAL_PATH,prname
 
 ! names of the data files for all the processors in MPI
   character(len=256) outputname

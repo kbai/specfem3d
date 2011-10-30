@@ -31,7 +31,7 @@
   use specfem_par
   use specfem_par_movie
   use specfem_par_elastic
-  use specfem_par_acoustic    
+  use specfem_par_acoustic
   implicit none
 
   ! gets resulting array values onto CPU
@@ -42,17 +42,17 @@
       ( MOVIE_SURFACE .and. mod(it,NTSTEP_BETWEEN_FRAMES) == 0) .or. &
       ( MOVIE_VOLUME .and. mod(it,NTSTEP_BETWEEN_FRAMES) == 0) .or. &
       ( PNM_GIF_IMAGE .and. mod(it,NTSTEP_BETWEEN_FRAMES) == 0) &
-     ) ) then 
+     ) ) then
     ! acoustic domains
     if( ACOUSTIC_SIMULATION ) then
-      ! transfers whole fields      
-      call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
-                potential_dot_acoustic,potential_dot_dot_acoustic,Mesh_pointer)        
+      ! transfers whole fields
+      call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
+                potential_dot_acoustic,potential_dot_dot_acoustic,Mesh_pointer)
     endif
     ! elastic domains
     if( ELASTIC_SIMULATION ) then
-      ! transfers whole fields      
-      call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+      ! transfers whole fields
+      call transfer_fields_el_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
     endif
   endif
 
@@ -1224,7 +1224,7 @@
       open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
       if( ier /= 0 ) stop 'error opening file movie output velocity z'
       write(27) tmpdata
-      close(27)    
+      close(27)
     endif
 
     ! norm of velocity
@@ -1235,9 +1235,9 @@
     if( ier /= 0 ) stop 'error opening file movie output velocity z'
     write(27) tmpdata
     close(27)
-    
+
     deallocate(tmpdata)
-    
+
   endif
 
   end subroutine wmo_movie_volume_output

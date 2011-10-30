@@ -26,6 +26,23 @@
  !=====================================================================
  */
 
+/* daniel: trivia
+
+- for most real working arrays we use float (single exception so far is stf_pre_compute).
+  TODO: we could use "realw" instead of "float" type declaration to make it easier to switch
+              between a real or double precision simulation (matching CUSTOM_REAL == 4 or 8 in fortran routines).
+
+- instead of boolean "logical" declared in fortran routines, in C (or Cuda-C) we have to use "int" variables.
+
+  ifort / gfortran caveat:
+    to check whether it is true or false, do not check for == 1 to test for true values since ifort just uses
+    non-zero values for true (e.g. can be -1 for true). however, false will be always == 0.
+
+  thus, rather use: if( var ) {...}  for testing if true instead of if( var == 1){...} (alternative: one could use if( var != 0 ){...}
+
+*/
+
+
 #ifndef GPU_MESH_
 #define GPU_MESH_
 #include <sys/types.h>
@@ -40,7 +57,7 @@
 
 #define DEBUG 0
 #if DEBUG == 1
-#define TRACE(x) printf("%s\n",x)
+#define TRACE(x) printf("%s\n",x);
 #else
 #define TRACE(x) // printf("%s\n",x);
 #endif
@@ -57,6 +74,7 @@
 #endif
 
 
+//#undef ENABLE_VERY_SLOW_ERROR_CHECKING
 #define ENABLE_VERY_SLOW_ERROR_CHECKING
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -85,7 +103,7 @@ double get_time();
 
 void print_CUDA_error_if_any(cudaError_t err, int num);
 
-void pause_for_debugger(int pause); 
+void pause_for_debugger(int pause);
 
 void exit_on_cuda_error(char* kernel_name);
 
@@ -100,7 +118,7 @@ void exit_on_cuda_error(char* kernel_name);
 #define NGLL2 25
 #define N_SLS 3
 
-typedef float real;   // type of variables passed into function
+//typedef float real;   // type of variables passed into function
 typedef float realw;  // type of "working" variables
 
 // double precision temporary variables leads to 10% performance
@@ -118,17 +136,20 @@ typedef struct mesh_ {
   // mesh resolution
   int NSPEC_AB;
   int NGLOB_AB;
-  
+
   // interpolators
   float* d_xix; float* d_xiy; float* d_xiz;
   float* d_etax; float* d_etay; float* d_etaz;
   float* d_gammax; float* d_gammay; float* d_gammaz;
 
-  // model parameters  
+  // model parameters
   float* d_kappav; float* d_muv;
 
-  // global indexing  
+  // global indexing
   int* d_ibool;
+
+  // inner / outer elements
+  int* d_ispec_is_inner;
 
   // pointers to constant memory arrays
   float* d_hprime_xx; float* d_hprime_yy; float* d_hprime_zz;
@@ -138,22 +159,26 @@ typedef struct mesh_ {
   // ------------------------------------------------------------------ //
   // elastic wavefield parameters
   // ------------------------------------------------------------------ //
-  
-  // displacement, velocity, acceleration  
+
+  // displacement, velocity, acceleration
   float* d_displ; float* d_veloc; float* d_accel;
-  // backward/reconstructed elastic wavefield  
+  // backward/reconstructed elastic wavefield
   float* d_b_displ; float* d_b_veloc; float* d_b_accel;
 
-  // elastic domain parameters    
+  // elastic elements
+  int* d_ispec_is_elastic;
+
+  // elastic domain parameters
   int* d_phase_ispec_inner_elastic;
-  int d_num_phase_ispec_elastic;
+  int num_phase_ispec_elastic;
+
   float* d_rmass;
   float* d_send_accel_buffer;
 
-  // interfaces  
+  // interfaces
   int* d_nibool_interfaces_ext_mesh;
   int* d_ibool_interfaces_ext_mesh;
-    
+
   //used for absorbing stacey boundaries
   int d_num_abs_boundary_faces;
   int* d_abs_boundary_ispec;
@@ -163,15 +188,12 @@ typedef struct mesh_ {
 
   float* d_b_absorb_field;
   int d_b_reclen_field;
-  
+
   float* d_rho_vp;
   float* d_rho_vs;
-  
-  // inner / outer elements  
-  int* d_ispec_is_inner;
-  int* d_ispec_is_elastic;
 
-  // sources  
+  // sources
+  int nsources_local;
   float* d_sourcearrays;
   double* d_stf_pre_compute;
   int* d_islice_selected_source;
@@ -179,17 +201,17 @@ typedef struct mesh_ {
 
   // receivers
   int* d_number_receiver_global;
-  int* d_ispec_selected_rec;  
+  int* d_ispec_selected_rec;
   int* d_islice_selected_rec;
   int nrec_local;
   float* d_station_seismo_field;
-  float* h_station_seismo_field;  
-  
+  float* h_station_seismo_field;
+
   // surface elements (to save for noise tomography and acoustic simulations)
   int* d_free_surface_ispec;
   int* d_free_surface_ijk;
   int num_free_surface_faces;
-  
+
   // surface movie elements to save for noise tomography
   float* d_noise_surface_movie;
 
@@ -202,11 +224,11 @@ typedef struct mesh_ {
 
   float* d_one_minus_sum_beta;
   float* d_factor_common;
-  
+
   float* d_alphaval;
   float* d_betaval;
   float* d_gammaval;
-  
+
   // attenuation & kernel
   float* d_epsilondev_xx;
   float* d_epsilondev_yy;
@@ -214,7 +236,7 @@ typedef struct mesh_ {
   float* d_epsilondev_xz;
   float* d_epsilondev_yz;
   float* d_epsilon_trace_over_3;
-      
+
   // noise
   float* d_normal_x_noise;
   float* d_normal_y_noise;
@@ -230,7 +252,7 @@ typedef struct mesh_ {
   float* d_b_R_xy;
   float* d_b_R_xz;
   float* d_b_R_yz;
-  
+
   float* d_b_epsilondev_xx;
   float* d_b_epsilondev_yy;
   float* d_b_epsilondev_xy;
@@ -241,19 +263,23 @@ typedef struct mesh_ {
   float* d_b_alphaval;
   float* d_b_betaval;
   float* d_b_gammaval;
-  
+
   // sensitivity kernels
   float* d_rho_kl;
   float* d_mu_kl;
   float* d_kappa_kl;
-  
+
   // noise sensitivity kernel
   float* d_Sigma_kl;
+
+  // approximative hessian for preconditioning kernels
+  float* d_hess_el_kl;
 
   // oceans
   float* d_rmass_ocean_load;
   float* d_free_surface_normal;
-  
+  int* d_updated_dof_ocean_load;
+
   // ------------------------------------------------------------------ //
   // acoustic wavefield
   // ------------------------------------------------------------------ //
@@ -261,29 +287,33 @@ typedef struct mesh_ {
   float* d_potential_acoustic; float* d_potential_dot_acoustic; float* d_potential_dot_dot_acoustic;
   // backward/reconstructed wavefield
   float* d_b_potential_acoustic; float* d_b_potential_dot_acoustic; float* d_b_potential_dot_dot_acoustic;
-  
-  // acoustic domain parameters  
-  int* d_phase_ispec_inner_acoustic;  
+
+  // acoustic domain parameters
+  int* d_ispec_is_acoustic;
+
+  int* d_phase_ispec_inner_acoustic;
   int num_phase_ispec_acoustic;
-  
+
   float* d_rhostore;
   float* d_kappastore;
   float* d_rmass_acoustic;
-  
+
   float* d_send_potential_dot_dot_buffer;
-  int* d_ispec_is_acoustic;
-    
+
   float* d_b_absorb_potential;
   int d_b_reclen_potential;
-  
+
   // for writing seismograms
   float* d_station_seismo_potential;
   float* h_station_seismo_potential;
-  
+
   // sensitivity kernels
   float* d_rho_ac_kl;
   float* d_kappa_ac_kl;
-  
+
+  // approximative hessian for preconditioning kernels
+  float* d_hess_ac_kl;
+
   // coupling acoustic-elastic
   int* d_coupling_ac_el_ispec;
   int* d_coupling_ac_el_ijk;
@@ -291,7 +321,7 @@ typedef struct mesh_ {
   float* d_coupling_ac_el_jacobian2Dw;
 
 
-  
+
 } Mesh;
 
 

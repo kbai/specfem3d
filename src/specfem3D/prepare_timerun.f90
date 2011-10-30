@@ -158,7 +158,7 @@
     seismograms_a(:,:,:) = 0._CUSTOM_REAL
   endif
 
-  ! synchronize all the processes 
+  ! synchronize all the processes
   call sync_all()
 
   ! prepares attenuation arrays
@@ -542,21 +542,21 @@
         ! size of single record
         b_reclen_field = CUSTOM_REAL * NDIM * NGLLSQUARE * num_abs_boundary_faces
 
-        ! check integer size limit: size of b_reclen_field must fit onto an 4-byte integer 
+        ! check integer size limit: size of b_reclen_field must fit onto an 4-byte integer
         if( num_abs_boundary_faces > 2147483647 / (CUSTOM_REAL * NDIM * NGLLSQUARE) ) then
           print *,'reclen needed exceeds integer 4-byte limit: ',b_reclen_field
           print *,'  ',CUSTOM_REAL, NDIM, NGLLSQUARE, num_abs_boundary_faces
           print*,'bit size fortran: ',bit_size(b_reclen_field)
           call exit_MPI(myrank,"error b_reclen_field integer limit")
         endif
-        
+
         ! total file size
         filesize = b_reclen_field
         filesize = filesize*NSTEP
 
         if (SIMULATION_TYPE == 3) then
           ! opens existing files
-          
+
           ! uses fortran routines for reading
           !open(unit=IOABS,file=trim(prname)//'absorb_field.bin',status='old',&
           !      action='read',form='unformatted',access='direct', &
@@ -591,14 +591,14 @@
         ! size of single record
         b_reclen_potential = CUSTOM_REAL * NGLLSQUARE * num_abs_boundary_faces
 
-        ! check integer size limit: size of b_reclen_potential must fit onto an 4-byte integer 
+        ! check integer size limit: size of b_reclen_potential must fit onto an 4-byte integer
         if( num_abs_boundary_faces > 2147483647 / (CUSTOM_REAL * NGLLSQUARE) ) then
           print *,'reclen needed exceeds integer 4-byte limit: ',b_reclen_potential
           print *,'  ',CUSTOM_REAL, NGLLSQUARE, num_abs_boundary_faces
           print*,'bit size fortran: ',bit_size(b_reclen_potential)
           call exit_MPI(myrank,"error b_reclen_potential integer limit")
         endif
-        
+
         ! total file size (two lines to implicitly convert to 8-byte integers)
         filesize = b_reclen_potential
         filesize = filesize*NSTEP
@@ -610,7 +610,7 @@
         !  print*,'file size fortran: ',filesize
         !  print*,'file bit size fortran: ',bit_size(filesize)
         !endif
-        
+
         if (SIMULATION_TYPE == 3) then
           ! opens existing files
           ! uses fortran routines for reading
@@ -618,7 +618,7 @@
           !      action='read',form='unformatted',access='direct', &
           !      recl=b_reclen_potential+2*4,iostat=ier )
           !if( ier /= 0 ) call exit_mpi(myrank,'error opening proc***_absorb_potential.bin file')
-          
+
           ! uses c routines for faster reading
           call open_file_abs_r(1,trim(prname)//'absorb_potential.bin', &
                               len_trim(trim(prname)//'absorb_potential.bin'), &
@@ -638,9 +638,8 @@
 
         endif
       endif
-
     else
-      ! dummy array
+      ! needs dummy array
       b_num_abs_boundary_faces = 1
       if( ELASTIC_SIMULATION ) then
         allocate(b_absorb_field(NDIM,NGLLSQUARE,b_num_abs_boundary_faces),stat=ier)
@@ -651,9 +650,21 @@
         allocate(b_absorb_potential(NGLLSQUARE,b_num_abs_boundary_faces),stat=ier)
         if( ier /= 0 ) stop 'error allocating array b_absorb_potential'
       endif
+    endif
+  else ! ABSORBING_CONDITIONS
+    ! needs dummy array
+    b_num_abs_boundary_faces = 1
+    if( ELASTIC_SIMULATION ) then
+      allocate(b_absorb_field(NDIM,NGLLSQUARE,b_num_abs_boundary_faces),stat=ier)
+      if( ier /= 0 ) stop 'error allocating array b_absorb_field'
+    endif
 
+    if( ACOUSTIC_SIMULATION ) then
+      allocate(b_absorb_potential(NGLLSQUARE,b_num_abs_boundary_faces),stat=ier)
+      if( ier /= 0 ) stop 'error allocating array b_absorb_potential'
     endif
   endif
+
 
   end subroutine prepare_timerun_adjoint
 
@@ -677,11 +688,11 @@
   ! for noise simulations
   if ( NOISE_TOMOGRAPHY /= 0 ) then
 
-    ! checks if free surface is defined  
+    ! checks if free surface is defined
     if( num_free_surface_faces == 0 ) then
       stop 'error: noise simulations need a free surface'
     endif
-    
+
     ! allocates arrays
     allocate(noise_sourcearray(NDIM,NGLLX,NGLLY,NGLLZ,NSTEP),stat=ier)
     if( ier /= 0 ) call exit_mpi(myrank,'error allocating noise source array')
@@ -738,15 +749,16 @@
 
   implicit none
   real :: free_mb,used_mb,total_mb
-  
+  integer :: ncuda_devices,ncuda_devices_min,ncuda_devices_max
+
   ! GPU_MODE now defined in Par_file
   if(myrank == 0 ) then
     write(IMAIN,*)
     write(IMAIN,*) "GPU_MODE Active. Preparing Fields and Constants on Device."
     write(IMAIN,*)
   endif
-  
-  ! prepares general fields on GPU  
+
+  ! prepares general fields on GPU
   call prepare_constants_device(Mesh_pointer, &
                                   NGLLX, NSPEC_AB, NGLOB_AB, &
                                   xix, xiy, xiz, etax,etay,etaz, gammax, gammay, gammaz, &
@@ -762,56 +774,85 @@
                                   abs_boundary_jacobian2Dw, &
                                   num_abs_boundary_faces, &
                                   ispec_is_inner, &
-                                  NSOURCES, sourcearrays, islice_selected_source, ispec_selected_source, &
-                                  number_receiver_global, ispec_selected_rec, nrec, nrec_local, &
-                                  SIMULATION_TYPE)
+                                  NSOURCES, nsources_local, &
+                                  sourcearrays, islice_selected_source, ispec_selected_source, &
+                                  number_receiver_global, ispec_selected_rec, &
+                                  nrec, nrec_local, &
+                                  SIMULATION_TYPE,ncuda_devices)
 
-  ! prepares fields on GPU for acoustic simulations 
-  if( ACOUSTIC_SIMULATION ) &
+  call min_all_i(ncuda_devices,ncuda_devices_min)
+  call max_all_i(ncuda_devices,ncuda_devices_max)
+
+  ! prepares fields on GPU for acoustic simulations
+  if( ACOUSTIC_SIMULATION ) then
     call prepare_fields_acoustic_device(Mesh_pointer,rmass_acoustic,rhostore,kappastore, &
                                   num_phase_ispec_acoustic,phase_ispec_inner_acoustic, &
                                   ispec_is_acoustic, &
-                                  NOISE_TOMOGRAPHY,num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
+                                  NOISE_TOMOGRAPHY,num_free_surface_faces, &
+                                  free_surface_ispec,free_surface_ijk, &
                                   ABSORBING_CONDITIONS,b_reclen_potential,b_absorb_potential, &
-                                  SIMULATION_TYPE,rho_ac_kl,kappa_ac_kl, &
                                   ELASTIC_SIMULATION, num_coupling_ac_el_faces, &
                                   coupling_ac_el_ispec,coupling_ac_el_ijk, &
                                   coupling_ac_el_normal,coupling_ac_el_jacobian2Dw)
-  
-  ! prepares fields on GPU for elastic simulations 
-  if( ELASTIC_SIMULATION ) &
+
+    if( SIMULATION_TYPE == 3 ) &
+      call prepare_fields_acoustic_adj_dev(Mesh_pointer, &
+                                  SIMULATION_TYPE,rho_ac_kl,kappa_ac_kl, &
+                                  APPROXIMATE_HESS_KL)
+
+  endif
+
+  ! prepares fields on GPU for elastic simulations
+  if( ELASTIC_SIMULATION ) then
     call prepare_fields_elastic_device(Mesh_pointer, NDIM*NGLOB_AB, &
                                   rmass,rho_vp,rho_vs, &
                                   num_phase_ispec_elastic,phase_ispec_inner_elastic, &
                                   ispec_is_elastic, &
                                   ABSORBING_CONDITIONS,b_absorb_field,b_reclen_field, &
-                                  SIMULATION_TYPE,rho_kl,mu_kl,kappa_kl, &
+                                  SIMULATION_TYPE,SAVE_FORWARD, &
                                   COMPUTE_AND_STORE_STRAIN, &
-                                  epsilondev_xx,epsilondev_yy,epsilondev_xy,epsilondev_xz,epsilondev_yz, &
-                                  epsilon_trace_over_3, &
-                                  b_epsilondev_xx,b_epsilondev_yy,b_epsilondev_xy,b_epsilondev_xz,b_epsilondev_yz, &
-                                  b_epsilon_trace_over_3, &
-                                  ATTENUATION,size(R_xx), &
+                                  epsilondev_xx,epsilondev_yy,epsilondev_xy, &
+                                  epsilondev_xz,epsilondev_yz, &
+                                  ATTENUATION, &
+                                  size(R_xx), &
                                   R_xx,R_yy,R_xy,R_xz,R_yz, &
-                                  b_R_xx,b_R_yy,b_R_xy,b_R_xz,b_R_yz, &
                                   one_minus_sum_beta,factor_common, &
                                   alphaval,betaval,gammaval, &
-                                  b_alphaval,b_betaval,b_gammaval, &
                                   OCEANS,rmass_ocean_load, &
-                                  free_surface_normal,num_free_surface_faces)
+                                  NOISE_TOMOGRAPHY, &
+                                  free_surface_normal,free_surface_ispec,free_surface_ijk, &
+                                  num_free_surface_faces)
+
+    if( SIMULATION_TYPE == 3 ) &
+      call prepare_fields_elastic_adj_dev(Mesh_pointer, NDIM*NGLOB_AB, &
+                                  SIMULATION_TYPE, &
+                                  rho_kl,mu_kl,kappa_kl, &
+                                  COMPUTE_AND_STORE_STRAIN, &
+                                  epsilon_trace_over_3, &
+                                  b_epsilondev_xx,b_epsilondev_yy,b_epsilondev_xy, &
+                                  b_epsilondev_xz,b_epsilondev_yz, &
+                                  b_epsilon_trace_over_3, &
+                                  ATTENUATION,size(R_xx), &
+                                  b_R_xx,b_R_yy,b_R_xy,b_R_xz,b_R_yz, &
+                                  b_alphaval,b_betaval,b_gammaval, &
+                                  APPROXIMATE_HESS_KL)
+
+  endif
 
   ! prepares needed receiver array for adjoint runs
   if( SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3 ) &
-    call prepare_adjoint_sim2_or_3_constants_device(Mesh_pointer, &
+    call prepare_sim2_or_3_const_device(Mesh_pointer, &
                                   islice_selected_rec,size(islice_selected_rec))
-  
-  ! prepares fields on GPU for noise simulations      
+
+  ! prepares fields on GPU for noise simulations
   if ( NOISE_TOMOGRAPHY > 0 ) then
     ! note: noise tomography is only supported for elastic domains so far.
-    
+
     ! copies noise  arrays to GPU
     call prepare_fields_noise_device(Mesh_pointer, NSPEC_AB, NGLOB_AB, &
-                                  free_surface_ispec,free_surface_ijk,num_free_surface_faces,size(free_surface_ijk), &
+                                  free_surface_ispec, &
+                                  free_surface_ijk, &
+                                  num_free_surface_faces, &
                                   SIMULATION_TYPE,NOISE_TOMOGRAPHY, &
                                   NSTEP,noise_sourcearray, &
                                   normal_x_noise,normal_y_noise,normal_z_noise, &
@@ -821,34 +862,39 @@
   endif ! NOISE_TOMOGRAPHY
 
   ! sends initial data to device
-  
+
   ! puts acoustic initial fields onto GPU
   if( ACOUSTIC_SIMULATION ) then
-    call transfer_fields_acoustic_to_device(NGLOB_AB,potential_acoustic, &
-                          potential_dot_acoustic,potential_dot_dot_acoustic,Mesh_pointer)    
+    call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
+                          potential_dot_acoustic,potential_dot_dot_acoustic,Mesh_pointer)
     if( SIMULATION_TYPE == 3 ) &
-      call transfer_b_fields_acoustic_to_device(NGLOB_AB,b_potential_acoustic, &
-                          b_potential_dot_acoustic,b_potential_dot_dot_acoustic,Mesh_pointer)    
+      call transfer_b_fields_ac_to_device(NGLOB_AB,b_potential_acoustic, &
+                          b_potential_dot_acoustic,b_potential_dot_dot_acoustic,Mesh_pointer)
   endif
 
   ! puts elastic initial fields onto GPU
   if( ELASTIC_SIMULATION ) then
     ! transfer forward and backward fields to device with initial values
-    call transfer_fields_to_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+    call transfer_fields_el_to_device(NDIM*NGLOB_AB,displ,veloc,accel,Mesh_pointer)
     if(SIMULATION_TYPE == 3) &
-      call transfer_b_fields_to_device(NDIM*NGLOB_AB,b_displ,b_veloc, b_accel,Mesh_pointer)
+      call transfer_b_fields_to_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel,Mesh_pointer)
   endif
 
-  ! outputs usage 
+  ! outputs GPU usage to files for all processes
+  call output_free_device_memory(myrank)
+
+  ! outputs usage for main process
   if( myrank == 0 ) then
+    write(IMAIN,*)"  GPU number of devices per node: min =",ncuda_devices_min
+    write(IMAIN,*)"                                  max =",ncuda_devices_max
+    write(IMAIN,*)
+
     call get_free_device_memory(free_mb,used_mb,total_mb)
     write(IMAIN,*)"  GPU usage: free  =",free_mb," MB",nint(free_mb/total_mb*100.0),"%"
     write(IMAIN,*)"             used  =",used_mb," MB",nint(used_mb/total_mb*100.0),"%"
     write(IMAIN,*)"             total =",total_mb," MB",nint(total_mb/total_mb*100.0),"%"
     write(IMAIN,*)
-  endif    
+  endif
 
-  ! outputs GPU usage to files for all processes
-  call output_free_device_memory(myrank)
-  
+
   end subroutine prepare_timerun_GPU

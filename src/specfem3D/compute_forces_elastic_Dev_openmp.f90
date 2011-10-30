@@ -64,7 +64,7 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
 
 ! displacement and acceleration
   real(kind=CUSTOM_REAL), dimension(NDIM,NGLOB_AB) :: displ,accel
-  
+
 
 ! arrays with mesh parameters per slice
   integer, dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB) :: ibool
@@ -124,11 +124,11 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
   ! newtempy1,newtempy2,newtempy3,newtempz1,newtempz2,newtempz3
   ! real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ,NUM_THREADS) :: &
   ! tempx1,tempx2,tempx3,tempy1,tempy2,tempy3,tempz1,tempz2,tempz3
-  
+
   real(kind=CUSTOM_REAL), dimension(:,:,:,:),allocatable :: &
        dummyx_loc,dummyy_loc,dummyz_loc,newtempx1,newtempx2,newtempx3,&
        newtempy1,newtempy2,newtempy3,newtempz1,newtempz2,newtempz3,&
-       tempx1,tempx2,tempx3,tempy1,tempy2,tempy3,tempz1,tempz2,tempz3  
+       tempx1,tempx2,tempx3,tempy1,tempy2,tempy3,tempz1,tempz2,tempz3
 
   ! real(kind=CUSTOM_REAL), dimension(NDIM,NGLOB_AB,NUM_THREADS) :: accel_omp
   ! real(kind=CUSTOM_REAL), dimension(:,:,:),allocatable :: accel_omp
@@ -160,7 +160,7 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
   double precision end_time
   double precision accumulate_time_start
   double precision accumulate_time_stop
-  
+
   ! local anisotropy parameters
   real(kind=CUSTOM_REAL) c11,c12,c13,c14,c15,c16,c22,c23,c24,c25,c26,&
                         c33,c34,c35,c36,c44,c45,c46,c55,c56,c66
@@ -171,14 +171,14 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
   integer thread_id
   integer NUM_THREADS
   integer omp_get_num_threads ! function
-  
+
   imodulo_N_SLS = mod(N_SLS,3)
   ! NUM_THREADS = 12
   NUM_THREADS = OMP_GET_MAX_THREADS()
-  
-  
+
+
   ! allocate(accel_omp(NDIM,NGLOB_AB,NUM_THREADS))
-  
+
   ! allocate local arrays
   allocate(dummyx_loc(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
   allocate(dummyy_loc(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
@@ -209,7 +209,7 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
  endif
  ! "start" timer
  start_time = omp_get_wtime()
-  
+
   !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(&
   !$OMP R_xx_val1,R_yy_val1,R_xx_val2,R_yy_val2,R_xx_val3,R_yy_val3,&
   !$OMP factor_loc,alphaval_loc,betaval_loc,gammaval_loc,&
@@ -228,17 +228,17 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
   !$OMP ispec,iglob,ispec_p,&
   !$OMP i,j,k,&
   !$OMP thread_id)
-  
+
   thread_id = OMP_get_thread_num()+1
   ! thread_id = 1
 
-  
-  
+
+
   ! accel_omp(:,:,thread_id) = 0.0
   !$OMP DO
   do ispec_p = 1,num_elements
-     
-     
+
+
      ! returns element id from stored element list
         ispec = phase_ispec_inner_elastic(ispec_p,iphase)
 
@@ -268,7 +268,7 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
     ! pages 386 and 389 and Figure 8.3.1
         ! call mxm_m1_m2_5points(hprime_xx,dummyx_loc,dummyy_loc,dummyz_loc,tempx1,tempy1,tempz1)
         do j=1,m2
-           do i=1,m1            
+           do i=1,m1
               tempx1(i,j,1,thread_id) = &
                    hprime_xx(i,1)*dummyx_loc(1,j,1,thread_id) + &
                    hprime_xx(i,2)*dummyx_loc(2,j,1,thread_id) + &
@@ -314,7 +314,7 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
             enddo
           enddo
         enddo
-        
+
         ! call mxm_m2_m1_5points(dummyx_loc,dummyy_loc,dummyz_loc,tempx3,tempy3,tempz3)
         do j=1,m1
            do i=1,m2
@@ -631,7 +631,7 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
                    tempz3(i,1,5,thread_id)*hprimewgll_xx(5,j)
            enddo
         enddo
-        
+
         do k=1,NGLLZ
            do j=1,NGLLY
               do i=1,NGLLX
@@ -651,28 +651,28 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
                  ! accel_omp(3,iglob,thread_id) = accel_omp(3,iglob,thread_id)&
                  !      - fac1*newtempz1(i,j,k,thread_id) - fac2*newtempz2(i,j,k,thread_id)&
                  !      - fac3*newtempz3(i,j,k,thread_id)
-                 
+
                  !$OMP ATOMIC
                  accel(1,iglob) = accel(1,iglob) - (fac1*newtempx1(i,j,k,thread_id) + fac2*newtempx2(i,j,k,thread_id) + fac3*newtempx3(i,j,k,thread_id))
                  !$OMP ATOMIC
                  accel(2,iglob) = accel(2,iglob) - (fac1*newtempy1(i,j,k,thread_id) + fac2*newtempy2(i,j,k,thread_id) + fac3*newtempy3(i,j,k,thread_id))
                  !$OMP ATOMIC
                  accel(3,iglob) = accel(3,iglob) - (fac1*newtempz1(i,j,k,thread_id) + fac2*newtempz2(i,j,k,thread_id) + fac3*newtempz3(i,j,k,thread_id))
-                 
+
                  ! accel(1,iglob) = accel(1,iglob) - &
                  ! (fac1*newtempx1(i,j,k,thread_id) + fac2*newtempx2(i,j,k,thread_id) + fac3*newtempx3(i,j,k,thread_id))
                  ! accel(2,iglob) = accel(2,iglob) - &
                  ! (fac1*newtempy1(i,j,k,thread_id) + fac2*newtempy2(i,j,k,thread_id) + fac3*newtempy3(i,j,k,thread_id))
                  ! accel(3,iglob) = accel(3,iglob) - &
                  ! (fac1*newtempz1(i,j,k,thread_id) + fac2*newtempz2(i,j,k,thread_id) + fac3*newtempz3(i,j,k,thread_id))
-                 
+
                  ! accel_omp(1,iglob,thread_id) = accel_omp(1,iglob,thread_id) - fac1*newtempx1(i,j,k,thread_id) - &
                  !                   fac2*newtempx2(i,j,k,thread_id) - fac3*newtempx3(i,j,k,thread_id)
                  ! accel_omp(2,iglob,thread_id) = accel_omp(2,iglob,thread_id) - fac1*newtempy1(i,j,k,thread_id) - &
                  !                   fac2*newtempy2(i,j,k,thread_id) - fac3*newtempy3(i,j,k,thread_id)
                  ! accel_omp(3,iglob,thread_id) = accel_omp(3,iglob,thread_id) - fac1*newtempz1(i,j,k,thread_id) - &
                  !      fac2*newtempz2(i,j,k,thread_id) - fac3*newtempz3(i,j,k,thread_id)
-                 
+
               !  update memory variables based upon the Runge-Kutta scheme
               if(ATTENUATION) then
 
@@ -731,32 +731,32 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
 
   enddo  ! spectral element loop
   !$OMP END DO
-  
-  
-  ! accel(:,:) = accel(:,:) + accel_omp(:,:,thread_id)    
+
+
+  ! accel(:,:) = accel(:,:) + accel_omp(:,:,thread_id)
   ! do i=1,NGLOB_AB
   ! accel(1,i) = accel(1,i) + accel_omp(1,i,thread_id)
   ! accel(2,i) = accel(1,i) + accel_omp(2,i,thread_id)
-  ! accel(3,i) = accel(1,i) + accel_omp(3,i,thread_id)     
+  ! accel(3,i) = accel(1,i) + accel_omp(3,i,thread_id)
   ! enddo
-    
+
   !$OMP END PARALLEL
 
   ! accumulate_time_start = omp_get_wtime()
-  
+
   ! do i=1,NUM_THREADS
   !    !    ! parallel vector add
   !    accel(:,:) = accel(:,:) + accel_omp(:,:,i)
   ! end do
   ! accumulate_time_stop = omp_get_wtime()
-  
+
   ! "stop" timer
   end_time = omp_get_wtime()
 
   write(*,*) "Total Elapsed time: ", (end_time-start_time) , "seconds. (Threads=",NUM_THREADS,")"
   ! write(*,*) "Accumulate Elapsed time: ", (accumulate_time_stop-accumulate_time_start) , "seconds"
-  
-  
+
+
   deallocate(dummyx_loc)
   deallocate(dummyy_loc)
   deallocate(dummyz_loc)
@@ -778,7 +778,7 @@ subroutine compute_forces_elastic_Dev_openmp( iphase ,NSPEC_AB,NGLOB_AB, &
   deallocate(tempz1)
   deallocate(tempz2)
   deallocate(tempz3)
-  
+
 ! accel(:,:) = accel_omp(:,:,1)
-  
+
 end subroutine compute_forces_elastic_Dev_openmp

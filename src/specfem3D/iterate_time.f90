@@ -126,7 +126,7 @@
   enddo   ! end of main time loop
 
   ! Transfer fields from GPU card to host for further analysis
-  if(GPU_MODE) call it_transfer_from_GPU() 
+  if(GPU_MODE) call it_transfer_from_GPU()
 
   end subroutine iterate_time
 
@@ -148,32 +148,32 @@
   integer :: ihours,iminutes,iseconds,int_tCPU, &
              ihours_remain,iminutes_remain,iseconds_remain,int_t_remain, &
              ihours_total,iminutes_total,iseconds_total,int_t_total
-  
+
 !  if(GPU_MODE) then
-!    ! way 1: copy whole fields   
+!    ! way 1: copy whole fields
 !    ! elastic wavefield
-!    if( ELASTIC_SIMULATION ) then  
-!      call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
-!      ! backward/reconstructed wavefield     
+!    if( ELASTIC_SIMULATION ) then
+!      call transfer_fields_el_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+!      ! backward/reconstructed wavefield
 !      if(SIMULATION_TYPE==3) &
 !        call transfer_b_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
-!    endif    
+!    endif
 !  endif
 
 ! compute maximum of norm of displacement in each slice
   if( ELASTIC_SIMULATION ) then
     if( GPU_MODE) then
-      ! way 2: just get maximum of field from GPU                    
-      call get_norm_elastic_from_device_cuda(Usolidnorm,Mesh_pointer,1)
+      ! way 2: just get maximum of field from GPU
+      call get_norm_elastic_from_device(Usolidnorm,Mesh_pointer,1)
     else
       Usolidnorm = maxval(sqrt(displ(1,:)**2 + displ(2,:)**2 + displ(3,:)**2))
     endif
   else
     if( ACOUSTIC_SIMULATION ) then
       if(GPU_MODE) then
-        ! way 2: just get maximum of field from GPU                    
-        call get_norm_acoustic_from_device_cuda(Usolidnorm,Mesh_pointer,1)
-      else    
+        ! way 2: just get maximum of field from GPU
+        call get_norm_acoustic_from_device(Usolidnorm,Mesh_pointer,1)
+      else
         Usolidnorm = maxval(abs(potential_dot_dot_acoustic(:)))
       endif
     endif
@@ -187,7 +187,7 @@
     if( ELASTIC_SIMULATION ) then
       ! way 2
       if(GPU_MODE) then
-        call get_norm_elastic_from_device_cuda(b_Usolidnorm,Mesh_pointer,3)      
+        call get_norm_elastic_from_device(b_Usolidnorm,Mesh_pointer,3)
       else
         b_Usolidnorm = maxval(sqrt(b_displ(1,:)**2 + b_displ(2,:)**2 + b_displ(3,:)**2))
       endif
@@ -195,8 +195,8 @@
       if( ACOUSTIC_SIMULATION ) then
         ! way 2
         if(GPU_MODE) then
-          call get_norm_acoustic_from_device_cuda(b_Usolidnorm,Mesh_pointer,3)        
-        else      
+          call get_norm_acoustic_from_device(b_Usolidnorm,Mesh_pointer,3)
+        else
           b_Usolidnorm = maxval(abs(b_potential_dot_dot_acoustic(:)))
         endif
       endif
@@ -335,7 +335,7 @@
 ! updates acoustic potentials
   if( ACOUSTIC_SIMULATION ) then
 
-    if(.NOT. GPU_MODE) then  
+    if(.NOT. GPU_MODE) then
       potential_acoustic(:) = potential_acoustic(:) &
                             + deltat * potential_dot_acoustic(:) &
                             + deltatsqover2 * potential_dot_dot_acoustic(:)
@@ -344,15 +344,15 @@
       potential_dot_dot_acoustic(:) = 0._CUSTOM_REAL
     else
       ! on GPU
-      call it_update_displacement_scheme_acoustic_cuda(Mesh_pointer, NGLOB_AB, &
+      call it_update_displacement_ac_cuda(Mesh_pointer, NGLOB_AB, &
                                         deltat, deltatsqover2, deltatover2, &
                                         SIMULATION_TYPE, b_deltat, b_deltatsqover2, b_deltatover2)
-    endif    
+    endif
 
     ! time marching potentials
-    if(PML)  then     
-      if( GPU_MODE ) call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
+    if(PML)  then
+      if( GPU_MODE ) call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
 
       call PML_acoustic_time_march(NSPEC_AB,NGLOB_AB,ibool,&
                         potential_acoustic,potential_dot_acoustic,&
@@ -367,22 +367,22 @@
                         my_neighbours_ext_mesh,NPROC,&
                         ispec_is_acoustic)
 
-      if( GPU_MODE ) call transfer_fields_acoustic_to_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)     
+      if( GPU_MODE ) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
     endif
-    
+
   endif ! ACOUSTIC_SIMULATION
 
 ! updates elastic displacement and velocity
   if( ELASTIC_SIMULATION ) then
-  
+
      if(.NOT. GPU_MODE) then
         displ(:,:) = displ(:,:) + deltat*veloc(:,:) + deltatsqover2*accel(:,:)
         veloc(:,:) = veloc(:,:) + deltatover2*accel(:,:)
         accel(:,:) = 0._CUSTOM_REAL
      else ! GPU_MODE == 1
         ! Includes SIM_TYPE 1 & 3 (for noise tomography)
-        call it_update_displacement_scheme_cuda(Mesh_pointer, size(displ), deltat, deltatsqover2,&
+        call it_update_displacement_cuda(Mesh_pointer, size(displ), deltat, deltatsqover2,&
              deltatover2, SIMULATION_TYPE, b_deltat, b_deltatsqover2, b_deltatover2)
      endif
   endif
@@ -398,7 +398,7 @@
                                   + b_deltatover2 * b_potential_dot_dot_acoustic(:)
       b_potential_dot_dot_acoustic(:) = 0._CUSTOM_REAL
     endif
-    
+
     ! elastic backward fields
     if( ELASTIC_SIMULATION ) then
       b_displ(:,:) = b_displ(:,:) + b_deltat*b_veloc(:,:) + b_deltatsqover2*b_accel(:,:)
@@ -446,11 +446,11 @@
     read(27) b_potential_acoustic
     read(27) b_potential_dot_acoustic
     read(27) b_potential_dot_dot_acoustic
-    
+
     ! transfers fields onto GPU
     if(GPU_MODE) &
-      call transfer_b_fields_acoustic_to_device(NGLOB_AB,b_potential_acoustic, &
-                          b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer)      
+      call transfer_b_fields_ac_to_device(NGLOB_AB,b_potential_acoustic, &
+                          b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer)
   endif
 
   ! elastic wavefields
@@ -459,7 +459,7 @@
     read(27) b_veloc
     read(27) b_accel
 
-    ! puts elastic wavefield to GPU 
+    ! puts elastic wavefield to GPU
     if(GPU_MODE) &
       call transfer_b_fields_to_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel,Mesh_pointer)
 
@@ -475,19 +475,19 @@
       read(27) b_epsilondev_xy
       read(27) b_epsilondev_xz
       read(27) b_epsilondev_yz
-       
-      ! puts elastic attenuation arrays to GPU 
+
+      ! puts elastic attenuation arrays to GPU
       if(GPU_MODE) &
           call transfer_b_fields_att_to_device(Mesh_pointer, &
                                             b_R_xx,b_R_yy,b_R_xy,b_R_xz,b_R_yz,size(b_R_xx), &
                                             b_epsilondev_xx,b_epsilondev_yy,b_epsilondev_xy,b_epsilondev_xz,b_epsilondev_yz, &
-                                            size(b_epsilondev_xx))                 
+                                            size(b_epsilondev_xx))
     endif
 
   endif
 
   close(27)
-  
+
   end subroutine it_read_foward_arrays
 
 !=====================================================================
@@ -520,6 +520,13 @@
         read(27) b_displ
         read(27) b_veloc
         read(27) b_accel
+
+        ! puts elastic fields onto GPU
+        if(GPU_MODE) then
+          ! wavefields
+          call transfer_b_fields_to_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
+        endif
+
         read(27) b_R_xx
         read(27) b_R_yy
         read(27) b_R_xy
@@ -530,30 +537,28 @@
         read(27) b_epsilondev_xy
         read(27) b_epsilondev_xz
         read(27) b_epsilondev_yz
-               
+
         ! puts elastic fields onto GPU
         if(GPU_MODE) then
-          ! wavefields
-          call transfer_b_fields_to_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
           ! attenuation arrays
           call transfer_b_fields_att_to_device(Mesh_pointer, &
                                             b_R_xx,b_R_yy,b_R_xy,b_R_xz,b_R_yz,size(b_R_xx), &
                                             b_epsilondev_xx,b_epsilondev_yy,b_epsilondev_xy,b_epsilondev_xz,b_epsilondev_yz, &
-                                            size(b_epsilondev_xx))          
-        endif        
+                                            size(b_epsilondev_xx))
+        endif
       endif
-      
+
       if( ACOUSTIC_SIMULATION ) then
-        ! reads arrays from disk files      
+        ! reads arrays from disk files
         read(27) b_potential_acoustic
         read(27) b_potential_dot_acoustic
         read(27) b_potential_dot_dot_acoustic
 
         ! puts acoustic fields onto GPU
         if(GPU_MODE) &
-          call transfer_b_fields_acoustic_to_device(NGLOB_AB,b_potential_acoustic, &
+          call transfer_b_fields_ac_to_device(NGLOB_AB,b_potential_acoustic, &
                               b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer)
-        
+
       endif
       close(27)
     else if (SIMULATION_TYPE == 1 .and. SAVE_FORWARD .and. mod(it,NSTEP_Q_SAVE) == 0) then
@@ -564,20 +569,22 @@
       if( ELASTIC_SIMULATION ) then
         ! gets elastic fields from GPU onto CPU
         if(GPU_MODE) then
-          call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+          call transfer_fields_el_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+        endif
 
+        ! writes to disk file
+        write(27) displ
+        write(27) veloc
+        write(27) accel
+
+        if(GPU_MODE) then
           ! attenuation arrays
           call transfer_fields_att_from_device(Mesh_pointer, &
                                             R_xx,R_yy,R_xy,R_xz,R_yz,size(R_xx), &
                                             epsilondev_xx,epsilondev_yy,epsilondev_xy,epsilondev_xz,epsilondev_yz, &
-                                            size(epsilondev_xx))          
+                                            size(epsilondev_xx))
         endif
-        
-        ! writes to disk file      
-        write(27) displ
-        write(27) veloc
-        write(27) accel
-        
+
         write(27) R_xx
         write(27) R_yy
         write(27) R_xy
@@ -592,10 +599,10 @@
       if( ACOUSTIC_SIMULATION ) then
        ! gets acoustic fields from GPU onto CPU
         if(GPU_MODE) &
-          call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
+          call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
                               potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
 
-        ! writes to disk file      
+        ! writes to disk file
         write(27) potential_acoustic
         write(27) potential_dot_acoustic
         write(27) potential_dot_dot_acoustic
@@ -606,7 +613,7 @@
 
   end subroutine it_store_attenuation_arrays
 
-  
+
 !=====================================================================
 
   subroutine it_transfer_from_GPU()
@@ -624,53 +631,61 @@
 
     ! acoustic potentials
     if( ACOUSTIC_SIMULATION ) &
-      call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
-                            potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
-                            
+      call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
+                            potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
+
     ! elastic wavefield
     if( ELASTIC_SIMULATION ) then
-      call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+      call transfer_fields_el_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
 
       if (ATTENUATION) &
         call transfer_fields_att_from_device(Mesh_pointer, &
                                             R_xx,R_yy,R_xy,R_xz,R_yz,size(R_xx), &
                                             epsilondev_xx,epsilondev_yy,epsilondev_xy,epsilondev_xz,epsilondev_yz, &
                                             size(epsilondev_xx))
-        
+
     endif
   else if (SIMULATION_TYPE == 3) then
 
     ! to store kernels
-    
+
     if( ACOUSTIC_SIMULATION ) then
       ! only in case needed...
-      !call transfer_b_fields_acoustic_from_device(NGLOB_AB,b_potential_acoustic, &
-      !                      b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer)    
-      
-      ! acoustic kernels                      
-      call transfer_sensitivity_kernels_acoustic_to_host(Mesh_pointer,rho_ac_kl,kappa_ac_kl,NSPEC_AB)
+      !call transfer_b_fields_ac_from_device(NGLOB_AB,b_potential_acoustic, &
+      !                      b_potential_dot_acoustic, b_potential_dot_dot_acoustic, Mesh_pointer)
+
+      ! acoustic kernels
+      call transfer_kernels_ac_to_host(Mesh_pointer,rho_ac_kl,kappa_ac_kl,NSPEC_AB)
     endif
 
     if( ELASTIC_SIMULATION ) then
       ! only in case needed...
       !call transfer_b_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
-      
+
       ! elastic kernels
-      call transfer_sensitivity_kernels_to_host(Mesh_pointer,rho_kl,mu_kl,kappa_kl,NSPEC_AB)
+      call transfer_kernels_el_to_host(Mesh_pointer,rho_kl,mu_kl,kappa_kl,NSPEC_AB)
     endif
 
     ! specific noise strength kernel
     if( NOISE_TOMOGRAPHY == 3 ) then
-      call transfer_sensitivity_kernels_to_host(Mesh_pointer,Sigma_kl,NSPEC_AB)  
+      call transfer_kernels_noise_to_host(Mesh_pointer,Sigma_kl,NSPEC_AB)
+    endif
+
+    ! approximative hessian for preconditioning kernels
+    if ( APPROXIMATE_HESS_KL ) then
+      if( ELASTIC_SIMULATION ) call transfer_kernels_hess_el_tohost(Mesh_pointer,hess_kl,NSPEC_AB)
+      if( ACOUSTIC_SIMULATION ) call transfer_kernels_hess_ac_tohost(Mesh_pointer,hess_ac_kl,NSPEC_AB)
     endif
 
   endif
 
-  
+
   ! frees allocated memory on GPU
   call prepare_cleanup_device(Mesh_pointer, &
-                              SIMULATION_TYPE,ACOUSTIC_SIMULATION,ELASTIC_SIMULATION, &
+                              SIMULATION_TYPE,SAVE_FORWARD, &
+                              ACOUSTIC_SIMULATION,ELASTIC_SIMULATION, &
                               ABSORBING_CONDITIONS,NOISE_TOMOGRAPHY,COMPUTE_AND_STORE_STRAIN, &
-                              ATTENUATION)
-  
+                              ATTENUATION,OCEANS, &
+                              APPROXIMATE_HESS_KL)
+
   end subroutine it_transfer_from_GPU

@@ -128,17 +128,17 @@
   endif
 
   end subroutine assemble_MPI_vector_ext_mesh
-  
+
 !
 !-------------------------------------------------------------------------------------------------
 !
-  
+
   subroutine assemble_MPI_vector_ext_mesh_s(NPROC,NGLOB_AB,array_val, &
-       buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
-       num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
-       nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,my_neighbours_ext_mesh, &
-       request_send_vector_ext_mesh,request_recv_vector_ext_mesh &
-       )
+                                           buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
+                                           num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+                                           nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh, &
+                                           my_neighbours_ext_mesh, &
+                                           request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
 
     ! sends data
 
@@ -195,17 +195,17 @@
     endif
 
   end subroutine assemble_MPI_vector_ext_mesh_s
-  
+
 !
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine assemble_MPI_vector_ext_mesh_send_cuda(NPROC, &
-                          buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
-                          num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
-                          nibool_interfaces_ext_mesh, &
-                          my_neighbours_ext_mesh, &
-                          request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
+  subroutine assemble_MPI_vector_send_cuda(NPROC, &
+                                          buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
+                                          num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+                                          nibool_interfaces_ext_mesh, &
+                                          my_neighbours_ext_mesh, &
+                                          request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
 
     ! sends data
     ! note: array to assemble already filled into buffer_send_vector_ext_mesh array
@@ -226,9 +226,10 @@
 
     integer iinterface
 
-    ! here we have to assemble all the contributions between partitions using MPI
+    ! note: preparation of the contribution between partitions using MPI
+    !          already done in transfer_boun_accel routine
 
-    ! assemble only if more than one partition
+    ! send only if more than one partition
     if(NPROC > 1) then
 
        ! send messages
@@ -249,7 +250,7 @@
 
     endif
 
-  end subroutine assemble_MPI_vector_ext_mesh_send_cuda
+  end subroutine assemble_MPI_vector_send_cuda
 
 !
 !-------------------------------------------------------------------------------------------------
@@ -315,11 +316,12 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine assemble_MPI_vector_ext_mesh_write_cuda(NPROC,NGLOB_AB,array_val, Mesh_pointer, &
-            buffer_recv_vector_ext_mesh,num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
-            nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh, &
-            request_send_vector_ext_mesh,request_recv_vector_ext_mesh,&
-            FORWARD_OR_ADJOINT )
+  subroutine assemble_MPI_vector_write_cuda(NPROC,NGLOB_AB,array_val, Mesh_pointer, &
+                                            buffer_recv_vector_ext_mesh, &
+                                            num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+                                            nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh, &
+                                            request_send_vector_ext_mesh,request_recv_vector_ext_mesh, &
+                                            FORWARD_OR_ADJOINT )
 
 ! waits for data to receive and assembles
 
@@ -344,7 +346,7 @@
 
   integer iinterface ! ipoin
   integer FORWARD_OR_ADJOINT
-  
+
 ! here we have to assemble all the contributions between partitions using MPI
 
 ! assemble only if more than one partition
@@ -356,10 +358,11 @@
   enddo
 
 ! adding contributions of neighbours
-  call transfer_and_assemble_accel_to_device(Mesh_pointer, array_val, buffer_recv_vector_ext_mesh, &
-       num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh, nibool_interfaces_ext_mesh,&
-       ibool_interfaces_ext_mesh,FORWARD_OR_ADJOINT)
-  
+  call transfer_asmbl_accel_to_device(Mesh_pointer, array_val, buffer_recv_vector_ext_mesh, &
+                                    num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh, &
+                                    nibool_interfaces_ext_mesh,&
+                                    ibool_interfaces_ext_mesh,FORWARD_OR_ADJOINT)
+
   ! This step is done via previous function transfer_and_assemble...
   ! do iinterface = 1, num_interfaces_ext_mesh
   !   do ipoin = 1, nibool_interfaces_ext_mesh(iinterface)
@@ -367,7 +370,7 @@
   !          array_val(:,ibool_interfaces_ext_mesh(ipoin,iinterface)) + buffer_recv_vector_ext_mesh(:,ipoin,iinterface)
   !   enddo
   ! enddo
-  
+
 ! wait for communications completion (send)
   do iinterface = 1, num_interfaces_ext_mesh
     call wait_req(request_send_vector_ext_mesh(iinterface))
@@ -375,13 +378,13 @@
 
   endif
 
-  end subroutine assemble_MPI_vector_ext_mesh_write_cuda
+  end subroutine assemble_MPI_vector_write_cuda
 
 !
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine assemble_MPI_scalar_ext_mesh_send_cuda(NPROC, &
+  subroutine assemble_MPI_scalar_send_cuda(NPROC, &
                         buffer_send_scalar_ext_mesh,buffer_recv_scalar_ext_mesh, &
                         num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
                         nibool_interfaces_ext_mesh, &
@@ -410,8 +413,8 @@
 ! sends only if more than one partition
   if(NPROC > 1) then
 
-    ! note: partition border copy into the buffer has already been done 
-    !          by routine transfer_boundary_potential_from_device() 
+    ! note: partition border copy into the buffer has already been done
+    !          by routine transfer_boun_pot_from_device()
 
     ! send messages
     do iinterface = 1, num_interfaces_ext_mesh
@@ -434,13 +437,13 @@
 
   endif
 
-  end subroutine assemble_MPI_scalar_ext_mesh_send_cuda
+  end subroutine assemble_MPI_scalar_send_cuda
 
 !
 !-------------------------------------------------------------------------------------------------
 !
 
-  subroutine assemble_MPI_scalar_ext_mesh_write_cuda(NPROC,NGLOB_AB,array_val, &
+  subroutine assemble_MPI_scalar_write_cuda(NPROC,NGLOB_AB,array_val, &
                         Mesh_pointer, &
                         buffer_recv_scalar_ext_mesh,num_interfaces_ext_mesh, &
                         max_nibool_interfaces_ext_mesh, &
@@ -457,7 +460,7 @@
   integer :: NPROC
   integer :: NGLOB_AB
   integer(kind=8) :: Mesh_pointer
-  
+
   integer :: num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh
 
 ! array to assemble
@@ -484,7 +487,7 @@
     enddo
 
     ! adding contributions of neighbours
-    call transfer_and_assemble_potential_to_device(Mesh_pointer, array_val, buffer_recv_scalar_ext_mesh, &
+    call transfer_asmbl_pot_to_device(Mesh_pointer, array_val, buffer_recv_scalar_ext_mesh, &
                 num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh, nibool_interfaces_ext_mesh,&
                 ibool_interfaces_ext_mesh,FORWARD_OR_ADJOINT)
 
@@ -504,6 +507,6 @@
 
   endif
 
-  end subroutine assemble_MPI_scalar_ext_mesh_write_cuda
+  end subroutine assemble_MPI_scalar_write_cuda
 
-  
+

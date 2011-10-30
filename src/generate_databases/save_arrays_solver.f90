@@ -109,6 +109,7 @@
   integer, dimension(num_interfaces_ext_mesh) :: nibool_interfaces_ext_mesh
   integer :: max_interface_size_ext_mesh
   integer, dimension(NGLLX*NGLLX*max_interface_size_ext_mesh,num_interfaces_ext_mesh) :: ibool_interfaces_ext_mesh
+  integer :: max_nibool_interfaces_ext_mesh
 
 ! file name
   character(len=256) prname
@@ -183,9 +184,11 @@
   call any_all_l( ANY(ispec_is_elastic), ELASTIC_SIMULATION )
   if( ELASTIC_SIMULATION ) then
     write(IOUT) rmass
+
     if( OCEANS) then
       write(IOUT) rmass_ocean_load
     endif
+
     !pll Stacey
     write(IOUT) rho_vp
     write(IOUT) rho_vs
@@ -195,44 +198,54 @@
 ! poroelastic
   call any_all_l( ANY(ispec_is_poroelastic), POROELASTIC_SIMULATION )
   if( POROELASTIC_SIMULATION ) then
+    stop 'not implemented yet: write rmass_solid_poroelastic .. '
+
     write(IOUT) rmass_solid_poroelastic
     write(IOUT) rmass_fluid_poroelastic
   endif
 
 ! absorbing boundary surface
   write(IOUT) num_abs_boundary_faces
-  write(IOUT) abs_boundary_ispec
-  write(IOUT) abs_boundary_ijk
-  write(IOUT) abs_boundary_jacobian2Dw
-  write(IOUT) abs_boundary_normal
+  if( num_abs_boundary_faces > 0 ) then
+    write(IOUT) abs_boundary_ispec
+    write(IOUT) abs_boundary_ijk
+    write(IOUT) abs_boundary_jacobian2Dw
+    write(IOUT) abs_boundary_normal
+  endif
 
 ! free surface
   write(IOUT) num_free_surface_faces
-  write(IOUT) free_surface_ispec
-  write(IOUT) free_surface_ijk
-  write(IOUT) free_surface_jacobian2Dw
-  write(IOUT) free_surface_normal
+  if( num_free_surface_faces > 0 ) then
+    write(IOUT) free_surface_ispec
+    write(IOUT) free_surface_ijk
+    write(IOUT) free_surface_jacobian2Dw
+    write(IOUT) free_surface_normal
+  endif
 
 ! acoustic-elastic coupling surface
   write(IOUT) num_coupling_ac_el_faces
-  write(IOUT) coupling_ac_el_ispec
-  write(IOUT) coupling_ac_el_ijk
-  write(IOUT) coupling_ac_el_jacobian2Dw
-  write(IOUT) coupling_ac_el_normal
+  if( num_coupling_ac_el_faces > 0 ) then
+    write(IOUT) coupling_ac_el_ispec
+    write(IOUT) coupling_ac_el_ijk
+    write(IOUT) coupling_ac_el_jacobian2Dw
+    write(IOUT) coupling_ac_el_normal
+  endif
 
 !MPI interfaces
-  write(IOUT) num_interfaces_ext_mesh
-  write(IOUT) maxval(nibool_interfaces_ext_mesh(:))
-  write(IOUT) my_neighbours_ext_mesh
-  write(IOUT) nibool_interfaces_ext_mesh
-
-  allocate(ibool_interfaces_ext_mesh_dummy(maxval(nibool_interfaces_ext_mesh(:)),num_interfaces_ext_mesh),stat=ier)
+  max_nibool_interfaces_ext_mesh = maxval(nibool_interfaces_ext_mesh(:))
+  allocate(ibool_interfaces_ext_mesh_dummy(max_nibool_interfaces_ext_mesh,num_interfaces_ext_mesh),stat=ier)
   if( ier /= 0 ) stop 'error allocating array'
-
   do i = 1, num_interfaces_ext_mesh
-     ibool_interfaces_ext_mesh_dummy(:,i) = ibool_interfaces_ext_mesh(1:maxval(nibool_interfaces_ext_mesh(:)),i)
+     ibool_interfaces_ext_mesh_dummy(:,i) = ibool_interfaces_ext_mesh(1:max_nibool_interfaces_ext_mesh,i)
   enddo
-  write(IOUT) ibool_interfaces_ext_mesh_dummy
+
+  write(IOUT) num_interfaces_ext_mesh
+  if( num_interfaces_ext_mesh > 0 ) then
+    write(IOUT) max_nibool_interfaces_ext_mesh
+    write(IOUT) my_neighbours_ext_mesh
+    write(IOUT) nibool_interfaces_ext_mesh
+    write(IOUT) ibool_interfaces_ext_mesh_dummy
+  endif
 
 ! anisotropy
   if( ANISOTROPY ) then
@@ -420,15 +433,15 @@
 
 
     !! saves 1. MPI interface
-    !    if( num_interfaces_ext_mesh >= 1 ) then
-    !      filename = prname(1:len_trim(prname))//'MPI_1_points'
-    !      call write_VTK_data_points(nglob, &
-    !                        xstore_dummy,ystore_dummy,zstore_dummy, &
-    !                        ibool_interfaces_ext_mesh_dummy(1:nibool_interfaces_ext_mesh(1),1), &
-    !                        nibool_interfaces_ext_mesh(1), &
-    !                        filename)
-    !    endif
-    !
+    if( num_interfaces_ext_mesh >= 1 ) then
+      filename = prname(1:len_trim(prname))//'MPI_1_points'
+      call write_VTK_data_points(nglob, &
+                        xstore_dummy,ystore_dummy,zstore_dummy, &
+                        ibool_interfaces_ext_mesh_dummy(1:nibool_interfaces_ext_mesh(1),1), &
+                        nibool_interfaces_ext_mesh(1), &
+                        filename)
+    endif
+
 
     deallocate(v_tmp)
 
@@ -439,3 +452,4 @@
 
 
   end subroutine save_arrays_solver_ext_mesh
+

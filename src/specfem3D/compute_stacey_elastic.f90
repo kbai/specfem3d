@@ -77,8 +77,8 @@
 
   ! GPU_MODE variables
   integer(kind=8) :: Mesh_pointer
-  logical :: GPU_MODE  
-  
+  logical :: GPU_MODE
+
 ! local parameters
   real(kind=CUSTOM_REAL) vx,vy,vz,nx,ny,nz,tx,ty,tz,vn,jacobianw
   integer :: ispec,iglob,i,j,k,iface,igll
@@ -90,7 +90,7 @@
 ! adjoint simulations:
   if (SIMULATION_TYPE == 3 .and. num_abs_boundary_faces > 0)  then
     ! reads in absorbing boundary array when first phase is running
-    if( phase_is_inner .eqv. .false. ) then    
+    if( phase_is_inner .eqv. .false. ) then
       ! note: the index NSTEP-it+1 is valid if b_displ is read in after the Newark scheme
       ! uses fortran routine
       !read(IOABS,rec=NSTEP-it+1) reclen1,b_absorb_field,reclen2
@@ -98,10 +98,10 @@
       !  call exit_mpi(0,'Error reading absorbing contribution b_absorb_field')
       ! uses c routine for faster reading
       call read_abs(0,b_absorb_field,b_reclen_field,NSTEP-it+1)
-    endif    
+    endif
   endif !adjoint
 
-  
+
   if(.NOT. GPU_MODE) then
 
      ! absorbs absorbing-boundary surface using Stacey condition (Clayton & Enquist)
@@ -162,16 +162,17 @@
         endif ! ispec_is_inner
      enddo
 
-  else 
+  else
     ! GPU_MODE == .true.
-    call compute_stacey_elastic_cuda(Mesh_pointer,phase_is_inner, &
-                        SIMULATION_TYPE,SAVE_FORWARD,b_absorb_field)
+    if( num_abs_boundary_faces > 0 ) &
+      call compute_stacey_elastic_cuda(Mesh_pointer,phase_is_inner, &
+                                      SIMULATION_TYPE,SAVE_FORWARD,b_absorb_field)
   endif
 
   ! adjoint simulations: stores absorbed wavefield part
   if (SIMULATION_TYPE == 1 .and. SAVE_FORWARD .and. num_abs_boundary_faces > 0 ) then
     ! writes out absorbing boundary value only when second phase is running
-    if( phase_is_inner .eqv. .true. ) then    
+    if( phase_is_inner .eqv. .true. ) then
       ! uses fortran routine
       !write(IOABS,rec=it) b_reclen_field,b_absorb_field,b_reclen_field
       ! uses c routine

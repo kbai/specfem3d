@@ -46,37 +46,39 @@
   double precision :: stf
 
   ! gets resulting array values onto CPU
-  if(GPU_MODE) then 
-    ! this transfers fields only in elements with stations for efficiency
-    if( ACOUSTIC_SIMULATION ) then
-      ! only copy corresponding elements to CPU host
-      ! timing: Elapsed time: 5.230904e-04
-      call transfer_station_fields_acoustic_from_device( &
-                      potential_acoustic,potential_dot_acoustic,potential_dot_dot_acoustic, &
-                      b_potential_acoustic,b_potential_dot_acoustic,b_potential_dot_dot_acoustic, &
-                      Mesh_pointer,number_receiver_global, &
-                      ispec_selected_rec,ispec_selected_source,ibool,SIMULATION_TYPE)
+  if(GPU_MODE) then
+    if( nrec_local > 0 ) then
+      ! this transfers fields only in elements with stations for efficiency
+      if( ACOUSTIC_SIMULATION ) then
+        ! only copy corresponding elements to CPU host
+        ! timing: Elapsed time: 5.230904e-04
+        call transfer_station_ac_from_device( &
+                        potential_acoustic,potential_dot_acoustic,potential_dot_dot_acoustic, &
+                        b_potential_acoustic,b_potential_dot_acoustic,b_potential_dot_dot_acoustic, &
+                        Mesh_pointer,number_receiver_global, &
+                        ispec_selected_rec,ispec_selected_source,ibool,SIMULATION_TYPE)
 
-      ! alternative: transfers whole fields      
-      ! timing: Elapsed time: 4.138947e-03
-      !call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
-      !          potential_dot_acoustic,potential_dot_dot_acoustic,Mesh_pointer)        
-    endif
-    
-    ! this transfers fields only in elements with stations for efficiency
-    if( ELASTIC_SIMULATION ) then
-      call transfer_station_fields_from_device( &
-                  displ,veloc,accel, &
-                  b_displ,b_veloc,b_accel, &
-                  Mesh_pointer,number_receiver_global, &
-                  ispec_selected_rec,ispec_selected_source, &
-                  ibool,SIMULATION_TYPE)
+        ! alternative: transfers whole fields
+        ! timing: Elapsed time: 4.138947e-03
+        !call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
+        !          potential_dot_acoustic,potential_dot_dot_acoustic,Mesh_pointer)
+      endif
 
-      ! alternative: transfers whole fields      
-      !  call transfer_fields_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)      
+      ! this transfers fields only in elements with stations for efficiency
+      if( ELASTIC_SIMULATION ) then
+        call transfer_station_el_from_device( &
+                    displ,veloc,accel, &
+                    b_displ,b_veloc,b_accel, &
+                    Mesh_pointer,number_receiver_global, &
+                    ispec_selected_rec,ispec_selected_source, &
+                    ibool,SIMULATION_TYPE)
+
+        ! alternative: transfers whole fields
+        !  call transfer_fields_el_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
+      endif
     endif
   endif
-  
+
   do irec_local = 1,nrec_local
 
     ! gets global number of that receiver
@@ -282,7 +284,7 @@
 ! write ONE binary file for all receivers (nrec_local) within one proc
 ! SU format, with 240-byte-header for each trace
   if ((mod(it,NTSTEP_BETWEEN_OUTPUT_SEISMOS) == 0 .or. it==NSTEP) .and. SU_FORMAT) &
-     call write_seismograms_su() 
+     call write_seismograms_su()
 
   end subroutine write_seismograms
 
@@ -788,7 +790,7 @@ subroutine band_instrument_code(DT,bic)
 !=====================================================================
 
  subroutine write_seismograms_su()
- 
+
  use specfem_par
  use specfem_par_acoustic
  use specfem_par_elastic
@@ -799,7 +801,7 @@ subroutine band_instrument_code(DT,bic)
  character(len=256) procname,final_LOCAL_PATH
  integer :: irec_local,irec,ios
  real :: x_station,y_station
- 
+
  ! headers
  integer,parameter :: nheader=240      ! 240 bytes
  integer(kind=2) :: i2head(nheader/2)  ! 2-byte-integer
@@ -846,7 +848,7 @@ subroutine band_instrument_code(DT,bic)
    i2head(58) =NSTEP
    i2head(59) =DT*1.0d6
    write(IOUT_SU,rec=irec_local) r4head, seismograms_d(1,irec_local,:)
- enddo 
+ enddo
  close(IOUT_SU)
  ! write seismograms (dy)
  open(unit=IOUT_SU, file=trim(adjustl(final_LOCAL_PATH))//trim(adjustl(procname))//'_dy_SU' ,&
@@ -863,7 +865,7 @@ subroutine band_instrument_code(DT,bic)
    i2head(58) =NSTEP
    i2head(59) =DT*1.0d6
    write(IOUT_SU,rec=irec_local) r4head, seismograms_d(2,irec_local,:)
- enddo 
+ enddo
  close(IOUT_SU)
 
  ! write seismograms (dz)
@@ -881,7 +883,7 @@ subroutine band_instrument_code(DT,bic)
    i2head(58) =NSTEP
    i2head(59) =DT*1.0d6
    write(IOUT_SU,rec=irec_local) r4head, seismograms_d(3,irec_local,:)
- enddo 
+ enddo
  close(IOUT_SU)
 
  end subroutine write_seismograms_su

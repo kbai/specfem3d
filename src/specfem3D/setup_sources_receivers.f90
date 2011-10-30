@@ -206,6 +206,12 @@ subroutine setup_sources()
     call exit_mpi(myrank,'error negative USER_T0 parameter in constants.h')
   endif
 
+  ! count number of sources located in this slice
+  nsources_local = 0
+  do isource = 1, NSOURCES
+    if(myrank == islice_selected_source(isource)) nsources_local = nsources_local + 1
+  enddo
+
   ! checks if source is in an acoustic element and exactly on the free surface because pressure is zero there
   call setup_sources_check_acoustic()
 
@@ -514,7 +520,7 @@ subroutine setup_sources_precompute_arrays()
   real(kind=CUSTOM_REAL) :: junk
   integer :: isource,ispec
   integer :: irec !,irec_local
-  integer :: i,j,k,iglob  
+  integer :: i,j,k,iglob
   integer :: icomp,itime,nadj_files_found,nadj_files_found_tot,ier
   character(len=3),dimension(NDIM) :: comp ! = (/ "BHE", "BHN", "BHZ" /)
   character(len=256) :: filename
@@ -569,9 +575,9 @@ subroutine setup_sources_precompute_arrays()
           iglob = ibool(nint(xi_source(isource)), &
                         nint(eta_source(isource)), &
                         nint(gamma_source(isource)), &
-                        ispec)            
+                        ispec)
           ! sets sourcearrays
-          sourcearray(:,:,:,:) = 0.0          
+          sourcearray(:,:,:,:) = 0.0
           do k=1,NGLLZ
             do j=1,NGLLY
               do i=1,NGLLX
@@ -589,13 +595,18 @@ subroutine setup_sources_precompute_arrays()
               enddo
             enddo
           enddo
-        endif                
+        endif
 
         ! stores source excitations
         sourcearrays(isource,:,:,:,:) = sourcearray(:,:,:,:)
 
       endif
     enddo
+  else
+    ! SIMULATION_TYPE == 2
+    ! allocate dummy array (needed for subroutine calls)
+    allocate(sourcearrays(0,0,0,0,0),stat=ier)
+    if( ier /= 0 ) stop 'error allocating dummy sourcearrays'
   endif
 
   ! ADJOINT simulations
@@ -693,17 +704,19 @@ subroutine setup_receivers_precompute_intp()
 
   integer :: irec,irec_local,isource,ier
 
-! stores local receivers interpolation factors
+  ! needs to be allocate for subroutine calls (even if nrec_local == 0)
+  allocate(number_receiver_global(nrec_local),stat=ier)
+  if( ier /= 0 ) stop 'error allocating array number_receiver_global'
+
+  ! stores local receivers interpolation factors
   if (nrec_local > 0) then
-  ! allocate Lagrange interpolators for receivers
+    ! allocate Lagrange interpolators for receivers
     allocate(hxir_store(nrec_local,NGLLX), &
             hetar_store(nrec_local,NGLLY), &
             hgammar_store(nrec_local,NGLLZ),stat=ier)
     if( ier /= 0 ) stop 'error allocating array hxir_store etc.'
 
-  ! define local to global receiver numbering mapping
-    allocate(number_receiver_global(nrec_local),stat=ier)
-    if( ier /= 0 ) stop 'error allocating array number_reciever_global'
+    ! define local to global receiver numbering mapping
     irec_local = 0
     if (SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then
       do irec = 1,nrec
@@ -776,7 +789,11 @@ subroutine setup_sources_receivers_VTKfile()
   double precision :: xmesh,ymesh,zmesh
   real(kind=CUSTOM_REAL),dimension(NGNOD) :: xelm,yelm,zelm
   integer :: ia,ispec,isource,irec,ier,totalpoints
-  INTEGER(kind=4) :: system_command_status
+
+  !INTEGER(kind=4) :: system_command_status
+  !integer :: ret
+  !integer,external :: system
+
   character(len=256) :: filename,filename_new,system_command,system_command1,system_command2
 
   ! determines number of points for vtk file
@@ -800,7 +817,7 @@ subroutine setup_sources_receivers_VTKfile()
   endif
 
   ! sources
-  if( SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then  
+  if( SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then
     do isource=1,NSOURCES
       ! spectral element id
       ispec = ispec_selected_source(isource)
@@ -855,7 +872,7 @@ subroutine setup_sources_receivers_VTKfile()
       endif
     enddo ! NSOURCES
   endif
-  
+
   ! receivers
   do irec=1,nrec
     ispec = ispec_selected_rec(irec)
@@ -906,38 +923,49 @@ subroutine setup_sources_receivers_VTKfile()
     close(IOVTK)
 
     ! creates additional receiver and source files
-    if( SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then    
+    if( SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then
     ! extracts receiver locations
     filename = trim(OUTPUT_FILES)//'/sr.vtk'
     filename_new = trim(OUTPUT_FILES)//'/receiver.vtk'
+
+    ! vtk file for receivers only
     write(system_command, &
   "('awk ',a1,'{if(NR<5) print $0;if(NR==5)print ',a1,'POINTS',i6,' float',a1,';if(NR>5+',i6,')print $0}',a1,' < ',a,' > ',a)")&
       "'",'"',nrec,'"',NSOURCES,"'",trim(filename),trim(filename_new)
-      call system(system_command,system_command_status)
+
+!daniel:
+! gfortran
+!      call system(trim(system_command),system_command_status)
+! ifort
+!      ret = system(trim(system_command))
 
       ! extracts source locations
       !"('awk ',a1,'{if(NR< 6 + ',i6,') print $0}END{print}',a1,' < ',a,' > ',a)")&
       filename_new = trim(OUTPUT_FILES)//'/source.vtk'
-    
+
       write(system_command1, &
   "('awk ',a1,'{if(NR<5) print $0;if(NR==5)print ',a1,'POINTS',i6,' float',a1,';')") &
         "'",'"',NSOURCES,'"'
 
       !daniel
-      !print*,'command 1:',trim(system_command1)  
+      !print*,'command 1:',trim(system_command1)
 
       write(system_command2, &
   "('if(NR>5 && NR <6+',i6,')print $0}END{print ',a,'}',a1,' < ',a,' > ',a)") &
         NSOURCES,'" "',"'",trim(filename),trim(filename_new)
-    
-      !print*,'command 2:',trim(system_command2)  
-          
+
+      !print*,'command 2:',trim(system_command2)
+
       system_command = trim(system_command1)//trim(system_command2)
 
-      !print*,'command:',trim(system_command)  
+      !print*,'command:',trim(system_command)
+!daniel:
+! gfortran
+!      call system(trim(system_command),system_command_status)
+! ifort
+!      ret = system(trim(system_command))
 
-      call system(trim(system_command),system_command_status)
-    endif  
+    endif
   endif
 
 end subroutine setup_sources_receivers_VTKfile

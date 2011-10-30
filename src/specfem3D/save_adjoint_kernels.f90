@@ -196,9 +196,9 @@
   if ( APPROXIMATE_HESS_KL ) then
     call save_kernels_hessian()
   endif
-  
+
   end subroutine save_adjoint_kernels
-  
+
 !
 !-------------------------------------------------------------------------------------------------
 !
@@ -211,7 +211,7 @@
 
   implicit none
   integer :: ier
-  
+
   ! acoustic domains
   if( ACOUSTIC_SIMULATION ) then
     ! scales approximate hessian
@@ -223,7 +223,7 @@
     if( ier /= 0 ) stop 'error opening file hess_acoustic_kernel.bin'
     write(27) hess_ac_kl
     close(27)
-  endif  
+  endif
 
   ! elastic domains
   if( ELASTIC_SIMULATION ) then
@@ -236,7 +236,7 @@
     if( ier /= 0 ) stop 'error opening file hess_kernel.bin'
     write(27) hess_kl
     close(27)
-  endif  
-  
+  endif
+
   end subroutine save_kernels_hessian
-  
+

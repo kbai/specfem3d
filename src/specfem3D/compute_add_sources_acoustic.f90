@@ -40,7 +40,8 @@
 
   use specfem_par,only: PRINT_SOURCE_TIME_FUNCTION,stf_used_total, &
                         xigll,yigll,zigll,xi_receiver,eta_receiver,gamma_receiver,&
-                        station_name,network_name,adj_source_file,nrec_local,number_receiver_global
+                        station_name,network_name,adj_source_file,nrec_local,number_receiver_global, &
+                        nsources_local
   implicit none
 
   include "constants.h"
@@ -75,7 +76,7 @@
 !adjoint simulations
   integer:: SIMULATION_TYPE,NSTEP,NGLOB_ADJOINT
   logical:: GPU_MODE
-  integer(kind=8) :: Mesh_pointer    
+  integer(kind=8) :: Mesh_pointer
   integer:: nrec
   integer,dimension(nrec) :: islice_selected_rec,ispec_selected_rec
   integer:: nadj_rec_local
@@ -92,7 +93,7 @@
   integer :: isource,iglob,ispec,i,j,k,ier
   integer :: irec_local,irec
   double precision, dimension(NSOURCES) :: stf_pre_compute
-  
+
 ! adjoint sources in SU format
   integer :: it_start,it_end
   real(kind=CUSTOM_REAL) :: adj_temp(NSTEP)
@@ -112,7 +113,7 @@
   endif
 
 ! forward simulations
-  if (SIMULATION_TYPE == 1) then
+  if (SIMULATION_TYPE == 1 .and. nsources_local > 0) then
 
 !way 2
     if(GPU_MODE) then
@@ -121,21 +122,21 @@
           if(USE_FORCE_POINT_SOURCE) then
             ! precomputes source time function factor
             stf_pre_compute(isource) = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr( &
-                  dble(it-1)*DT-t0-tshift_cmt(isource),hdur(isource))                
+                  dble(it-1)*DT-t0-tshift_cmt(isource),hdur(isource))
           else
             stf_pre_compute(isource) = comp_source_time_function_gauss( &
-                  dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))                      
+                  dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
           endif
         enddo
-        stf_used_total = stf_used_total + sum(stf_pre_compute(:))        
+        stf_used_total = stf_used_total + sum(stf_pre_compute(:))
         ! only implements SIMTYPE=1 and NOISE_TOM=0
         ! write(*,*) "fortran dt = ", dt
         ! change dt -> DT
-        call compute_add_sources_acoustic_cuda(Mesh_pointer, phase_is_inner, &
+        call compute_add_sources_ac_cuda(Mesh_pointer, phase_is_inner, &
                                               NSOURCES, SIMULATION_TYPE, &
                                               USE_FORCE_POINT_SOURCE, stf_pre_compute, myrank)
       endif
-      
+
     else ! .NOT. GPU_MODE
 
       ! adds acoustic sources
@@ -225,7 +226,7 @@
         endif ! myrank
 
       enddo ! NSOURCES
-    endif ! GPU_MODE    
+    endif ! GPU_MODE
   endif
 
 ! NOTE: adjoint sources and backward wavefield timing:
@@ -331,7 +332,7 @@
            enddo
            close(IIN_SU1)
         endif !if (.not. SU_FORMAT)
-        
+
         deallocate(adj_sourcearray)
 
       endif ! if(ibool_read_adj_arrays)
@@ -339,11 +340,11 @@
       if( it < NSTEP ) then
         ! receivers act as sources
         if( GPU_MODE) then
-          call add_sources_acoustic_sim_type_2_or_3_cuda(Mesh_pointer, adj_sourcearrays, &
+          call add_sources_ac_sim_2_or_3_cuda(Mesh_pointer, adj_sourcearrays, &
                  size(adj_sourcearrays), phase_is_inner, myrank, nrec, &
                  NTSTEP_BETWEEN_READ_ADJSRC - mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC),&
                  islice_selected_rec, nadj_rec_local, NTSTEP_BETWEEN_READ_ADJSRC)
-        else      
+        else
           irec_local = 0
           do irec = 1,nrec
             ! add the source (only if this proc carries the source)
@@ -353,14 +354,14 @@
               ! adds source array
               ispec = ispec_selected_rec(irec)
               if( ispec_is_acoustic(ispec) ) then
-              
+
                 ! checks if element is in phase_is_inner run
                 if (ispec_is_inner(ispec) .eqv. phase_is_inner) then
                   do k = 1,NGLLZ
                     do j = 1,NGLLY
                       do i = 1,NGLLX
                         iglob = ibool(i,j,k,ispec)
-                        ! beware, for acoustic medium, a pressure source would be taking the negative 
+                        ! beware, for acoustic medium, a pressure source would be taking the negative
                         ! and divide by Kappa of the fluid;
                         ! this would have to be done when constructing the adjoint source.
                         !
@@ -387,31 +388,31 @@
 !           thus indexing is NSTEP - it , instead of NSTEP - it - 1
 
 ! adjoint simulations
-  if (SIMULATION_TYPE == 3) then
+  if (SIMULATION_TYPE == 3 .and. nsources_local > 0) then
 
     ! on GPU
     if(GPU_MODE) then
-      if( NSOURCES > 0 ) then    
+      if( NSOURCES > 0 ) then
         do isource = 1,NSOURCES
           if(USE_FORCE_POINT_SOURCE) then
             ! precomputes source time function factors
             stf_pre_compute(isource) = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr( &
-                  dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur(isource))          
+                  dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur(isource))
           else
             stf_pre_compute(isource) = comp_source_time_function_gauss( &
-                  dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))   
-          endif        
+                  dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+          endif
         enddo
         stf_used_total = stf_used_total + sum(stf_pre_compute(:))
-      
+
         ! only implements SIMTYPE=3
-        call compute_add_sources_acoustic_sim3_cuda(Mesh_pointer, phase_is_inner, &
+        call compute_add_sources_ac_s3_cuda(Mesh_pointer, phase_is_inner, &
                                     NSOURCES, SIMULATION_TYPE, &
                                     USE_FORCE_POINT_SOURCE, stf_pre_compute, myrank)
       endif
 
     else ! .NOT. GPU_MODE
-      
+
       ! adds acoustic sources
       do isource = 1,NSOURCES
 

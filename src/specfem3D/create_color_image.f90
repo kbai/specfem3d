@@ -129,6 +129,8 @@
   !character(len=256) :: vtkfilename
   integer :: zoom_factor = 4
   logical :: zoom
+  integer, dimension(1) :: tmp_pixel_loc
+  integer, dimension(1,0:NPROC-1) :: tmp_pixel_per_proc
 
   ! checks image type
   if(IMAGE_TYPE > 4 .or. IMAGE_TYPE < 1) then
@@ -378,11 +380,14 @@
   if( nb_pixel_loc > 0 ) then
     if( .not. allocated(num_pixel_loc) ) call exit_MPI(myrank,'error num_pixel_loc allocation')
   endif
-  
+
   ! filling array iglob_image_color, containing info on which process owns which pixels.
   allocate(nb_pixel_per_proc(0:NPROC-1),stat=ier)
   if( ier /= 0 ) stop 'error allocating array nb_pixel_per_proc'
-  call gather_all_i(nb_pixel_loc,1,nb_pixel_per_proc,1,NPROC)
+
+  tmp_pixel_loc(1) = nb_pixel_loc
+  call gather_all_i(tmp_pixel_loc,1,tmp_pixel_per_proc,1,NPROC)
+  nb_pixel_per_proc(:) = tmp_pixel_per_proc(1,:)
 
   ! allocates receiving array
   if ( myrank == 0 ) then
@@ -428,7 +433,7 @@
     if(ier /= 0 ) call exit_mpi(myrank,'error allocating image send data')
     data_pixel_send(:) = 0._CUSTOM_REAL
   endif
-  
+
   ! handles vp background data
   call write_PNM_GIF_vp_background()
 
@@ -474,7 +479,7 @@
     ! master collects
     if (myrank == 0) then
       do iproc = 1, NPROC-1
-        if( nb_pixel_per_proc(iproc) > 0 ) then      
+        if( nb_pixel_per_proc(iproc) > 0 ) then
           call recvv_cr(data_pixel_recv(1),nb_pixel_per_proc(iproc),iproc,43)
           ! fills vp display array
           do k = 1, nb_pixel_per_proc(iproc)
@@ -851,15 +856,19 @@
   if( ELASTIC_SIMULATION ) then
     if( ispec_is_elastic(ispec) ) then
       if( SIMULATION_TYPE == 3 ) then
-        veloc_val(:) = b_veloc(:,iglob)
+        ! to display re-constructed wavefield
+        !veloc_val(:) = b_veloc(:,iglob)
+        ! to display adjoint wavefield
+        veloc_val(:) = veloc(:,iglob)
       else
-        veloc_val(:) = veloc(:,iglob)      
+        veloc_val(:) = veloc(:,iglob)
       endif
 
       ! returns with this result
       return
     endif
   endif
+
   if( ACOUSTIC_SIMULATION ) then
     if( ispec_is_acoustic(ispec) ) then
       if( SIMULATION_TYPE == 3 ) then
@@ -868,7 +877,7 @@
                           b_potential_dot_acoustic, veloc_element,&
                           hprime_xx,hprime_yy,hprime_zz, &
                           xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                          ibool,rhostore)      
+                          ibool,rhostore)
       else
         ! velocity vector
         call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
@@ -877,7 +886,7 @@
                           xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
                           ibool,rhostore)
       endif
-      
+
       ! returns corresponding iglob velocity entry
       do k=1,NGLLZ
         do j=1,NGLLY

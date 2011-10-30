@@ -81,20 +81,20 @@ subroutine compute_forces_acoustic()
                         num_free_surface_faces,ispec_is_acoustic)
   else
     ! on GPU
-    call acoustic_enforce_free_surface_cuda(Mesh_pointer,SIMULATION_TYPE,ABSORB_FREE_SURFACE)
+    call acoustic_enforce_free_surf_cuda(Mesh_pointer,SIMULATION_TYPE,ABSORB_FREE_SURFACE)
   endif
 
   if(PML) then
     ! enforces free surface on PML elements
 
-    ! note: 
-    ! PML routines are not implemented as CUDA kernels, we just transfer the fields 
+    ! note:
+    ! PML routines are not implemented as CUDA kernels, we just transfer the fields
     ! from the GPU to the CPU and vice versa
 
-    ! transfers potentials to the CPU      
-    if(GPU_MODE) call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
-    
+    ! transfers potentials to the CPU
+    if(GPU_MODE) call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
+
     call PML_acoustic_enforce_free_srfc(NSPEC_AB,NGLOB_AB, &
                         potential_acoustic,potential_dot_acoustic,potential_dot_dot_acoustic, &
                         ibool,free_surface_ijk,free_surface_ispec, &
@@ -106,8 +106,8 @@ subroutine compute_forces_acoustic()
                         chi3_dot_dot,chi4_dot_dot)
 
     ! transfers potentials back to GPU
-    if(GPU_MODE) call transfer_fields_acoustic_to_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
+    if(GPU_MODE) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
   endif
 
 ! distinguishes two runs: for points on MPI interfaces, and points within the partitions
@@ -147,15 +147,16 @@ subroutine compute_forces_acoustic()
     else
       ! on GPU
       ! includes code for SIMULATION_TYPE==3
-      call compute_forces_acoustic_cuda(Mesh_pointer, iphase, nspec_outer_acoustic, nspec_inner_acoustic, &
-             SIMULATION_TYPE)
+      call compute_forces_acoustic_cuda(Mesh_pointer, iphase, &
+                                      nspec_outer_acoustic, nspec_inner_acoustic, &
+                                      SIMULATION_TYPE)
     endif
 
 
    if(PML) then
       ! transfers potentials to CPU
-      if(GPU_MODE) call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
+      if(GPU_MODE) call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
 
       call compute_forces_acoustic_PML(NSPEC_AB,NGLOB_AB, &
                         ibool,ispec_is_inner,phase_is_inner, &
@@ -178,8 +179,8 @@ subroutine compute_forces_acoustic()
                         chi1_dot_dot,chi3_dot_dot,chi4_dot_dot)
 
       ! transfers potentials back to GPU
-      if(GPU_MODE) call transfer_fields_acoustic_to_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
+      if(GPU_MODE) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
 
     endif ! PML
 
@@ -197,9 +198,9 @@ subroutine compute_forces_acoustic()
                         chi1_dot,chi2_t,chi2_t_dot,chi3_dot,chi4_dot,&
                         chi1_dot_dot,chi3_dot_dot,chi4_dot_dot)
         ! transfers potentials back to GPU
-        if(GPU_MODE) call transfer_fields_acoustic_to_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
-                        
+        if(GPU_MODE) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
+
       else
        ! Stacey boundary conditions
         call compute_stacey_acoustic(NSPEC_AB,NGLOB_AB, &
@@ -215,7 +216,7 @@ subroutine compute_forces_acoustic()
     endif
 
 ! elastic coupling
-    if(ELASTIC_SIMULATION ) then    
+    if(ELASTIC_SIMULATION ) then
       if( .NOT. GPU_MODE ) then
         call compute_coupling_acoustic_el(NSPEC_AB,NGLOB_AB, &
                         ibool,displ,potential_dot_dot_acoustic, &
@@ -236,9 +237,9 @@ subroutine compute_forces_acoustic()
       else
         ! on GPU
         if( num_coupling_ac_el_faces > 0 ) &
-          call compute_coupling_acoustic_el_cuda(Mesh_pointer,phase_is_inner, &
+          call compute_coupling_ac_el_cuda(Mesh_pointer,phase_is_inner, &
                                               num_coupling_ac_el_faces,SIMULATION_TYPE)
-      
+
       endif
     endif
 
@@ -264,7 +265,7 @@ subroutine compute_forces_acoustic()
 ! assemble all the contributions between slices using MPI
     if( phase_is_inner .eqv. .false. ) then
       ! sends potential_dot_dot_acoustic values to corresponding MPI interface neighbors (non-blocking)
-      if(.NOT. GPU_MODE) then      
+      if(.NOT. GPU_MODE) then
         call assemble_MPI_scalar_ext_mesh_s(NPROC,NGLOB_AB,potential_dot_dot_acoustic, &
                         buffer_send_scalar_ext_mesh,buffer_recv_scalar_ext_mesh, &
                         num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
@@ -273,7 +274,7 @@ subroutine compute_forces_acoustic()
                         request_send_scalar_ext_mesh,request_recv_scalar_ext_mesh)
       else
         ! on GPU
-        call transfer_boundary_potential_from_device(NGLOB_AB, Mesh_pointer, &
+        call transfer_boun_pot_from_device(NGLOB_AB, Mesh_pointer, &
                                             potential_dot_dot_acoustic, &
                                             buffer_send_scalar_ext_mesh, &
                                             num_interfaces_ext_mesh, &
@@ -281,14 +282,14 @@ subroutine compute_forces_acoustic()
                                             nibool_interfaces_ext_mesh, &
                                             ibool_interfaces_ext_mesh, &
                                             1) ! <-- 1 == fwd accel
-        call assemble_MPI_scalar_ext_mesh_send_cuda(NPROC, &
+        call assemble_MPI_scalar_send_cuda(NPROC, &
                         buffer_send_scalar_ext_mesh,buffer_recv_scalar_ext_mesh, &
                         num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
                         nibool_interfaces_ext_mesh,&
                         my_neighbours_ext_mesh, &
-                        request_send_scalar_ext_mesh,request_recv_scalar_ext_mesh)        
+                        request_send_scalar_ext_mesh,request_recv_scalar_ext_mesh)
       endif
-                        
+
       ! adjoint simulations
       if( SIMULATION_TYPE == 3 ) then
         if(.NOT. GPU_MODE) then
@@ -300,7 +301,7 @@ subroutine compute_forces_acoustic()
                         b_request_send_scalar_ext_mesh,b_request_recv_scalar_ext_mesh)
         else
           ! on GPU
-          call transfer_boundary_potential_from_device(NGLOB_AB, Mesh_pointer, &
+          call transfer_boun_pot_from_device(NGLOB_AB, Mesh_pointer, &
                                                   b_potential_dot_dot_acoustic, &
                                                   b_buffer_send_scalar_ext_mesh,&
                                                   num_interfaces_ext_mesh, &
@@ -308,21 +309,21 @@ subroutine compute_forces_acoustic()
                                                   nibool_interfaces_ext_mesh, &
                                                   ibool_interfaces_ext_mesh, &
                                                   3) ! <-- 3 == adjoint b_accel
-               
-          call assemble_MPI_scalar_ext_mesh_send_cuda(NPROC, &
+
+          call assemble_MPI_scalar_send_cuda(NPROC, &
                           b_buffer_send_scalar_ext_mesh,b_buffer_recv_scalar_ext_mesh, &
                           num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
                           nibool_interfaces_ext_mesh,&
                           my_neighbours_ext_mesh, &
                           b_request_send_scalar_ext_mesh,b_request_recv_scalar_ext_mesh)
-          
+
         endif
       endif
-      
+
     else
-      
+
       ! waits for send/receive requests to be completed and assembles values
-      if(.NOT. GPU_MODE) then                          
+      if(.NOT. GPU_MODE) then
         call assemble_MPI_scalar_ext_mesh_w(NPROC,NGLOB_AB,potential_dot_dot_acoustic, &
                         buffer_recv_scalar_ext_mesh,num_interfaces_ext_mesh,&
                         max_nibool_interfaces_ext_mesh, &
@@ -330,18 +331,18 @@ subroutine compute_forces_acoustic()
                         request_send_scalar_ext_mesh,request_recv_scalar_ext_mesh)
       else
         ! on GPU
-        call assemble_MPI_scalar_ext_mesh_write_cuda(NPROC,NGLOB_AB,potential_dot_dot_acoustic, &
+        call assemble_MPI_scalar_write_cuda(NPROC,NGLOB_AB,potential_dot_dot_acoustic, &
                         Mesh_pointer,&
                         buffer_recv_scalar_ext_mesh,num_interfaces_ext_mesh,&
                         max_nibool_interfaces_ext_mesh, &
                         nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh, &
                         request_send_scalar_ext_mesh,request_recv_scalar_ext_mesh, &
-                        1)      
+                        1)
       endif
-                        
+
       ! adjoint simulations
       if( SIMULATION_TYPE == 3 ) then
-        if(.NOT. GPU_MODE) then          
+        if(.NOT. GPU_MODE) then
           call assemble_MPI_scalar_ext_mesh_w(NPROC,NGLOB_ADJOINT,b_potential_dot_dot_acoustic, &
                         b_buffer_recv_scalar_ext_mesh,num_interfaces_ext_mesh,&
                         max_nibool_interfaces_ext_mesh, &
@@ -349,14 +350,14 @@ subroutine compute_forces_acoustic()
                         b_request_send_scalar_ext_mesh,b_request_recv_scalar_ext_mesh)
         else
           ! on GPU
-          call assemble_MPI_scalar_ext_mesh_write_cuda(NPROC,NGLOB_AB,b_potential_dot_dot_acoustic, &
+          call assemble_MPI_scalar_write_cuda(NPROC,NGLOB_AB,b_potential_dot_dot_acoustic, &
                         Mesh_pointer, &
                         b_buffer_recv_scalar_ext_mesh,num_interfaces_ext_mesh, &
                         max_nibool_interfaces_ext_mesh, &
                         nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh, &
                         b_request_send_scalar_ext_mesh,request_recv_scalar_ext_mesh, &
-                        3)          
-        endif      
+                        3)
+        endif
       endif
     endif !phase_is_inner
 
@@ -376,9 +377,9 @@ subroutine compute_forces_acoustic()
 
 
   if(PML) then
-    ! note: no need to transfer fields between CPU and GPU; 
+    ! note: no need to transfer fields between CPU and GPU;
     !           PML arrays are all handled on the CPU
-      
+
     ! divides local contributions with mass term
     call PML_acoustic_mass_update(NSPEC_AB,NGLOB_AB,&
                         ispec_is_acoustic,rmass_acoustic,ibool,&
@@ -410,7 +411,7 @@ subroutine compute_forces_acoustic()
 ! corrector:
 !   updates the chi_dot term which requires chi_dot_dot(t+delta)
  if( .NOT. GPU_MODE ) then
-    ! corrector  
+    ! corrector
     potential_dot_acoustic(:) = potential_dot_acoustic(:) + deltatover2*potential_dot_dot_acoustic(:)
 
     ! adjoint simulations
@@ -418,14 +419,14 @@ subroutine compute_forces_acoustic()
       b_potential_dot_acoustic(:) = b_potential_dot_acoustic(:) + b_deltatover2*b_potential_dot_dot_acoustic(:)
   else
     ! on GPU
-    call kernel_3_b_acoustic_cuda(Mesh_pointer,NGLOB_AB,deltatover2,SIMULATION_TYPE,b_deltatover2)    
+    call kernel_3_b_acoustic_cuda(Mesh_pointer,NGLOB_AB,deltatover2,SIMULATION_TYPE,b_deltatover2)
   endif
 
   ! updates potential_dot_acoustic and potential_dot_dot_acoustic inside PML region for plotting seismograms/movies
-  if(PML) then 
+  if(PML) then
     ! transfers potentials to CPU
-    if(GPU_MODE) call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
+    if(GPU_MODE) call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
 
     call PML_acoustic_update_potentials(NGLOB_AB,NSPEC_AB, &
                         ibool,ispec_is_acoustic, &
@@ -439,9 +440,9 @@ subroutine compute_forces_acoustic()
                         chi1_dot,chi2_t_dot,chi3_dot,chi4_dot,&
                         chi1_dot_dot,chi3_dot_dot,chi4_dot_dot)
 
-    ! transfers potentials to GPU                      
-    if(GPU_MODE) call transfer_fields_acoustic_to_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
+    ! transfers potentials to GPU
+    if(GPU_MODE) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
 
   endif
 
@@ -461,15 +462,15 @@ subroutine compute_forces_acoustic()
                         num_free_surface_faces,ispec_is_acoustic)
   else
     ! on GPU
-    call acoustic_enforce_free_surface_cuda(Mesh_pointer,SIMULATION_TYPE,ABSORB_FREE_SURFACE)    
+    call acoustic_enforce_free_surf_cuda(Mesh_pointer,SIMULATION_TYPE,ABSORB_FREE_SURFACE)
   endif
 
 
   if(PML) then
     ! enforces free surface on PML elements
-    if( GPU_MODE ) call transfer_fields_acoustic_from_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
-    
+    if( GPU_MODE ) call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
+
     call PML_acoustic_enforce_free_srfc(NSPEC_AB,NGLOB_AB, &
                         potential_acoustic,potential_dot_acoustic,potential_dot_dot_acoustic, &
                         ibool,free_surface_ijk,free_surface_ispec, &
@@ -481,9 +482,9 @@ subroutine compute_forces_acoustic()
                         chi1_dot_dot,chi2_t_dot_dot,&
                         chi3_dot_dot,chi4_dot_dot)
 
-    if( GPU_MODE ) call transfer_fields_acoustic_to_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)    
-  endif  
+    if( GPU_MODE ) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
+  endif
 
 end subroutine compute_forces_acoustic
 

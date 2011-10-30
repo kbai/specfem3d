@@ -40,81 +40,74 @@
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void compute_stacey_elastic_kernel(real* veloc, 
-                                              real* accel, 
+__global__ void compute_stacey_elastic_kernel(realw* veloc,
+                                              realw* accel,
                                               int* abs_boundary_ispec,
-                                              int* abs_boundary_ijk, 
-                                              real* abs_boundary_normal,
-                                              real* abs_boundary_jacobian2Dw,
+                                              int* abs_boundary_ijk,
+                                              realw* abs_boundary_normal,
+                                              realw* abs_boundary_jacobian2Dw,
                                               int* ibool,
-                                              real* rho_vp, 
-                                              real* rho_vs,
-                                              int* ispec_is_inner, 
+                                              realw* rho_vp,
+                                              realw* rho_vs,
+                                              int* ispec_is_inner,
                                               int* ispec_is_elastic,
                                               int phase_is_inner,
-                                              int SIMULATION_TYPE,int SAVE_FORWARD,
+                                              int SIMULATION_TYPE,
+                                              int SAVE_FORWARD,
                                               int num_abs_boundary_faces,
-                                              real* b_accel, 
-                                              real* b_absorb_field,                                              
-                                              float* debug_val,
-                                              int* debug_val_int                                              
+                                              realw* b_accel,
+                                              realw* b_absorb_field //,float* debug_val,int* debug_val_int
                                               ) {
 
   int igll = threadIdx.x; // tx
   int iface = blockIdx.x + gridDim.x*blockIdx.y; // bx
-  int i;
-  int j;
-  int k;
-  int iglob;
-  int ispec;
+
+  int i,j,k,iglob,ispec;
   realw vx,vy,vz,vn;
   realw nx,ny,nz;
   realw rho_vp_temp,rho_vs_temp;
   realw tx,ty,tz;
   realw jacobianw;
-  
 
-  // don't compute points outside NGLLSQUARE==NGLL2==25  
+  // don't compute points outside NGLLSQUARE==NGLL2==25
   // way 2: no further check needed since blocksize = 25
   if( iface < num_abs_boundary_faces){
-    
-  //if(igll < NGLL2 && iface < num_abs_boundary_faces) {    
-    
+
+  //if(igll < NGLL2 && iface < num_abs_boundary_faces) {
+
     // "-1" from index values to convert from Fortran-> C indexing
     ispec = abs_boundary_ispec[iface]-1;
-    i = abs_boundary_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)]-1;
-    j = abs_boundary_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)]-1;
-    k = abs_boundary_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)]-1;
-    iglob = ibool[INDEX4(NGLLX,NGLLX,NGLLX,i,j,k,ispec)]-1;
-    
-    if(ispec_is_inner[ispec] == phase_is_inner && ispec_is_elastic[ispec]==1) {
+
+    if(ispec_is_inner[ispec] == phase_is_inner && ispec_is_elastic[ispec] ) {
 
       i = abs_boundary_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)]-1;
       j = abs_boundary_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)]-1;
       k = abs_boundary_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)]-1;
       iglob = ibool[INDEX4(NGLLX,NGLLX,NGLLX,i,j,k,ispec)]-1;
-      
+
       // gets associated velocity
-      
+
       vx = veloc[iglob*3+0];
       vy = veloc[iglob*3+1];
       vz = veloc[iglob*3+2];
-      
+
       // gets associated normal
       nx = abs_boundary_normal[INDEX3(NDIM,NGLL2,0,igll,iface)];
       ny = abs_boundary_normal[INDEX3(NDIM,NGLL2,1,igll,iface)];
       nz = abs_boundary_normal[INDEX3(NDIM,NGLL2,2,igll,iface)];
-      
+
       // // velocity component in normal direction (normal points out of element)
       vn = vx*nx + vy*ny + vz*nz;
+
       rho_vp_temp = rho_vp[INDEX4(NGLLX,NGLLX,NGLLX,i,j,k,ispec)];
       rho_vs_temp = rho_vs[INDEX4(NGLLX,NGLLX,NGLLX,i,j,k,ispec)];
+
       tx = rho_vp_temp*vn*nx + rho_vs_temp*(vx-vn*nx);
       ty = rho_vp_temp*vn*ny + rho_vs_temp*(vy-vn*ny);
       tz = rho_vp_temp*vn*nz + rho_vs_temp*(vz-vn*nz);
-      
-      jacobianw = abs_boundary_jacobian2Dw[INDEX2(NGLL2,igll,iface)];            
-   
+
+      jacobianw = abs_boundary_jacobian2Dw[INDEX2(NGLL2,igll,iface)];
+
       atomicAdd(&accel[iglob*3],-tx*jacobianw);
       atomicAdd(&accel[iglob*3+1],-ty*jacobianw);
       atomicAdd(&accel[iglob*3+2],-tz*jacobianw);
@@ -128,10 +121,10 @@ __global__ void compute_stacey_elastic_kernel(real* veloc,
         b_absorb_field[INDEX3(NDIM,NGLL2,0,igll,iface)] = tx*jacobianw;
         b_absorb_field[INDEX3(NDIM,NGLL2,1,igll,iface)] = ty*jacobianw;
         b_absorb_field[INDEX3(NDIM,NGLL2,2,igll,iface)] = tz*jacobianw;
-      }
-      
+      } // SIMULATION_TYPE
     }
-  }
+  } // num_abs_boundary_faces
+
 }
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -139,28 +132,31 @@ __global__ void compute_stacey_elastic_kernel(real* veloc,
 
 extern "C"
 void FC_FUNC_(compute_stacey_elastic_cuda,
-              COMPUTE_STACEY_ELASTIC_CUDA)(long* Mesh_pointer_f, 
-                                           int* phase_is_innerf, 
-                                           int* SIMULATION_TYPEf, 
+              COMPUTE_STACEY_ELASTIC_CUDA)(long* Mesh_pointer_f,
+                                           int* phase_is_innerf,
+                                           int* SIMULATION_TYPEf,
                                            int* SAVE_FORWARDf,
                                            float* h_b_absorb_field) {
 
-TRACE("compute_stacey_elastic_cuda");  
-  
+TRACE("compute_stacey_elastic_cuda");
+
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
 
-  int phase_is_inner	  = *phase_is_innerf;
-  int SIMULATION_TYPE	= *SIMULATION_TYPEf;
-  int SAVE_FORWARD     = *SAVE_FORWARDf;              
+  // check
+  if( mp->d_num_abs_boundary_faces == 0 ) return;
+
+  int phase_is_inner    = *phase_is_innerf;
+  int SIMULATION_TYPE   = *SIMULATION_TYPEf;
+  int SAVE_FORWARD      = *SAVE_FORWARDf;
 
   // way 1
   // > NGLLSQUARE==NGLL2==25, but we handle this inside kernel
   //int blocksize = 32;
-  
-  // way 2: seems sligthly faster 
+
+  // way 2: seems sligthly faster
   // > NGLLSQUARE==NGLL2==25, no further check inside kernel
   int blocksize = 25;
-  
+
   int num_blocks_x = mp->d_num_abs_boundary_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
@@ -171,57 +167,56 @@ TRACE("compute_stacey_elastic_cuda");
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
 
-  float* d_debug_val;
-  int* d_debug_val_int;
+  //float* d_debug_val;
+  //int* d_debug_val_int;
 
   if(SIMULATION_TYPE == 3 && mp->d_num_abs_boundary_faces > 0) {
     // int val = NSTEP-it+1;
-    // read_abs_(&fid,(char*)b_absorb_field,&b_reclen_field,&val);    
+    // read_abs_(&fid,(char*)b_absorb_field,&b_reclen_field,&val);
     // The read is done in fortran
     print_CUDA_error_if_any(cudaMemcpy(mp->d_b_absorb_field,h_b_absorb_field,
                                        mp->d_b_reclen_field,cudaMemcpyHostToDevice),7700);
   }
-  
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("between cudamemcpy and compute_stacey_elastic_kernel");
 #endif
-  
+
   compute_stacey_elastic_kernel<<<grid,threads>>>(mp->d_veloc,
                                                   mp->d_accel,
-                                                  mp->d_abs_boundary_ispec, 
-                                                  mp->d_abs_boundary_ijk, 
-                                                  mp->d_abs_boundary_normal, 
-                                                  mp->d_abs_boundary_jacobian2Dw, 
-                                                  mp->d_ibool, 
-                                                  mp->d_rho_vp, 
-                                                  mp->d_rho_vs, 
-                                                  mp->d_ispec_is_inner, 
-                                                  mp->d_ispec_is_elastic, 
+                                                  mp->d_abs_boundary_ispec,
+                                                  mp->d_abs_boundary_ijk,
+                                                  mp->d_abs_boundary_normal,
+                                                  mp->d_abs_boundary_jacobian2Dw,
+                                                  mp->d_ibool,
+                                                  mp->d_rho_vp,
+                                                  mp->d_rho_vs,
+                                                  mp->d_ispec_is_inner,
+                                                  mp->d_ispec_is_elastic,
                                                   phase_is_inner,
                                                   SIMULATION_TYPE,SAVE_FORWARD,
                                                   mp->d_num_abs_boundary_faces,
                                                   mp->d_b_accel,
-                                                  mp->d_b_absorb_field,
-                                                  d_debug_val,
-                                                  d_debug_val_int);
-  
+                                                  mp->d_b_absorb_field //,d_debug_val,d_debug_val_int
+                                                  );
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  exit_on_cuda_error("compute_stacey_elastic_kernel");  
+  exit_on_cuda_error("compute_stacey_elastic_kernel");
 #endif
 
   // ! adjoint simulations: stores absorbed wavefield part
   // if (SIMULATION_TYPE == 1 .and. SAVE_FORWARD .and. num_abs_boundary_faces > 0 ) &
   //   write(IOABS,rec=it) b_reclen_field,b_absorb_field,b_reclen_field
-  
-  if(SIMULATION_TYPE==1 && SAVE_FORWARD && mp->d_num_abs_boundary_faces>0) {
+
+  if(SIMULATION_TYPE == 1 && SAVE_FORWARD && mp->d_num_abs_boundary_faces > 0 ) {
     print_CUDA_error_if_any(cudaMemcpy(h_b_absorb_field,mp->d_b_absorb_field,
                                        mp->d_b_reclen_field,cudaMemcpyDeviceToHost),7701);
     // The write is done in fortran
-    // write_abs_(&fid,(char*)b_absorb_field,&b_reclen_field,&it);    
+    // write_abs_(&fid,(char*)b_absorb_field,&b_reclen_field,&it);
   }
-  
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  exit_on_cuda_error("after compute_stacey_elastic after cudamemcpy");  
+  exit_on_cuda_error("after compute_stacey_elastic after cudamemcpy");
 #endif
 }
 

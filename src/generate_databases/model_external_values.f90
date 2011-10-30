@@ -63,7 +63,7 @@
 
   include "constants.h"
   ! standard include of the MPI library
-  include 'mpif.h'
+  !include 'mpif.h'
 
   integer :: myrank
 

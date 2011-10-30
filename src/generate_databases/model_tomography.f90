@@ -167,7 +167,7 @@
 
  subroutine PREM_routine(xloc,yloc,zloc,ro_prem,vp_prem,vs_prem,idom)
 
-double precision, intent(in) :: xloc,yloc,zloc 
+double precision, intent(in) :: xloc,yloc,zloc
 integer, intent(in)          :: idom
 double precision             :: r0,r,x_prem
 !double precision             :: ro_prem,vp_prem,vs_prem

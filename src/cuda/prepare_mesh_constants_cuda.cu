@@ -726,26 +726,17 @@ void FC_FUNC_(prepare_fields_acoustic_device,
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_potential_dot_acoustic),sizeof(float)*size),9002);
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_potential_dot_dot_acoustic),sizeof(float)*size),9003);
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_send_potential_dot_dot_buffer),sizeof(float)*size),9004);
-
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_rmass_acoustic),sizeof(float)*size),9005);
-
   // padded array
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_rhostore),size_padded*sizeof(float)),9006);
-
   // non-padded array
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_kappastore),size_nonpadded*sizeof(float)),9007);
 
   // transfer element data
   print_CUDA_error_if_any(cudaMemcpy(mp->d_rmass_acoustic,rmass_acoustic,
                                      sizeof(float)*size,cudaMemcpyHostToDevice),9100);
-  print_CUDA_error_if_any(cudaMemcpy(mp->d_phase_ispec_inner_acoustic,phase_ispec_inner_acoustic,
-                                     mp->num_phase_ispec_acoustic*2*sizeof(int),cudaMemcpyHostToDevice),9101);
-  print_CUDA_error_if_any(cudaMemcpy(mp->d_ispec_is_acoustic,ispec_is_acoustic,
-                                     mp->NSPEC_AB*sizeof(int),cudaMemcpyHostToDevice),9102);
-
   print_CUDA_error_if_any(cudaMemcpy(mp->d_kappastore,kappastore,
                                      size_nonpadded*sizeof(float),cudaMemcpyHostToDevice),9105);
-
   // transfer constant element data with padding
   for(int i=0; i < mp->NSPEC_AB; i++) {
     print_CUDA_error_if_any(cudaMemcpy(mp->d_rhostore+i*128, &rhostore[i*125],
@@ -756,11 +747,16 @@ void FC_FUNC_(prepare_fields_acoustic_device,
   mp->num_phase_ispec_acoustic = *num_phase_ispec_acoustic;
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_phase_ispec_inner_acoustic),
                                       mp->num_phase_ispec_acoustic*2*sizeof(int)),9008);
+  print_CUDA_error_if_any(cudaMemcpy(mp->d_phase_ispec_inner_acoustic,phase_ispec_inner_acoustic,
+                                     mp->num_phase_ispec_acoustic*2*sizeof(int),cudaMemcpyHostToDevice),9101);
+
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_ispec_is_acoustic),
                                      mp->NSPEC_AB*sizeof(int)),9009);
+  print_CUDA_error_if_any(cudaMemcpy(mp->d_ispec_is_acoustic,ispec_is_acoustic,
+                                     mp->NSPEC_AB*sizeof(int),cudaMemcpyHostToDevice),9102);
 
   // free surface
-  if( *NOISE_TOMOGRAPHY == 0 &&  *ELASTIC_SIMULATION == 0){
+  if( *NOISE_TOMOGRAPHY == 0 ){
     // allocate surface arrays
     mp->num_free_surface_faces = *num_free_surface_faces;
     if( mp->num_free_surface_faces > 0 ){
@@ -830,8 +826,6 @@ extern "C"
 void FC_FUNC_(prepare_fields_acoustic_adj_dev,
               PREPARE_FIELDS_ACOUSTIC_ADJ_DEV)(long* Mesh_pointer_f,
                                               int* SIMULATION_TYPE,
-                                              float* rho_ac_kl,
-                                              float* kappa_ac_kl,
                                               int* APPROXIMATE_HESS_KL) {
 
   TRACE("prepare_fields_acoustic_adj_dev");
@@ -852,13 +846,13 @@ void FC_FUNC_(prepare_fields_acoustic_adj_dev,
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_rho_ac_kl),125*mp->NSPEC_AB*sizeof(float)),9017);
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_kappa_ac_kl),125*mp->NSPEC_AB*sizeof(float)),9018);
 
-  // copies over initial values
-  print_CUDA_error_if_any(cudaMemcpy(mp->d_rho_ac_kl,rho_ac_kl,
-                                     125*mp->NSPEC_AB*sizeof(float),cudaMemcpyHostToDevice),9019);
-  print_CUDA_error_if_any(cudaMemcpy(mp->d_kappa_ac_kl,kappa_ac_kl,
-                                     125*mp->NSPEC_AB*sizeof(float),cudaMemcpyHostToDevice),9020);
+  // initializes kernel values to zero
+  print_CUDA_error_if_any(cudaMemset(mp->d_rho_ac_kl,0,
+                                     125*mp->NSPEC_AB*sizeof(float)),9019);  
+  print_CUDA_error_if_any(cudaMemset(mp->d_kappa_ac_kl,0,
+                                     125*mp->NSPEC_AB*sizeof(float)),9020);
 
-
+  // preconditioner
   if( *APPROXIMATE_HESS_KL ){
     print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_hess_ac_kl),125*mp->NSPEC_AB*sizeof(float)),9030);
     // initializes with zeros
@@ -906,7 +900,8 @@ void FC_FUNC_(prepare_fields_elastic_device,
                                              float* free_surface_normal,
                                              int* free_surface_ispec,
                                              int* free_surface_ijk,
-                                             int* num_free_surface_faces){
+                                             int* num_free_surface_faces,
+                                             int* ACOUSTIC_SIMULATION){
 
 TRACE("prepare_fields_elastic_device");
 
@@ -1060,6 +1055,7 @@ TRACE("prepare_fields_elastic_device");
 
   }
 
+  
   if( *OCEANS ){
     // oceans needs a free surface
     mp->num_free_surface_faces = *num_free_surface_faces;
@@ -1079,7 +1075,7 @@ TRACE("prepare_fields_elastic_device");
       print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_updated_dof_ocean_load),
                                          sizeof(int)*mp->NGLOB_AB),8505);
 
-      if( *NOISE_TOMOGRAPHY == 0){
+      if( *NOISE_TOMOGRAPHY == 0 && *ACOUSTIC_SIMULATION == 0 ){
         print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_free_surface_ispec),
                                           mp->num_free_surface_faces*sizeof(int)),9201);
         print_CUDA_error_if_any(cudaMemcpy(mp->d_free_surface_ispec,free_surface_ispec,
@@ -1104,9 +1100,6 @@ void FC_FUNC_(prepare_fields_elastic_adj_dev,
               PREPARE_FIELDS_ELASTIC_ADJ_DEV)(long* Mesh_pointer_f,
                                              int* size,
                                              int* SIMULATION_TYPE,
-                                             float* rho_kl,
-                                             float* mu_kl,
-                                             float* kappa_kl,
                                              int* COMPUTE_AND_STORE_STRAIN,
                                              float* epsilon_trace_over_3,
                                              float* b_epsilondev_xx,float* b_epsilondev_yy,float* b_epsilondev_xy,
@@ -1136,14 +1129,14 @@ void FC_FUNC_(prepare_fields_elastic_adj_dev,
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_mu_kl),125*mp->NSPEC_AB*sizeof(float)),8205);
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_kappa_kl),125*mp->NSPEC_AB*sizeof(float)),8206);
 
-  // copies over initial values
-  print_CUDA_error_if_any(cudaMemcpy(mp->d_rho_kl,rho_kl,
-                                     125*mp->NSPEC_AB*sizeof(float),cudaMemcpyHostToDevice),8207);
-  print_CUDA_error_if_any(cudaMemcpy(mp->d_mu_kl,mu_kl,
-                                     125*mp->NSPEC_AB*sizeof(float),cudaMemcpyHostToDevice),8208);
-  print_CUDA_error_if_any(cudaMemcpy(mp->d_kappa_kl,kappa_kl,
-                                     125*mp->NSPEC_AB*sizeof(float),cudaMemcpyHostToDevice),8209);
-
+  // initializes kernel values to zero
+  print_CUDA_error_if_any(cudaMemset(mp->d_rho_kl,0,
+                                     125*mp->NSPEC_AB*sizeof(float)),8207);  
+  print_CUDA_error_if_any(cudaMemset(mp->d_mu_kl,0,
+                                     125*mp->NSPEC_AB*sizeof(float)),8208);  
+  print_CUDA_error_if_any(cudaMemset(mp->d_kappa_kl,0,
+                                     125*mp->NSPEC_AB*sizeof(float)),8209);  
+  
   // strains used for attenuation and kernel simulations
   if( *COMPUTE_AND_STORE_STRAIN ){
     // strains
@@ -1262,9 +1255,7 @@ void FC_FUNC_(prepare_fields_noise_device,
                                            float* normal_y_noise,
                                            float* normal_z_noise,
                                            float* mask_noise,
-                                           float* free_surface_jacobian2Dw,
-                                           float* Sigma_kl
-                                           ) {
+                                           float* free_surface_jacobian2Dw) {
 
   TRACE("prepare_fields_noise_device");
 
@@ -1326,8 +1317,10 @@ void FC_FUNC_(prepare_fields_noise_device,
   if( *NOISE_TOMOGRAPHY == 3 ){
     print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_Sigma_kl),
                                        125*(mp->NSPEC_AB)*sizeof(float)),4401);
-    print_CUDA_error_if_any(cudaMemcpy(mp->d_Sigma_kl, Sigma_kl,
-                                       125*(mp->NSPEC_AB)*sizeof(float),cudaMemcpyHostToDevice),4403);
+    // initializes kernel values to zero
+    print_CUDA_error_if_any(cudaMemset(mp->d_Sigma_kl,0,
+                                       125*mp->NSPEC_AB*sizeof(float)),4403);  
+                                       
   }
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING

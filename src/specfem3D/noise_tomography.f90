@@ -43,11 +43,18 @@
 ! =============================================================================================================
 ! =============================================================================================================
 
-! characterizes noise statistics:
-!     for a given point (xcoord,ycoord,zcoord), specify the noise direction "normal_x/y/z_noise"
-!     and noise distribution "mask_noise"
-!
-! USERS: need to modify this subroutine for their own noise characteristics
+module user_noise_distribution
+
+!daniel: TODO -- this default value will produce errors
+!            when using with the default example/noise_tomography
+!            i left it here so that Max can run his example without changing this every time...
+  logical,parameter :: USE_PIERO_DISTRIBUTION = .true.
+
+contains
+
+! wrapper function  
+! this subroutine must be modified by USERS for their own noise distribution
+
   subroutine noise_distribution_direction(xcoord_in,ycoord_in,zcoord_in, &
                   normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
                   mask_noise_out)
@@ -57,8 +64,41 @@
   real(kind=CUSTOM_REAL) :: xcoord_in,ycoord_in,zcoord_in
   ! output parameters
   real(kind=CUSTOM_REAL) :: normal_x_noise_out,normal_y_noise_out,normal_z_noise_out,mask_noise_out
-  ! local parameters
 
+  ! Setup for NOISE_TOMOGRAPHY by Piero Basini
+  if( USE_PIERO_DISTRIBUTION ) then
+    call noise_distribution_dir_non_uni(xcoord_in,ycoord_in,zcoord_in, &
+                                      normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
+                                      mask_noise_out)
+  else
+    ! DEFAULT routine
+    call noise_distribution_direction_d(xcoord_in,ycoord_in,zcoord_in, &
+                                       normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
+                                       mask_noise_out)
+  endif
+
+  end subroutine noise_distribution_direction
+
+  !
+  !-----------------------------------------------------------------------------------------------
+  !
+
+! characterizes noise statistics:
+!     for a given point (xcoord,ycoord,zcoord), specify the noise direction "normal_x/y/z_noise"
+!     and noise distribution "mask_noise"
+!
+! USERS: need to modify this subroutine for their own noise characteristics
+  subroutine noise_distribution_direction_d(xcoord_in,ycoord_in,zcoord_in, &
+                                           normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
+                                           mask_noise_out)
+  implicit none
+  include "constants.h"
+  ! input parameters
+  real(kind=CUSTOM_REAL) :: xcoord_in,ycoord_in,zcoord_in
+  ! output parameters
+  real(kind=CUSTOM_REAL) :: normal_x_noise_out,normal_y_noise_out,normal_z_noise_out,mask_noise_out
+  ! local parameters
+  real(kind=CUSTOM_REAL) :: ldummy
 
   !*****************************************************************************************************************
   !******************************** change your noise characteristics below ****************************************
@@ -73,7 +113,16 @@
   !******************************** change your noise characteristics above ****************************************
   !*****************************************************************************************************************
 
-  end subroutine noise_distribution_direction
+  ! dummy assign to avoid compiler warnings
+  ldummy = xcoord_in
+  ldummy = ycoord_in
+  ldummy = zcoord_in  
+
+  end subroutine noise_distribution_direction_d
+
+  !
+  !-----------------------------------------------------------------------------------------------
+  !
 
   subroutine noise_distribution_dir_non_uni(xcoord_in,ycoord_in,zcoord_in, &
                   normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
@@ -85,8 +134,8 @@
   ! output parameters
   real(kind=CUSTOM_REAL) :: normal_x_noise_out,normal_y_noise_out,normal_z_noise_out,mask_noise_out
   ! local parameters
-!PB VARIABLES TO DEFINE THE REGION OF NOISE
-  real(kind=CUSTOM_REAL) :: xcoord,ycoord,zcoord,xcoord_center,ycoord_center
+  !PB VARIABLES TO DEFINE THE REGION OF NOISE
+  real(kind=CUSTOM_REAL) :: xcoord,ycoord,zcoord !,xcoord_center,ycoord_center
   real :: lon,lat,colat,lon_cn,lat_cn,dsigma,d,dmax
 
   ! coordinates "x/y/zcoord_in" actually contain r theta phi, therefore convert back to x y z
@@ -95,10 +144,10 @@
   ycoord=ycoord_in
   zcoord=zcoord_in
 
-!PB NOT UNIF DISTRIBUTION OF NOISE ON THE SURFACE OF A SPHERE
-!PB lon lat colat ARE IN RADIANS SINCE ARE OBTAINED FROM CARTESIAN COORDINATES
-!PB lon_cn lat_cn (cn = CENTER OF NOISE REGION) IF NOT, MUST BE CONVERTED IN RADIANS
-!PB lon_cn lat_cn  ARE INSERTED DIRECTLY HERE FOR SIMPLICITY
+  !PB NOT UNIF DISTRIBUTION OF NOISE ON THE SURFACE OF A SPHERE
+  !PB lon lat colat ARE IN RADIANS SINCE ARE OBTAINED FROM CARTESIAN COORDINATES
+  !PB lon_cn lat_cn (cn = CENTER OF NOISE REGION) IF NOT, MUST BE CONVERTED IN RADIANS
+  !PB lon_cn lat_cn  ARE INSERTED DIRECTLY HERE FOR SIMPLICITY
 
   lon_cn = (3.89)*PI/180
   lat_cn = (45.113)*PI/180
@@ -111,22 +160,22 @@
    colat=atan(sqrt(xcoord**2+ycoord**2)/zcoord)
    lat=(PI/2)-colat
 
-!PB CALCULATE THE DISTANCE BETWEEN CENTER OF NOISE REGION AND EACH
-! POINT OF THE MODEL'S FREE SURFACE  !PB dsigma IS THE "3D" ANGLE BETWEEN
-! THE TWO POINTS, THEN d = R*dsigma
+  !PB CALCULATE THE DISTANCE BETWEEN CENTER OF NOISE REGION AND EACH
+  ! POINT OF THE MODEL'S FREE SURFACE  !PB dsigma IS THE "3D" ANGLE BETWEEN
+  ! THE TWO POINTS, THEN d = R*dsigma
   dsigma=acos(sin(lon)*sin(lon_cn)+cos(lon)*cos(lon_cn)*cos(lat-lat_cn))
   d=sqrt(xcoord**2+ycoord**2+zcoord**2)*dsigma
 
-!PB IF YOU WANT TO USE A NONUNIFORM DISTRIBUTION OF NOISE IN THE EXAMPLE
-!PROVIDED WITH THE CODE, THEN UNCOMMENT THE FOLLOWING LINES (before definition
-!of dmax)
+  !PB IF YOU WANT TO USE A NONUNIFORM DISTRIBUTION OF NOISE IN THE EXAMPLE
+  !PROVIDED WITH THE CODE, THEN UNCOMMENT THE FOLLOWING LINES (before definition
+  !of dmax)
 
-!  xcoord_center = 30000
-!  ycoord_center = 30000
-!  d = sqrt((xcoord_center-xcoord)**2+(ycoord_center-ycoord)**2)
+  !  xcoord_center = 30000
+  !  ycoord_center = 30000
+  !  d = sqrt((xcoord_center-xcoord)**2+(ycoord_center-ycoord)**2)
 
-!PB NOTE THAT d IS EXPRESSED IN METERS REMEBER THAT WHEN YOU SET THE PARAMETER dmax
-!PB dmax IS THE RADIUS OF THE AREA IN WHICH masc_noise_out IS 1 (NOISE IS DEFINED)
+  !PB NOTE THAT d IS EXPRESSED IN METERS REMEBER THAT WHEN YOU SET THE PARAMETER dmax
+  !PB dmax IS THE RADIUS OF THE AREA IN WHICH masc_noise_out IS 1 (NOISE IS DEFINED)
 
   dmax = 300000
 
@@ -145,19 +194,24 @@
   normal_z_noise_out = 1.0
   !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!  noise distribution
   !!!!! here, the noise is assumed to be uniform
-!  mask_noise_out = 1.0
+  !  mask_noise_out = 1.0
 
-!HERE IS NOT UNIFORM
- if (d <= dmax) then
+  !HERE IS NOT UNIFORM
+  if (d <= dmax) then
   mask_noise_out = 1.0
- else
+  else
   mask_noise_out = 0.0
- endif
+  endif
 
   !******************************** change your noise characteristics above ****************************************
   !*****************************************************************************************************************
 
   end subroutine noise_distribution_dir_non_uni
+
+  
+end module user_noise_distribution
+
+
 
 ! =============================================================================================================
 ! =============================================================================================================
@@ -173,6 +227,7 @@
                                    NSPEC_AB_VAL,NGLOB_AB_VAL, &
                                    num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
                                    ispec_is_acoustic)
+  use user_noise_distribution
   implicit none
   include "constants.h"
   ! input parameters
@@ -210,11 +265,10 @@
   character(len=256) :: filename
 
   ! read master receiver ID -- the ID in "STATIONS"
-  filename = trim(OUTPUT_FILES_PATH)//'/../NOISE_TOMOGRAPHY/irec_master_noise'
+  filename = trim(OUTPUT_FILES_PATH)//'/..//NOISE_TOMOGRAPHY/irec_master_noise'
   open(unit=IIN_NOISE,file=trim(filename),status='old',action='read',iostat=ios)
   if( ios /= 0 ) &
     call exit_MPI(myrank, 'file '//trim(filename)//' does NOT exist! This file contains the ID of the master receiver')
-
   read(IIN_NOISE,*,iostat=ios) irec_master_noise
   if( ios /= 0 ) call exit_MPI(myrank,'error reading file irec_master_noise')
   close(IIN_NOISE)
@@ -267,20 +321,13 @@
 
         ipoin = ipoin + 1
         iglob = ibool(i,j,k,ispec)
-        ! this subroutine must be modified by USERS
-
-        ! DEFAULT
-        ! call noise_distribution_direction(xstore(iglob), &
-        !           ystore(iglob),zstore(iglob), &
-        !           normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
-        !           mask_noise_out)
-
-        ! Setup for NOISE_TOMOGRAPHY by Piero Basini
-        call noise_distribution_dir_non_uni(xstore(iglob), &
-             ystore(iglob),zstore(iglob), &
-             normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
-             mask_noise_out)
-
+        
+        ! this subroutine must be modified by USERS in module user_noise_distribution
+        call noise_distribution_direction(xstore(iglob), &
+                                          ystore(iglob),zstore(iglob), &
+                                          normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
+                                          mask_noise_out)        
+        
         normal_x_noise(ipoin) = normal_x_noise_out
         normal_y_noise(ipoin) = normal_y_noise_out
         normal_z_noise(ipoin) = normal_z_noise_out
@@ -477,7 +524,7 @@
 
 
   ! master receiver component direction, \nu_master
-  filename = trim(OUTPUT_FILES_PATH)//'/../NOISE_TOMOGRAPHY/nu_master'
+  filename = trim(OUTPUT_FILES_PATH)//'/..//NOISE_TOMOGRAPHY/nu_master'
   open(unit=IIN_NOISE,file=trim(filename),status='old',action='read',iostat=ios)
   if( ios /= 0 .and. myrank == 0 ) &
     call exit_MPI(myrank,&
@@ -606,30 +653,35 @@
   real(kind=CUSTOM_REAL),dimension(NDIM,NGLLSQUARE,num_free_surface_faces) :: noise_surface_movie
   integer(kind=8) :: Mesh_pointer
   logical :: GPU_MODE
+  
+  ! writes out wavefield at surface
+  if( num_free_surface_faces > 0 ) then
 
-  if(.NOT. GPU_MODE) then
-     ! loops over surface points
-     ! get coordinates of surface mesh and surface displacement
-     do iface = 1, num_free_surface_faces
+    if(.NOT. GPU_MODE) then
+       ! loops over surface points
+       ! get coordinates of surface mesh and surface displacement
+       do iface = 1, num_free_surface_faces
 
-        ispec = free_surface_ispec(iface)
+          ispec = free_surface_ispec(iface)
 
-        do igll = 1, NGLLSQUARE
-           i = free_surface_ijk(1,igll,iface)
-           j = free_surface_ijk(2,igll,iface)
-           k = free_surface_ijk(3,igll,iface)
+          do igll = 1, NGLLSQUARE
+             i = free_surface_ijk(1,igll,iface)
+             j = free_surface_ijk(2,igll,iface)
+             k = free_surface_ijk(3,igll,iface)
 
-           iglob = ibool(i,j,k,ispec)
-           noise_surface_movie(:,igll,iface) = displ(:,iglob)
-        enddo
-     enddo
-  ! TODO: Check if transfer_surface_to_hose is compatible with newer version above
-  else ! GPU_MODE == 1
-     call transfer_surface_to_host(Mesh_pointer, noise_surface_movie, num_free_surface_faces)
+             iglob = ibool(i,j,k,ispec)
+             noise_surface_movie(:,igll,iface) = displ(:,iglob)
+          enddo
+       enddo
+    ! TODO: Check if transfer_surface_to_hose is compatible with newer version above
+    else ! GPU_MODE == 1
+       call transfer_surface_to_host(Mesh_pointer, noise_surface_movie, num_free_surface_faces)
+    endif
+
+    ! save surface motion to disk
+    call write_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
+
   endif
-
-  ! save surface motion to disk
-  call write_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
 
   end subroutine noise_save_surface_movie
 
@@ -650,7 +702,8 @@
                   it, &
                   NSPEC_AB_VAL,NGLOB_AB_VAL, &
                   num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
-                  free_surface_jacobian2Dw,Mesh_pointer,GPU_MODE,NOISE_TOMOGRAPHY)
+                  free_surface_jacobian2Dw, &
+                  Mesh_pointer,GPU_MODE,NOISE_TOMOGRAPHY)
   implicit none
   include "constants.h"
   ! input parameters
@@ -683,46 +736,51 @@
   logical :: GPU_MODE
   integer :: NOISE_TOMOGRAPHY
 
-  ! read surface movie
-  call read_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
+  ! reads in ensemble noise sources at surface
+  if( num_free_surface_faces > 0 ) then
 
-  if(GPU_MODE) then
-     call noise_read_add_surface_movie_cu(Mesh_pointer, noise_surface_movie,&
-                                          num_free_surface_faces,NOISE_TOMOGRAPHY)
-  else ! GPU_MODE==0
+    ! read surface movie
+    call read_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
 
-     ! get coordinates of surface mesh and surface displacement
-     ipoin = 0
+    if(GPU_MODE) then
+       call noise_read_add_surface_movie_cu(Mesh_pointer, noise_surface_movie,&
+                                            num_free_surface_faces,NOISE_TOMOGRAPHY)
+    else ! GPU_MODE==0
 
-     ! loops over surface points
-     ! puts noise distrubution and direction onto the surface points
-     do iface = 1, num_free_surface_faces
+       ! get coordinates of surface mesh and surface displacement
+       ipoin = 0
 
-        ispec = free_surface_ispec(iface)
+       ! loops over surface points
+       ! puts noise distrubution and direction onto the surface points
+       do iface = 1, num_free_surface_faces
 
-        do igll = 1, NGLLSQUARE
-           i = free_surface_ijk(1,igll,iface)
-           j = free_surface_ijk(2,igll,iface)
-           k = free_surface_ijk(3,igll,iface)
+          ispec = free_surface_ispec(iface)
 
-           ipoin = ipoin + 1
-           iglob = ibool(i,j,k,ispec)
+          do igll = 1, NGLLSQUARE
+             i = free_surface_ijk(1,igll,iface)
+             j = free_surface_ijk(2,igll,iface)
+             k = free_surface_ijk(3,igll,iface)
 
-           eta = noise_surface_movie(1,igll,iface) * normal_x_noise(ipoin) + &
-                noise_surface_movie(2,igll,iface) * normal_y_noise(ipoin) + &
-                noise_surface_movie(3,igll,iface) * normal_z_noise(ipoin)
+             ipoin = ipoin + 1
+             iglob = ibool(i,j,k,ispec)
 
-           accel(1,iglob) = accel(1,iglob) + eta * mask_noise(ipoin) * normal_x_noise(ipoin) &
-                * free_surface_jacobian2Dw(igll,iface)
-           accel(2,iglob) = accel(2,iglob) + eta * mask_noise(ipoin) * normal_y_noise(ipoin) &
-                * free_surface_jacobian2Dw(igll,iface)
-           accel(3,iglob) = accel(3,iglob) + eta * mask_noise(ipoin) * normal_z_noise(ipoin) &
-                * free_surface_jacobian2Dw(igll,iface) ! wgllwgll_xy(i,j) * jacobian2D_top(i,j,iface)
-        enddo
+             eta = noise_surface_movie(1,igll,iface) * normal_x_noise(ipoin) + &
+                  noise_surface_movie(2,igll,iface) * normal_y_noise(ipoin) + &
+                  noise_surface_movie(3,igll,iface) * normal_z_noise(ipoin)
 
-     enddo
-  endif ! GPU_MODE
+             accel(1,iglob) = accel(1,iglob) + eta * mask_noise(ipoin) * normal_x_noise(ipoin) &
+                  * free_surface_jacobian2Dw(igll,iface)
+             accel(2,iglob) = accel(2,iglob) + eta * mask_noise(ipoin) * normal_y_noise(ipoin) &
+                  * free_surface_jacobian2Dw(igll,iface)
+             accel(3,iglob) = accel(3,iglob) + eta * mask_noise(ipoin) * normal_z_noise(ipoin) &
+                  * free_surface_jacobian2Dw(igll,iface) ! wgllwgll_xy(i,j) * jacobian2D_top(i,j,iface)
+          enddo
 
+       enddo
+    endif ! GPU_MODE
+
+  endif
+  
   end subroutine noise_read_add_surface_movie
 
 
@@ -737,7 +795,8 @@
                           normal_x_noise,normal_y_noise,normal_z_noise, &
                           noise_surface_movie, &
                           NSPEC_AB_VAL,NGLOB_AB_VAL, &
-                          num_free_surface_faces,free_surface_ispec,free_surface_ijk,GPU_MODE,Mesh_pointer)
+                          num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
+                          GPU_MODE,Mesh_pointer)
   implicit none
   include "constants.h"
   ! input parameters
@@ -771,45 +830,50 @@
   integer(kind=8) :: Mesh_pointer
   logical :: GPU_MODE
 
-  ! read surface movie, needed for Sigma_kl
-  call read_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
+  ! updates contribution to noise strength kernel
+  if( num_free_surface_faces > 0 ) then
 
-  if(.NOT. GPU_MODE) then
+    ! read surface movie, needed for Sigma_kl
+    call read_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
 
-     ! noise source strength kernel
-     ! to keep similar structure to other kernels, the source strength kernel is saved as a volumetric kernel
-     ! but only updated at the surface, because the noise is generated there
-     ipoin = 0
+    if(.NOT. GPU_MODE) then
 
-     ! loops over surface points
-     ! puts noise distrubution and direction onto the surface points
-     do iface = 1, num_free_surface_faces
+       ! noise source strength kernel
+       ! to keep similar structure to other kernels, the source strength kernel is saved as a volumetric kernel
+       ! but only updated at the surface, because the noise is generated there
+       ipoin = 0
 
-        ispec = free_surface_ispec(iface)
+       ! loops over surface points
+       ! puts noise distrubution and direction onto the surface points
+       do iface = 1, num_free_surface_faces
 
-        do igll = 1, NGLLSQUARE
-           i = free_surface_ijk(1,igll,iface)
-           j = free_surface_ijk(2,igll,iface)
-           k = free_surface_ijk(3,igll,iface)
+          ispec = free_surface_ispec(iface)
 
-           ipoin = ipoin + 1
-           iglob = ibool(i,j,k,ispec)
+          do igll = 1, NGLLSQUARE
+             i = free_surface_ijk(1,igll,iface)
+             j = free_surface_ijk(2,igll,iface)
+             k = free_surface_ijk(3,igll,iface)
 
-           eta = noise_surface_movie(1,igll,iface) * normal_x_noise(ipoin) + &
-                noise_surface_movie(2,igll,iface) * normal_y_noise(ipoin) + &
-                noise_surface_movie(3,igll,iface) * normal_z_noise(ipoin)
+             ipoin = ipoin + 1
+             iglob = ibool(i,j,k,ispec)
 
-           Sigma_kl(i,j,k,ispec) =  Sigma_kl(i,j,k,ispec) &
-                + deltat * eta * ( normal_x_noise(ipoin) * displ(1,iglob) &
-                + normal_y_noise(ipoin) * displ(2,iglob) &
-                + normal_z_noise(ipoin) * displ(3,iglob) )
-        enddo
+             eta = noise_surface_movie(1,igll,iface) * normal_x_noise(ipoin) + &
+                  noise_surface_movie(2,igll,iface) * normal_y_noise(ipoin) + &
+                  noise_surface_movie(3,igll,iface) * normal_z_noise(ipoin)
 
-     enddo
+             Sigma_kl(i,j,k,ispec) =  Sigma_kl(i,j,k,ispec) &
+                  + deltat * eta * ( normal_x_noise(ipoin) * displ(1,iglob) &
+                  + normal_y_noise(ipoin) * displ(2,iglob) &
+                  + normal_z_noise(ipoin) * displ(3,iglob) )
+          enddo
 
-  else ! GPU_MODE==1
-     call compute_kernels_strgth_noise_cu(Mesh_pointer, noise_surface_movie,num_free_surface_faces,deltat)
-  endif ! GPU_MODE
+       enddo
+
+    else ! GPU_MODE==1
+       call compute_kernels_strgth_noise_cu(Mesh_pointer, noise_surface_movie,num_free_surface_faces,deltat)
+    endif ! GPU_MODE
+
+  endif
 
   end subroutine compute_kernels_strength_noise
 

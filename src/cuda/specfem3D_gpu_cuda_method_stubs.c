@@ -391,8 +391,6 @@ void FC_FUNC_(prepare_fields_acoustic_device,
 void FC_FUNC_(prepare_fields_acoustic_adj_dev,
               PREPARE_FIELDS_ACOUSTIC_ADJ_DEV)(long* Mesh_pointer_f,
                                                int* SIMULATION_TYPE,
-                                               float* rho_ac_kl,
-                                               float* kappa_ac_kl,
                                                int* APPROXIMATE_HESS_KL) {}                                              
 void FC_FUNC_(prepare_fields_elastic_device,
               PREPARE_FIELDS_ELASTIC_DEVICE)(long* Mesh_pointer_f,
@@ -421,15 +419,13 @@ void FC_FUNC_(prepare_fields_elastic_device,
                                              float* free_surface_normal,
                                              int* free_surface_ispec,
                                              int* free_surface_ijk,                                             
-                                             int* num_free_surface_faces){}
+                                             int* num_free_surface_faces,
+                                             int* ACOUSTIC_SIMULATION){}
   
 void FC_FUNC_(prepare_fields_elastic_adj_dev,
               PREPARE_FIELDS_ELASTIC_ADJ_DEV)(long* Mesh_pointer_f,
                                               int* size,
                                               int* SIMULATION_TYPE,
-                                              float* rho_kl,
-                                              float* mu_kl,
-                                              float* kappa_kl,
                                               int* COMPUTE_AND_STORE_STRAIN,
                                               float* epsilon_trace_over_3,                                             
                                               float* b_epsilondev_xx,float* b_epsilondev_yy,float* b_epsilondev_xy,
@@ -456,9 +452,7 @@ void FC_FUNC_(prepare_fields_noise_device,
                                            float* normal_y_noise,
                                            float* normal_z_noise,
                                            float* mask_noise,
-                                           float* free_surface_jacobian2Dw,
-                                           float* Sigma_kl
-                                           ){}
+                                           float* free_surface_jacobian2Dw){}
 
 void FC_FUNC_(prepare_cleanup_device,
               PREPARE_CLEANUP_DEVICE)(long* Mesh_pointer_f,

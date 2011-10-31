@@ -172,7 +172,7 @@
     ! cycles to next file (this might be more error prone)
     !if (ios /= 0) cycle
     ! requires adjoint files to exist (users will have to be more careful in setting up adjoint runs)
-    if (ios /= 0) call exit_MPI(myrank, ' file '//trim(filename)//'does not exist')
+    if (ios /= 0) call exit_MPI(myrank, ' file '//trim(filename)//' does not exist - required for adjoint runs')
 
     ! reads in adjoint source trace
     !! skip unused blocks

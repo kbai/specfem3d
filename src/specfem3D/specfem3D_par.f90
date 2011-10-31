@@ -198,10 +198,6 @@ module specfem_par
 ! MPI partition surfaces
   logical, dimension(:), allocatable :: ispec_is_inner
 
-! maximum of the norm of the displacement
-  real(kind=CUSTOM_REAL) Usolidnorm,Usolidnorm_all
-  integer:: Usolidnorm_index(1)
-
 ! maximum speed in velocity model
   real(kind=CUSTOM_REAL):: model_speed_max
 
@@ -241,9 +237,6 @@ module specfem_par
 
   ! adjoint elements
   integer :: NSPEC_ADJOINT, NGLOB_ADJOINT
-
-  ! norm of the backward displacement
-   real(kind=CUSTOM_REAL) b_Usolidnorm, b_Usolidnorm_all
 
   ! length of reading blocks
   integer :: NTSTEP_BETWEEN_READ_ADJSRC

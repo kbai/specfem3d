@@ -326,6 +326,7 @@
   real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: one_seismogram
   integer :: nrec_local_received,NPROCTOT,total_seismos,receiver,sender
   integer :: iproc,ier
+  integer,dimension(1) :: tmp_nrec_local_received,tmp_irec,tmp_nrec_local
 
   ! saves displacement, velocity or acceleration
   if(istore == 1) then
@@ -378,7 +379,8 @@
         ! receive except from proc 0, which is me and therefore I already have this value
         sender = iproc
         if(iproc /= 0) then
-          call recv_i(nrec_local_received,1,sender,itag)
+          call recv_i(tmp_nrec_local_received,1,sender,itag)
+          nrec_local_received = tmp_nrec_local_received(1)
           if(nrec_local_received < 0) call exit_MPI(myrank,'error while receiving local number of receivers')
         else
           nrec_local_received = nrec_local
@@ -392,7 +394,8 @@
               irec = number_receiver_global(irec_local)
               one_seismogram(:,:) = seismograms(:,irec_local,:)
             else
-              call recv_i(irec,1,sender,itag)
+              call recv_i(tmp_irec,1,sender,itag)
+              irec = tmp_irec(1)
               if(irec < 1 .or. irec > nrec) call exit_MPI(myrank,'error while receiving global receiver number')
 
               call recvv_cr(one_seismogram,NDIM*NSTEP,sender,itag)
@@ -421,12 +424,14 @@
 
     else  ! on the nodes, send the seismograms to the master
        receiver = 0
-       call send_i(nrec_local,1,receiver,itag)
+       tmp_nrec_local(1) = nrec_local
+       call send_i(tmp_nrec_local,1,receiver,itag)
        if (nrec_local > 0) then
          do irec_local = 1,nrec_local
            ! get global number of that receiver
            irec = number_receiver_global(irec_local)
-           call send_i(irec,1,receiver,itag)
+           tmp_irec(1) = irec
+           call send_i(tmp_irec,1,receiver,itag)
 
            ! sends seismogram of that receiver
            one_seismogram(:,:) = seismograms(:,irec_local,:)
@@ -799,8 +804,7 @@ subroutine band_instrument_code(DT,bic)
  implicit none
 
  character(len=256) procname,final_LOCAL_PATH
- integer :: irec_local,irec,ios
- real :: x_station,y_station
+ integer :: irec_local,irec 
 
  ! headers
  integer,parameter :: nheader=240      ! 240 bytes
@@ -809,7 +813,6 @@ subroutine band_instrument_code(DT,bic)
  real(kind=4)    :: r4head(nheader/4)  ! 4-byte-real
  equivalence (i2head,i4head,r4head)    ! share the same 240-byte-memory
 
- double precision, allocatable, dimension(:) :: stlat,stlon,stele,stbur,stutm_x,stutm_y,elevation
  double precision, allocatable, dimension(:) :: x_found,y_found,z_found
  double precision :: x_found_source,y_found_source,z_found_source
 

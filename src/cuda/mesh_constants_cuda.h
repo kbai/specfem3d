@@ -89,7 +89,7 @@
 
 #define INDEX4_PADDED(xsize,ysize,zsize,x,y,z,i) x + (y)*xsize + (z)*xsize*ysize + (i)*128
 
-//daniel: check speed of alternatives
+//daniel: TODO check speed of alternatives
 //#define INDEX2(xsize,x,y) x + (y)*xsize
 //#define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
 //#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))

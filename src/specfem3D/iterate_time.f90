@@ -149,6 +149,12 @@
              ihours_remain,iminutes_remain,iseconds_remain,int_t_remain, &
              ihours_total,iminutes_total,iseconds_total,int_t_total
 
+  ! maximum of the norm of the displacement
+  real(kind=CUSTOM_REAL) Usolidnorm,Usolidnorm_all
+  ! norm of the backward displacement
+  real(kind=CUSTOM_REAL) b_Usolidnorm, b_Usolidnorm_all
+  !integer:: Usolidnorm_index(1)
+
 !  if(GPU_MODE) then
 !    ! way 1: copy whole fields
 !    ! elastic wavefield
@@ -202,7 +208,7 @@
       endif
     endif
     call max_all_cr(b_Usolidnorm,b_Usolidnorm_all)
-   endif
+  endif
 
 ! user output
   if(myrank == 0) then

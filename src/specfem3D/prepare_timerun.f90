@@ -797,7 +797,7 @@
 
     if( SIMULATION_TYPE == 3 ) &
       call prepare_fields_acoustic_adj_dev(Mesh_pointer, &
-                                  SIMULATION_TYPE,rho_ac_kl,kappa_ac_kl, &
+                                  SIMULATION_TYPE, &
                                   APPROXIMATE_HESS_KL)
 
   endif
@@ -821,12 +821,12 @@
                                   OCEANS,rmass_ocean_load, &
                                   NOISE_TOMOGRAPHY, &
                                   free_surface_normal,free_surface_ispec,free_surface_ijk, &
-                                  num_free_surface_faces)
+                                  num_free_surface_faces, &
+                                  ACOUSTIC_SIMULATION)
 
     if( SIMULATION_TYPE == 3 ) &
       call prepare_fields_elastic_adj_dev(Mesh_pointer, NDIM*NGLOB_AB, &
                                   SIMULATION_TYPE, &
-                                  rho_kl,mu_kl,kappa_kl, &
                                   COMPUTE_AND_STORE_STRAIN, &
                                   epsilon_trace_over_3, &
                                   b_epsilondev_xx,b_epsilondev_yy,b_epsilondev_xy, &
@@ -856,8 +856,7 @@
                                   SIMULATION_TYPE,NOISE_TOMOGRAPHY, &
                                   NSTEP,noise_sourcearray, &
                                   normal_x_noise,normal_y_noise,normal_z_noise, &
-                                  mask_noise,free_surface_jacobian2Dw, &
-                                  Sigma_kl)
+                                  mask_noise,free_surface_jacobian2Dw)
 
   endif ! NOISE_TOMOGRAPHY
 

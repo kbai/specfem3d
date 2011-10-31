@@ -804,7 +804,7 @@ subroutine band_instrument_code(DT,bic)
  implicit none
 
  character(len=256) procname,final_LOCAL_PATH
- integer :: irec_local,irec 
+ integer :: irec_local,irec
 
  ! headers
  integer,parameter :: nheader=240      ! 240 bytes

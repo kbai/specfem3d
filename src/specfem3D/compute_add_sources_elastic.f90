@@ -238,29 +238,32 @@
 ! adjoint simulations
   if (SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3) then
 
-     ! read in adjoint sources block by block (for memory consideration)
-     ! e.g., in exploration experiments, both the number of receivers (nrec) and
-     ! the number of time steps (NSTEP) are huge,
-     ! which may cause problems since we have a large array:
-     !   adj_sourcearrays(nadj_rec_local,NSTEP,NDIM,NGLLX,NGLLY,NGLLZ)
+    ! adds adjoint source in this partitions
+    if( nadj_rec_local > 0 ) then
 
-     ! figure out if we need to read in a chunk of the adjoint source at this timestep
-     it_sub_adj = ceiling( dble(it)/dble(NTSTEP_BETWEEN_READ_ADJSRC) )   !chunk_number
-     ibool_read_adj_arrays = (((mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC) == 0)) .and. (nadj_rec_local > 0))
+      ! read in adjoint sources block by block (for memory consideration)
+      ! e.g., in exploration experiments, both the number of receivers (nrec) and
+      ! the number of time steps (NSTEP) are huge,
+      ! which may cause problems since we have a large array:
+      !   adj_sourcearrays(nadj_rec_local,NSTEP,NDIM,NGLLX,NGLLY,NGLLZ)
 
-     ! needs to read in a new chunk/block of the adjoint source
-     ! note that for each partition, we divide it into two parts --- boundaries and interior --- indicated by 'phase_is_inner'
-     ! we first do calculations for the boudaries, and then start communication
-     ! with other partitions while calculate for the inner part
-     ! this must be done carefully, otherwise the adjoint sources may be added twice
-     if (ibool_read_adj_arrays .and. (.not. phase_is_inner)) then
+      ! figure out if we need to read in a chunk of the adjoint source at this timestep
+      it_sub_adj = ceiling( dble(it)/dble(NTSTEP_BETWEEN_READ_ADJSRC) )   !chunk_number
+      ibool_read_adj_arrays = (((mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC) == 0)) .and. (nadj_rec_local > 0))
+
+      ! needs to read in a new chunk/block of the adjoint source
+      ! note that for each partition, we divide it into two parts --- boundaries and interior --- indicated by 'phase_is_inner'
+      ! we first do calculations for the boudaries, and then start communication
+      ! with other partitions while calculate for the inner part
+      ! this must be done carefully, otherwise the adjoint sources may be added twice
+      if (ibool_read_adj_arrays .and. (.not. phase_is_inner)) then
 
         ! allocates temporary source array
         allocate(adj_sourcearray(NTSTEP_BETWEEN_READ_ADJSRC,NDIM,NGLLX,NGLLY,NGLLZ),stat=ier)
         if( ier /= 0 ) stop 'error allocating array adj_sourcearray'
 
         if (.not. SU_FORMAT) then
-!!! read ascii adjoint sources
+      !!! read ascii adjoint sources
            irec_local = 0
            do irec = 1, nrec
               ! compute source arrays
@@ -279,7 +282,7 @@
               endif
            enddo
         else
-!!! read SU adjoint sources
+      !!! read SU adjoint sources
            ! range of the block we need to read
            it_start = NSTEP - it_sub_adj*NTSTEP_BETWEEN_READ_ADJSRC + 1
            it_end   = it_start + NTSTEP_BETWEEN_READ_ADJSRC - 1
@@ -322,49 +325,53 @@
 
         deallocate(adj_sourcearray)
 
-     endif ! if(ibool_read_adj_arrays)
+      endif ! if(ibool_read_adj_arrays)
 
-     if( it < NSTEP ) then
+      if( it < NSTEP ) then
 
         if(.NOT. GPU_MODE) then
 
-           ! receivers act as sources
-           irec_local = 0
-           do irec = 1,nrec
+          ! receivers act as sources
+          irec_local = 0
+          do irec = 1,nrec
 
-              ! add the source (only if this proc carries the source)
-              if (myrank == islice_selected_rec(irec)) then
-                 irec_local = irec_local + 1
+            ! add the source (only if this proc carries the source)
+            if (myrank == islice_selected_rec(irec)) then
+              irec_local = irec_local + 1
 
-                 ! checks if element is in phase_is_inner run
-                 if (ispec_is_inner(ispec_selected_rec(irec)) .eqv. phase_is_inner) then
+              ispec = ispec_selected_rec(irec)
+              if( ispec_is_elastic(ispec) ) then
 
-                    ! adds source array
-                    do k = 1,NGLLZ
-                       do j = 1,NGLLY
-                          do i = 1,NGLLX
-                             iglob = ibool(i,j,k,ispec_selected_rec(irec))
+                ! checks if element is in phase_is_inner run
+                if (ispec_is_inner(ispec_selected_rec(irec)) .eqv. phase_is_inner) then
 
-                             accel(:,iglob) = accel(:,iglob)  &
+                  ! adds source array
+                  do k = 1,NGLLZ
+                    do j = 1,NGLLY
+                      do i = 1,NGLLX
+                        iglob = ibool(i,j,k,ispec_selected_rec(irec))
+
+                        accel(:,iglob) = accel(:,iglob)  &
                                   + adj_sourcearrays(irec_local, &
                                   NTSTEP_BETWEEN_READ_ADJSRC - mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC), &
                                   :,i,j,k)
-                          enddo
-                       enddo
+                      enddo
                     enddo
-
-                 endif ! phase_is_inner
-              endif
-           enddo ! nrec
+                  enddo
+                endif ! phase_is_inner
+              endif ! ispec_is_elastic
+            endif
+          enddo ! nrec
         else ! GPU_MODE == .true.
-           call add_sources_sim_type_2_or_3(Mesh_pointer, adj_sourcearrays, &
-                                          size(adj_sourcearrays), ispec_is_inner,&
-                                          phase_is_inner, ispec_selected_rec,ibool,myrank, nrec, &
-                                          NTSTEP_BETWEEN_READ_ADJSRC - mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC),&
-                                          islice_selected_rec, nadj_rec_local, NTSTEP_BETWEEN_READ_ADJSRC)
+           call add_sources_el_sim_type_2_or_3(Mesh_pointer,adj_sourcearrays,phase_is_inner, &
+                                            ispec_is_inner,ispec_is_elastic, &
+                                            ispec_selected_rec,myrank,nrec, &
+                                            NTSTEP_BETWEEN_READ_ADJSRC - mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC), &
+                                            islice_selected_rec,nadj_rec_local, &
+                                            NTSTEP_BETWEEN_READ_ADJSRC)
         endif ! GPU_MODE
-     endif ! it
-
+      endif ! it
+    endif ! nadj_rec_local
   endif !adjoint
 
 ! note:  b_displ() is read in after Newark time scheme, thus

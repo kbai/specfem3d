@@ -90,6 +90,7 @@ subroutine check_mesh_quality(myrank,VP_MAX,NPOIN,NSPEC,x,y,z,ibool)
   !logical :: USE_OPENDX
 
   !character(len=256):: line
+  integer,dimension(1) :: tmp_ispec_max_skewness,tmp_ispec_max_skewness_MPI
 
 
   if (myrank == 0) then
@@ -167,7 +168,8 @@ subroutine check_mesh_quality(myrank,VP_MAX,NPOIN,NSPEC,x,y,z,ibool)
 
 
   if((myrank == skewness_max_rank) .and. (myrank /= 0)) then
-     call send_i_t(ispec_max_skewness,1,0)
+     tmp_ispec_max_skewness(1) = ispec_max_skewness
+     call send_i_t(tmp_ispec_max_skewness,1,0)
   end if
 
 
@@ -175,7 +177,8 @@ subroutine check_mesh_quality(myrank,VP_MAX,NPOIN,NSPEC,x,y,z,ibool)
 
 
      if(skewness_max_rank /= myrank) then
-        call recv_i_t(ispec_max_skewness_MPI,1,skewness_max_rank)
+        call recv_i_t(tmp_ispec_max_skewness_MPI,1,skewness_max_rank)
+        ispec_max_skewness_MPI = tmp_ispec_max_skewness_MPI(1)
      else
         ispec_max_skewness_MPI = ispec_max_skewness
      end if

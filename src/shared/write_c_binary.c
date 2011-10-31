@@ -137,7 +137,7 @@ void open_file_abs_r_fbin(int *fid, char *filename,int *length, long long *files
   }
 
 /*
-//daniel: debug checks file size
+//debug checks file size
 // see: 
 //https://www.securecoding.cert.org/confluence/display/seccode/FIO19-C.+Do+not+use+fseek()+and+ftell()+to+compute+the+size+of+a+file
   printf("file size: %lld \n",*filesize);
@@ -253,7 +253,7 @@ void write_abs_fbin(int *fid, char *buffer, int *length, int *index){
   ret = 0;
 
 /*
-//daniel: debug
+//debug
   float dat[*length/4];
   memcpy(dat,buffer,*length);
   printf("buffer length: %d %d\n",*length,*index);
@@ -295,10 +295,8 @@ void write_abs_fbin(int *fid, char *buffer, int *length, int *index){
     }
   }
 
-//daniel: debug
-//  printf("buffer done length: %d %d\n",donelen,*length);
-  
-
+  //debug
+  //  printf("buffer done length: %d %d\n",donelen,*length);
 }
 
 //void
@@ -355,7 +353,7 @@ void read_abs_fbin(int *fid, char *buffer, int *length, int *index){
   }
 
 /*
-//daniel: debug
+// debug
   printf("position: %lld %d %d \n",pos,*length,*index);
   printf("buffer done length: %d %d\n",donelen,*length);
   float dat[*length/4];
@@ -367,7 +365,6 @@ void read_abs_fbin(int *fid, char *buffer, int *length, int *index){
     printf("return buffer: %d %e \n",i,dat[i]);
   }
 */
-  
 }
 
 
@@ -428,7 +425,7 @@ void open_file_abs_w_map(int *fid, char *filename, int *length, long long *files
   }
 
   /*
-   // daniel: debug check filesize below or above 2 GB
+   // debug check filesize below or above 2 GB
    //            filesize gives bytes needed; 4-byte integer limited to +- 2,147,483,648 bytes ~ 2 GB
    float s = *filesize / 1024. / 1024. / 1024.;
    if( s > 2.0 ){

@@ -323,7 +323,7 @@
 ! locate inner and outer elements
   call rmd_setup_inner_outer_elemnts()
 
-!daniel: todo mesh coloring
+!daniel: TODO -- mesh coloring
 !  call rmd_setup_color_perm()
 
 ! gets model dimensions
@@ -513,7 +513,7 @@
 !-------------------------------------------------------------------------------------------------
 !
 
-!daniel: todo mesh coloring
+!daniel: TODO -- mesh coloring
   subroutine rmd_setup_color_perm()
 
   use specfem_par
@@ -697,7 +697,7 @@
 
   ! sorts array according to permutation
   ! SORT_MESH_INNER_OUTER
-!daniel
+!daniel: TODO -- mesh permutation
   if( .false. ) then
 
     ! permutation of ibool

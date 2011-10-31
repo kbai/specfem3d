@@ -40,31 +40,6 @@
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void transfer_surface_to_host_kernel(int* free_surface_ispec,int* free_surface_ijk,
-                                                int num_free_surface_faces, int* ibool,
-                                                realw* displ, realw* noise_surface_movie) {
-  int igll = threadIdx.x;
-  int iface = blockIdx.x + blockIdx.y*gridDim.x;
-
-  // int id = tx + blockIdx.x*blockDim.x + blockIdx.y*blockDim.x*gridDim.x;
-
-  if(iface < num_free_surface_faces) {
-    int ispec = free_surface_ispec[iface]-1; //-1 for C-based indexing
-
-    int i = free_surface_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)]-1;
-    int j = free_surface_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)]-1;
-    int k = free_surface_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)]-1;
-
-    int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)]-1;
-
-    noise_surface_movie[INDEX3(NDIM,NGLL2,0,igll,iface)] = displ[iglob*3];
-    noise_surface_movie[INDEX3(NDIM,NGLL2,1,igll,iface)] = displ[iglob*3+1];
-    noise_surface_movie[INDEX3(NDIM,NGLL2,2,igll,iface)] = displ[iglob*3+2];
-  }
-}
-
-/* ----------------------------------------------------------------------------------------------- */
-
 extern "C"
 void FC_FUNC_(fortranflush,FORTRANFLUSH)(int* rank){
 TRACE("fortranflush");
@@ -124,15 +99,43 @@ TRACE("make_displ_rand");
 
 /* ----------------------------------------------------------------------------------------------- */
 
+__global__ void transfer_surface_to_host_kernel(int* free_surface_ispec,
+                                                int* free_surface_ijk,
+                                                int num_free_surface_faces,
+                                                int* ibool,
+                                                realw* displ,
+                                                realw* noise_surface_movie) {
+  int igll = threadIdx.x;
+  int iface = blockIdx.x + blockIdx.y*gridDim.x;
+
+  // int id = tx + blockIdx.x*blockDim.x + blockIdx.y*blockDim.x*gridDim.x;
+
+  if(iface < num_free_surface_faces) {
+    int ispec = free_surface_ispec[iface]-1; //-1 for C-based indexing
+
+    int i = free_surface_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)]-1;
+    int j = free_surface_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)]-1;
+    int k = free_surface_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)]-1;
+
+    int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)]-1;
+
+    noise_surface_movie[INDEX3(NDIM,NGLL2,0,igll,iface)] = displ[iglob*3];
+    noise_surface_movie[INDEX3(NDIM,NGLL2,1,igll,iface)] = displ[iglob*3+1];
+    noise_surface_movie[INDEX3(NDIM,NGLL2,2,igll,iface)] = displ[iglob*3+2];
+  }
+}
+
+/* ----------------------------------------------------------------------------------------------- */
+
 extern "C"
 void FC_FUNC_(transfer_surface_to_host,
               TRANSFER_SURFACE_TO_HOST)(long* Mesh_pointer_f,
-                                        realw* h_noise_surface_movie,
-                                        int* num_free_surface_faces) {
+                                        realw* h_noise_surface_movie) {
 TRACE("transfer_surface_to_host");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper
-  int num_blocks_x = *num_free_surface_faces;
+
+  int num_blocks_x = mp->num_free_surface_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
     num_blocks_x = ceil(num_blocks_x/2.0);
@@ -143,13 +146,13 @@ TRACE("transfer_surface_to_host");
 
   transfer_surface_to_host_kernel<<<grid,threads>>>(mp->d_free_surface_ispec,
                                                     mp->d_free_surface_ijk,
-                                                    *num_free_surface_faces,
+                                                    mp->num_free_surface_faces,
                                                     mp->d_ibool,
                                                     mp->d_displ,
                                                     mp->d_noise_surface_movie);
 
   cudaMemcpy(h_noise_surface_movie,mp->d_noise_surface_movie,
-             3*25*(*num_free_surface_faces)*sizeof(realw),cudaMemcpyDeviceToHost);
+             3*25*(mp->num_free_surface_faces)*sizeof(realw),cudaMemcpyDeviceToHost);
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("transfer_surface_to_host");
@@ -167,9 +170,8 @@ __global__ void noise_read_add_surface_movie_cuda_kernel(realw* accel, int* iboo
                                                          realw* normal_y_noise,
                                                          realw* normal_z_noise,
                                                          realw* mask_noise,
-                                                         realw* free_surface_jacobian2Dw,
-                                                         realw* wgllwgll_xy,
-                                                         float* d_debug) {
+                                                         realw* free_surface_jacobian2Dw //,float* d_debug
+                                                         ) {
 
   int iface = blockIdx.x + gridDim.x*blockIdx.y; // surface element id
 
@@ -234,22 +236,24 @@ __global__ void noise_read_add_surface_movie_cuda_kernel(realw* accel, int* iboo
 extern "C"
 void FC_FUNC_(noise_read_add_surface_movie_cu,
               NOISE_READ_ADD_SURFACE_MOVIE_CU)(long* Mesh_pointer_f,
-                                                 realw* h_noise_surface_movie,
-                                                 int* num_free_surface_faces_f,
-                                                 int* NOISE_TOMOGRAPHYf) {
+                                               realw* h_noise_surface_movie,
+                                               int* NOISE_TOMOGRAPHYf) {
 TRACE("noise_read_add_surface_movie_cu");
 
   // EPIK_TRACER("noise_read_add_surface_movie_cu");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
-  int num_free_surface_faces = *num_free_surface_faces_f;
   int NOISE_TOMOGRAPHY = *NOISE_TOMOGRAPHYf;
-  float* d_noise_surface_movie;
-  cudaMalloc((void**)&d_noise_surface_movie,3*25*num_free_surface_faces*sizeof(float));
-  cudaMemcpy(d_noise_surface_movie, h_noise_surface_movie,
-             3*25*num_free_surface_faces*sizeof(realw),cudaMemcpyHostToDevice);
 
-  int num_blocks_x = num_free_surface_faces;
+  //float* d_noise_surface_movie;
+  //cudaMalloc((void**)&d_noise_surface_movie,3*25*num_free_surface_faces*sizeof(float));
+  //cudaMemcpy(d_noise_surface_movie, h_noise_surface_movie,
+  //           3*25*num_free_surface_faces*sizeof(realw),cudaMemcpyHostToDevice);
+
+  cudaMemcpy(mp->d_noise_surface_movie,h_noise_surface_movie,
+             3*25*(mp->num_free_surface_faces)*sizeof(float),cudaMemcpyHostToDevice);
+
+  int num_blocks_x = mp->num_free_surface_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
     num_blocks_x = ceil(num_blocks_x/2.0);
@@ -259,50 +263,46 @@ TRACE("noise_read_add_surface_movie_cu");
   dim3 threads(25,1,1);
 
   // float* h_debug = (float*)calloc(128,sizeof(float));
-  float* d_debug;
+  //float* d_debug;
   // cudaMalloc((void**)&d_debug,128*sizeof(float));
   // cudaMemcpy(d_debug,h_debug,128*sizeof(float),cudaMemcpyHostToDevice);
 
   if(NOISE_TOMOGRAPHY == 2) { // add surface source to forward field
     noise_read_add_surface_movie_cuda_kernel<<<grid,threads>>>(mp->d_accel,
-                     mp->d_ibool,
-                     mp->d_free_surface_ispec,
-                     mp->d_free_surface_ijk,
-                     num_free_surface_faces,
-                     d_noise_surface_movie,
-                     mp->d_normal_x_noise,
-                     mp->d_normal_y_noise,
-                     mp->d_normal_z_noise,
-                     mp->d_mask_noise,
-                     mp->d_free_surface_jacobian2Dw,
-                     mp->d_wgllwgll_xy,
-                     d_debug);
+                                                               mp->d_ibool,
+                                                               mp->d_free_surface_ispec,
+                                                               mp->d_free_surface_ijk,
+                                                               mp->num_free_surface_faces,
+                                                               mp->d_noise_surface_movie,
+                                                               mp->d_normal_x_noise,
+                                                               mp->d_normal_y_noise,
+                                                               mp->d_normal_z_noise,
+                                                               mp->d_mask_noise,
+                                                               mp->d_free_surface_jacobian2Dw //,d_debug
+                                                               );
   }
   else if(NOISE_TOMOGRAPHY == 3) { // add surface source to adjoint (backward) field
     noise_read_add_surface_movie_cuda_kernel<<<grid,threads>>>(mp->d_b_accel,
-                     mp->d_ibool,
-                     mp->d_free_surface_ispec,
-                     mp->d_free_surface_ijk,
-                     num_free_surface_faces,
-                     d_noise_surface_movie,
-                     mp->d_normal_x_noise,
-                     mp->d_normal_y_noise,
-                     mp->d_normal_z_noise,
-                     mp->d_mask_noise,
-                     mp->d_free_surface_jacobian2Dw,
-                     mp->d_wgllwgll_xy,
-                     d_debug);
+                                                               mp->d_ibool,
+                                                               mp->d_free_surface_ispec,
+                                                               mp->d_free_surface_ijk,
+                                                               mp->num_free_surface_faces,
+                                                               mp->d_noise_surface_movie,
+                                                               mp->d_normal_x_noise,
+                                                               mp->d_normal_y_noise,
+                                                               mp->d_normal_z_noise,
+                                                               mp->d_mask_noise,
+                                                               mp->d_free_surface_jacobian2Dw //,d_debug
+                                                               );
   }
-
 
   // cudaMemcpy(h_debug,d_debug,128*sizeof(float),cudaMemcpyDeviceToHost);
   // for(int i=0;i<8;i++) {
   // printf("debug[%d]= %e\n",i,h_debug[i]);
   // }
   // MPI_Abort(MPI_COMM_WORLD,1);
+  //cudaFree(d_noise_surface_movie);
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("noise_read_add_surface_movie_cuda_kernel");
 #endif
-
-  cudaFree(d_noise_surface_movie);
 }

@@ -41,11 +41,11 @@
 
 //  cuda constant arrays
 __constant__ float d_hprime_xx[NGLL2];
-__constant__ float d_hprime_yy[NGLL2];  // daniel: remove only if certain: check if hprime_yy == hprime_xx
-__constant__ float d_hprime_zz[NGLL2];  // daniel: check if hprime_zz == hprime_xx
+__constant__ float d_hprime_yy[NGLL2];
+__constant__ float d_hprime_zz[NGLL2];
 __constant__ float d_hprimewgll_xx[NGLL2];
-__constant__ float d_hprimewgll_yy[NGLL2]; // daniel: check if hprimewgll_yy == hprimewgll_xx
-__constant__ float d_hprimewgll_zz[NGLL2]; // daniel: remove only if certain...
+__constant__ float d_hprimewgll_yy[NGLL2];
+__constant__ float d_hprimewgll_zz[NGLL2];
 __constant__ float d_wgllwgll_xy[NGLL2];
 __constant__ float d_wgllwgll_xz[NGLL2];
 __constant__ float d_wgllwgll_yz[NGLL2];
@@ -64,7 +64,7 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
                               float* d_etax, float* d_etay, float* d_etaz,
                               float* d_gammax, float* d_gammay, float* d_gammaz,
                               float* d_kappav, float* d_muv,
-                              float* d_debug,
+                              //float* d_debug,
                               int COMPUTE_AND_STORE_STRAIN,
                               float* epsilondev_xx,float* epsilondev_yy,float* epsilondev_xy,
                               float* epsilondev_xz,float* epsilondev_yz,float* epsilon_trace_over_3,
@@ -471,7 +471,7 @@ void Kernel_2(int nb_blocks_to_compute,
 
   // debugging
   //printf("Starting with grid %dx%d for %d blocks\n",num_blocks_x,num_blocks_y,nb_blocks_to_compute);
-  float* d_debug;
+//  float* d_debug;
 //    float* h_debug;
 //    h_debug = (float*)calloc(128,sizeof(float));
 //    cudaMalloc((void**)&d_debug,128*sizeof(float));
@@ -494,7 +494,7 @@ void Kernel_2(int nb_blocks_to_compute,
                                                mp->d_etax, mp->d_etay, mp->d_etaz,
                                                mp->d_gammax, mp->d_gammay, mp->d_gammaz,
                                                mp->d_kappav, mp->d_muv,
-                                               d_debug,
+                                               //d_debug,
                                                COMPUTE_AND_STORE_STRAIN,
                                                mp->d_epsilondev_xx,
                                                mp->d_epsilondev_yy,
@@ -535,7 +535,7 @@ void Kernel_2(int nb_blocks_to_compute,
                                                  mp->d_etax, mp->d_etay, mp->d_etaz,
                                                  mp->d_gammax, mp->d_gammay, mp->d_gammaz,
                                                  mp->d_kappav, mp->d_muv,
-                                                 d_debug,
+                                                 //d_debug,
                                                  COMPUTE_AND_STORE_STRAIN,
                                                  mp->d_b_epsilondev_xx,
                                                  mp->d_b_epsilondev_yy,
@@ -611,7 +611,7 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
                               float* d_etax, float* d_etay, float* d_etaz,
                               float* d_gammax, float* d_gammay, float* d_gammaz,
                               float* d_kappav, float* d_muv,
-                              float* d_debug,
+                              //float* d_debug,
                               int COMPUTE_AND_STORE_STRAIN,
                               float* epsilondev_xx,float* epsilondev_yy,float* epsilondev_xy,
                               float* epsilondev_xz,float* epsilondev_yz,
@@ -1450,11 +1450,10 @@ __global__ void elastic_ocean_load_cuda_kernel(float* accel,
     //if(igll == 0 ) printf("igll %d %d %d %d\n",igll,i,j,k,iglob);
 
     // only update this global point once
-    // daniel: todo - workaround to not use the temporary update array
-    //            atomicExch returns the old value, i.e. 0 indicates that we still have to do this point
 
-
-    //if(igll == 0 ) printf("updated_dof %d %d\n",iglob,updated_dof_ocean_load[iglob]);
+    // daniel: TODO - there might be better ways to implement a mutex like below,
+    //            and find a workaround to not use the temporary update array.
+    //            atomicExch: returns the old value, i.e. 0 indicates that we still have to do this point
 
     if( atomicExch(&updated_dof_ocean_load[iglob],1) == 0){
 
@@ -1470,7 +1469,7 @@ __global__ void elastic_ocean_load_cuda_kernel(float* accel,
 
       additional_term = (rmass_ocean_load[iglob] - rmass[iglob]) * force_normal_comp;
 
-      // daniel: probably wouldn't need atomicAdd anymore, but just to be sure...
+      // probably wouldn't need atomicAdd anymore, but just to be sure...
       atomicAdd(&accel[iglob*3], + additional_term * nx);
       atomicAdd(&accel[iglob*3+1], + additional_term * ny);
       atomicAdd(&accel[iglob*3+2], + additional_term * nz);

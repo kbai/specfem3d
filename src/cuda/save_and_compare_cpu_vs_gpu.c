@@ -86,10 +86,10 @@ void get_max_from_surface_file_(int* nodes_per_iterationf,int* NSTEP) {
   FILE* fp; int it;
   printf("Opening %s for analysis\n",filename);
   fp = fopen(filename,"rb");
-  char* errorstr;
+  //char* errorstr;
   if(fp == 0) {
-    errorstr = strerror(errno);
-    printf("FILE ERROR:%s\n",errorstr);
+    //errorstr = (char*) strerror(errno);
+    printf("FILE ERROR:%s\n",strerror(errno));
     perror("file error\n");
     exit(1);
   }  
@@ -165,18 +165,20 @@ void compare_surface_files_(int* bytes_per_iteration, int* number_of_iterations)
 
   FILE* fp_cpu;
   fp_cpu = fopen(cpu_file,"rb");
-  char* errorstr;
+  //char* errorstr;
   if(fp_cpu == 0) {
-    errorstr = strerror(errno);
-    printf("CPU FILE ERROR:%s\n",errorstr);
+    //errorstr = (char*) strerror(errno);
+    //printf("CPU FILE ERROR:%s\n",errorstr);
+    printf("CPU FILE ERROR:%s\n",strerror(errno));    
     perror("cpu file error\n");
   }
   FILE* fp_gpu;
   fp_gpu = fopen(gpu_file,"rb");
 
   if(fp_gpu == NULL) {
-    errorstr = strerror(errno);
-    printf("GPU FILE ERROR:%s\n",errorstr);
+    //errorstr = (char*) strerror(errno);
+    //printf("GPU FILE ERROR:%s\n",errorstr);
+    printf("GPU FILE ERROR:%s\n",strerror(errno));    
     perror("gpu file error\n");
   }
   

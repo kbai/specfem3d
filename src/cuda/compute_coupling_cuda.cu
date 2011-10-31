@@ -93,13 +93,8 @@ __global__ void compute_coupling_acoustic_el_kernel(float* displ,
       // (normal points outwards of acoustic element)
       displ_n = displ_x*nx + displ_y*ny + displ_z*nz;
 
-
       // gets associated, weighted jacobian
       jacobianw = coupling_ac_el_jacobian2Dw[INDEX2(NGLL2,igll,iface)];
-
-      //daniel
-      //if( igll == 0 ) printf("gpu: %i %i %i %i %i %e \n",i,j,k,ispec,iglob,jacobianw);
-
 
       // continuity of pressure and normal displacement on global point
 
@@ -147,10 +142,7 @@ void FC_FUNC_(compute_coupling_ac_el_cuda,
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
 
-//daniel
-// printf("gpu: %i %i %i \n",num_coupling_ac_el_faces,SIMULATION_TYPE,phase_is_inner);
-
-
+  // launches GPU kernel
   compute_coupling_acoustic_el_kernel<<<grid,threads>>>(mp->d_displ,
                                                        mp->d_potential_dot_dot_acoustic,
                                                        num_coupling_ac_el_faces,
@@ -237,10 +229,6 @@ __global__ void compute_coupling_elastic_ac_kernel(float* potential_dot_dot_acou
       // gets associated, weighted jacobian
       jacobianw = coupling_ac_el_jacobian2Dw[INDEX2(NGLL2,igll,iface)];
 
-      //daniel
-      //if( igll == 0 ) printf("gpu: %i %i %i %i %i %e \n",i,j,k,ispec,iglob,jacobianw);
-
-
       // continuity of displacement and pressure on global point
       //
       // note: newark time scheme together with definition of scalar potential:
@@ -288,10 +276,7 @@ void FC_FUNC_(compute_coupling_el_ac_cuda,
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
 
-  //daniel
-  // printf("gpu: %i %i %i \n",num_coupling_ac_el_faces,SIMULATION_TYPE,phase_is_inner);
-
-
+  // launches GPU kernel
   compute_coupling_elastic_ac_kernel<<<grid,threads>>>(mp->d_potential_dot_dot_acoustic,
                                                        mp->d_accel,
                                                        num_coupling_ac_el_faces,

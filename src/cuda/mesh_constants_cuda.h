@@ -89,7 +89,7 @@
 
 #define INDEX4_PADDED(xsize,ysize,zsize,x,y,z,i) x + (y)*xsize + (z)*xsize*ysize + (i)*128
 
-//daniel: TODO check speed of alternatives
+//daniel: TODO -- check speed of these alternative definitions
 //#define INDEX2(xsize,x,y) x + (y)*xsize
 //#define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
 //#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
@@ -106,6 +106,8 @@ void print_CUDA_error_if_any(cudaError_t err, int num);
 void pause_for_debugger(int pause);
 
 void exit_on_cuda_error(char* kernel_name);
+
+void exit_on_error(char* info);
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -206,6 +208,11 @@ typedef struct mesh_ {
   int nrec_local;
   float* d_station_seismo_field;
   float* h_station_seismo_field;
+
+  int nadj_rec_local;
+  float* d_adj_sourcearrays;
+  float* h_adj_sourcearrays_slice;
+  int* d_pre_computed_irec;
 
   // surface elements (to save for noise tomography and acoustic simulations)
   int* d_free_surface_ispec;

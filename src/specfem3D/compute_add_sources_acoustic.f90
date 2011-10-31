@@ -339,12 +339,7 @@
 
       if( it < NSTEP ) then
         ! receivers act as sources
-        if( GPU_MODE) then
-          call add_sources_ac_sim_2_or_3_cuda(Mesh_pointer, adj_sourcearrays, &
-                 size(adj_sourcearrays), phase_is_inner, myrank, nrec, &
-                 NTSTEP_BETWEEN_READ_ADJSRC - mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC),&
-                 islice_selected_rec, nadj_rec_local, NTSTEP_BETWEEN_READ_ADJSRC)
-        else
+        if( .NOT. GPU_MODE ) then
           irec_local = 0
           do irec = 1,nrec
             ! add the source (only if this proc carries the source)
@@ -378,6 +373,15 @@
               endif
             endif
           enddo ! nrec
+        else
+          ! on GPU
+          call add_sources_ac_sim_2_or_3_cuda(Mesh_pointer,adj_sourcearrays,phase_is_inner, &
+                                             ispec_is_inner,ispec_is_acoustic, &
+                                             ispec_selected_rec,myrank,nrec, &
+                                             NTSTEP_BETWEEN_READ_ADJSRC - mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC), &
+                                             islice_selected_rec,nadj_rec_local, &
+                                             NTSTEP_BETWEEN_READ_ADJSRC)
+
         endif ! GPU_MODE
       endif ! it
     endif ! nadj_rec_local > 0

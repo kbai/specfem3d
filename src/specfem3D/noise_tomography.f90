@@ -45,14 +45,14 @@
 
 module user_noise_distribution
 
-!daniel: TODO -- this default value will produce errors
-!            when using with the default example/noise_tomography
+!daniel: TODO -- setting USE_PIERO_DISTRIBUTION = .true. will produce errors
+!            when using with the default example in "example/noise_tomography/"
 !            i left it here so that Max can run his example without changing this every time...
   logical,parameter :: USE_PIERO_DISTRIBUTION = .true.
 
 contains
 
-! wrapper function  
+! wrapper function
 ! this subroutine must be modified by USERS for their own noise distribution
 
   subroutine noise_distribution_direction(xcoord_in,ycoord_in,zcoord_in, &
@@ -116,7 +116,7 @@ contains
   ! dummy assign to avoid compiler warnings
   ldummy = xcoord_in
   ldummy = ycoord_in
-  ldummy = zcoord_in  
+  ldummy = zcoord_in
 
   end subroutine noise_distribution_direction_d
 
@@ -208,7 +208,7 @@ contains
 
   end subroutine noise_distribution_dir_non_uni
 
-  
+
 end module user_noise_distribution
 
 
@@ -250,7 +250,7 @@ end module user_noise_distribution
 
   logical, dimension(NSPEC_AB_VAL) :: ispec_is_acoustic
 
-!daniel: from global code...
+  !from global code...
   !integer, dimension(NSPEC2D_TOP_VAL) :: ibelm_top ! equals free_surface_ispec
   !integer :: NSPEC2D_TOP_VAL ! equals num_free_surface_faces
   !integer :: nspec_top ! equals num_free_surface_faces
@@ -297,7 +297,7 @@ end module user_noise_distribution
   ! noise distribution and noise direction
   ipoin = 0
 
-  !daniel: from global code, carefull: ngllz must not be face on top...
+  !from global code, carefull: ngllz must not be face on top...
   !  do ispec2D = 1, nspec_top
   !    ispec = ibelm_top(ispec2D)
   !    k = NGLLZ
@@ -321,13 +321,13 @@ end module user_noise_distribution
 
         ipoin = ipoin + 1
         iglob = ibool(i,j,k,ispec)
-        
+
         ! this subroutine must be modified by USERS in module user_noise_distribution
         call noise_distribution_direction(xstore(iglob), &
                                           ystore(iglob),zstore(iglob), &
                                           normal_x_noise_out,normal_y_noise_out,normal_z_noise_out, &
-                                          mask_noise_out)        
-        
+                                          mask_noise_out)
+
         normal_x_noise(ipoin) = normal_x_noise_out
         normal_y_noise(ipoin) = normal_y_noise_out
         normal_z_noise(ipoin) = normal_z_noise_out
@@ -653,7 +653,7 @@ end module user_noise_distribution
   real(kind=CUSTOM_REAL),dimension(NDIM,NGLLSQUARE,num_free_surface_faces) :: noise_surface_movie
   integer(kind=8) :: Mesh_pointer
   logical :: GPU_MODE
-  
+
   ! writes out wavefield at surface
   if( num_free_surface_faces > 0 ) then
 
@@ -675,7 +675,7 @@ end module user_noise_distribution
        enddo
     ! TODO: Check if transfer_surface_to_hose is compatible with newer version above
     else ! GPU_MODE == 1
-       call transfer_surface_to_host(Mesh_pointer, noise_surface_movie, num_free_surface_faces)
+       call transfer_surface_to_host(Mesh_pointer,noise_surface_movie)
     endif
 
     ! save surface motion to disk
@@ -743,8 +743,7 @@ end module user_noise_distribution
     call read_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
 
     if(GPU_MODE) then
-       call noise_read_add_surface_movie_cu(Mesh_pointer, noise_surface_movie,&
-                                            num_free_surface_faces,NOISE_TOMOGRAPHY)
+       call noise_read_add_surface_movie_cu(Mesh_pointer, noise_surface_movie,NOISE_TOMOGRAPHY)
     else ! GPU_MODE==0
 
        ! get coordinates of surface mesh and surface displacement
@@ -780,7 +779,7 @@ end module user_noise_distribution
     endif ! GPU_MODE
 
   endif
-  
+
   end subroutine noise_read_add_surface_movie
 
 
@@ -870,7 +869,7 @@ end module user_noise_distribution
        enddo
 
     else ! GPU_MODE==1
-       call compute_kernels_strgth_noise_cu(Mesh_pointer, noise_surface_movie,num_free_surface_faces,deltat)
+       call compute_kernels_strgth_noise_cu(Mesh_pointer,noise_surface_movie,deltat)
     endif ! GPU_MODE
 
   endif

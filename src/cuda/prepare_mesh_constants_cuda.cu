@@ -221,7 +221,7 @@ TRACE("get_free_device_memory");
 
 
 /* ----------------------------------------------------------------------------------------------- */
-//daniel
+//daniel: helper function
 /*
 __global__ void check_phase_ispec_kernel(int num_phase_ispec,
                                          int* phase_ispec,
@@ -290,7 +290,7 @@ void check_phase_ispec(long* Mesh_pointer_f,int type){
 */
 
 /* ----------------------------------------------------------------------------------------------- */
-//daniel
+//daniel: helper function
 /*
 __global__ void check_ispec_is_kernel(int NSPEC_AB,
                                       int* ispec_is,
@@ -353,7 +353,7 @@ void check_ispec_is(long* Mesh_pointer_f,int type){
 }
 */
 /* ----------------------------------------------------------------------------------------------- */
-//daniel
+//daniel: helper function
 /*
 __global__ void check_array_ispec_kernel(int num_array_ispec,
                                          int* array_ispec,
@@ -481,7 +481,7 @@ TRACE("prepare_constants_device");
   }
 
   // allocates mesh parameter structure
-  Mesh* mp = (Mesh*)malloc(sizeof(Mesh));
+  Mesh* mp = (Mesh*) malloc( sizeof(Mesh) );
   if (mp == NULL) exit_on_error("error allocating mesh pointer");
   *Mesh_pointer = (long)mp;
 
@@ -664,7 +664,10 @@ void FC_FUNC_(prepare_sim2_or_3_const_device,
               PREPARE_SIM2_OR_3_CONST_DEVICE)(
                                               long* Mesh_pointer_f,
                                               int* islice_selected_rec,
-                                              int* islice_selected_rec_size) {
+                                              int* islice_selected_rec_size,
+                                              int* nadj_rec_local,
+                                              int* nrec,
+                                              int* myrank) {
 
 TRACE("prepare_sim2_or_3_const_device");
 
@@ -673,10 +676,43 @@ TRACE("prepare_sim2_or_3_const_device");
   // allocates arrays for receivers
   print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_islice_selected_rec,
                                      *islice_selected_rec_size*sizeof(int)),7001);
-
   // copies arrays to GPU device
   print_CUDA_error_if_any(cudaMemcpy(mp->d_islice_selected_rec,islice_selected_rec,
                                      *islice_selected_rec_size*sizeof(int),cudaMemcpyHostToDevice),7002);
+
+  // adjoint source arrays
+  mp->nadj_rec_local = *nadj_rec_local;
+  if( mp->nadj_rec_local > 0 ){
+    print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_adj_sourcearrays,
+                                       (mp->nadj_rec_local)*3*125*sizeof(float)),7003);
+    print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_pre_computed_irec,
+                                       (mp->nadj_rec_local)*sizeof(int)),7004);
+
+    // prepares local irec array:
+    // the irec_local variable needs to be precomputed (as
+    // h_pre_comp..), because normally it is in the loop updating accel,
+    // and due to how it's incremented, it cannot be parallelized
+    int* h_pre_computed_irec = (int*) malloc( (mp->nadj_rec_local)*sizeof(int) );
+    if( h_pre_computed_irec == NULL ) exit_on_error("prepare_sim2_or_3_const_device: h_pre_computed_irec not allocated\n");
+
+    int irec_local = 0;
+    for(int irec = 0; irec < *nrec; irec++) {
+      if(*myrank == islice_selected_rec[irec]) {
+        irec_local++;
+        h_pre_computed_irec[irec_local-1] = irec;
+      }
+    }
+    if( irec_local != mp->nadj_rec_local ) exit_on_error("prepare_sim2_or_3_const_device: irec_local not equal\n");
+    // copies values onto GPU
+    print_CUDA_error_if_any(cudaMemcpy(mp->d_pre_computed_irec,h_pre_computed_irec,
+                                       (mp->nadj_rec_local)*sizeof(int),cudaMemcpyHostToDevice),7010);
+    free(h_pre_computed_irec);
+
+    // temporary array to prepare extracted source array values
+    mp->h_adj_sourcearrays_slice = (float*) malloc( (mp->nadj_rec_local)*3*125*sizeof(float) );
+    if( mp->h_adj_sourcearrays_slice == NULL ) exit_on_error("h_adj_sourcearrays_slice not allocated\n");
+
+  }
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("prepare_sim2_or_3_const_device");
@@ -785,7 +821,7 @@ void FC_FUNC_(prepare_fields_acoustic_device,
   if( mp->nrec_local > 0 ){
     print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_station_seismo_potential),
                                        mp->nrec_local*125*sizeof(float)),9107);
-    mp->h_station_seismo_potential = (float*)malloc(mp->nrec_local*125*sizeof(float));
+    mp->h_station_seismo_potential = (float*) malloc( mp->nrec_local*125*sizeof(float) );
     if( mp->h_station_seismo_potential == NULL) exit_on_error("error allocating h_station_seismo_potential");
   }
 
@@ -848,7 +884,7 @@ void FC_FUNC_(prepare_fields_acoustic_adj_dev,
 
   // initializes kernel values to zero
   print_CUDA_error_if_any(cudaMemset(mp->d_rho_ac_kl,0,
-                                     125*mp->NSPEC_AB*sizeof(float)),9019);  
+                                     125*mp->NSPEC_AB*sizeof(float)),9019);
   print_CUDA_error_if_any(cudaMemset(mp->d_kappa_ac_kl,0,
                                      125*mp->NSPEC_AB*sizeof(float)),9020);
 
@@ -945,7 +981,8 @@ TRACE("prepare_fields_elastic_device");
   if( mp->nrec_local > 0 ){
     print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_station_seismo_field),
                                      3*125*(mp->nrec_local)*sizeof(float)),8015);
-    mp->h_station_seismo_field = (float*)malloc(3*125*(mp->nrec_local)*sizeof(float));
+    mp->h_station_seismo_field = (float*) malloc( 3*125*(mp->nrec_local)*sizeof(float) );
+    if( mp->h_station_seismo_field == NULL) exit_on_error("h_station_seismo_field not allocated \n");
   }
 
   // absorbing conditions
@@ -1055,7 +1092,7 @@ TRACE("prepare_fields_elastic_device");
 
   }
 
-  
+
   if( *OCEANS ){
     // oceans needs a free surface
     mp->num_free_surface_faces = *num_free_surface_faces;
@@ -1131,12 +1168,12 @@ void FC_FUNC_(prepare_fields_elastic_adj_dev,
 
   // initializes kernel values to zero
   print_CUDA_error_if_any(cudaMemset(mp->d_rho_kl,0,
-                                     125*mp->NSPEC_AB*sizeof(float)),8207);  
+                                     125*mp->NSPEC_AB*sizeof(float)),8207);
   print_CUDA_error_if_any(cudaMemset(mp->d_mu_kl,0,
-                                     125*mp->NSPEC_AB*sizeof(float)),8208);  
+                                     125*mp->NSPEC_AB*sizeof(float)),8208);
   print_CUDA_error_if_any(cudaMemset(mp->d_kappa_kl,0,
-                                     125*mp->NSPEC_AB*sizeof(float)),8209);  
-  
+                                     125*mp->NSPEC_AB*sizeof(float)),8209);
+
   // strains used for attenuation and kernel simulations
   if( *COMPUTE_AND_STORE_STRAIN ){
     // strains
@@ -1319,8 +1356,8 @@ void FC_FUNC_(prepare_fields_noise_device,
                                        125*(mp->NSPEC_AB)*sizeof(float)),4401);
     // initializes kernel values to zero
     print_CUDA_error_if_any(cudaMemset(mp->d_Sigma_kl,0,
-                                       125*mp->NSPEC_AB*sizeof(float)),4403);  
-                                       
+                                       125*mp->NSPEC_AB*sizeof(float)),4403);
+
   }
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
@@ -1520,7 +1557,14 @@ TRACE("prepare_cleanup_device");
   } // ELASTIC_SIMULATION
 
   // purely adjoint & kernel array
-  if( *SIMULATION_TYPE == 2 || *SIMULATION_TYPE == 3 ) cudaFree(mp->d_islice_selected_rec);
+  if( *SIMULATION_TYPE == 2 || *SIMULATION_TYPE == 3 ){
+    cudaFree(mp->d_islice_selected_rec);
+    if(mp->nadj_rec_local > 0 ){
+      cudaFree(mp->d_adj_sourcearrays);
+      cudaFree(mp->d_pre_computed_irec);
+      free(mp->h_adj_sourcearrays_slice);
+    }
+  }
 
   // NOISE arrays
   if( *NOISE_TOMOGRAPHY > 0 ){

@@ -70,14 +70,18 @@ void FC_FUNC_(add_source_master_rec_noise_cu,
                                                 int* irec_master_noise_f, 
                                                 int* islice_selected_rec){}
 
-void FC_FUNC_(add_sources_sim_type_2_or_3,
-              ADD_SOURCES_SIM_TYPE_2_OR_3)(long* Mesh_pointer, 
+void FC_FUNC_(add_sources_el_sim_type_2_or_3,
+              ADD_SOURCES_EL_SIM_TYPE_2_OR_3)(long* Mesh_pointer, 
                                            float* h_adj_sourcearrays,
-                                           int* size_adj_sourcearrays, int* ispec_is_inner,
-                                           int* phase_is_inner, int* ispec_selected_rec,
-                                           int* ibool,
-                                           int* myrank, int* nrec, int* time_index,
-                                           int* h_islice_selected_rec,int* nadj_rec_local,
+                                           int* phase_is_inner,
+                                           int* h_ispec_is_inner,
+                                           int* h_ispec_is_elastic,                                            
+                                           int* h_ispec_selected_rec,
+                                           int* myrank, 
+                                           int* nrec, 
+                                           int* time_index,
+                                           int* h_islice_selected_rec,
+                                           int* nadj_rec_local,
                                            int* NTSTEP_BETWEEN_READ_ADJSRC){}
 
 void FC_FUNC_(compute_add_sources_ac_cuda,
@@ -100,15 +104,17 @@ void FC_FUNC_(compute_add_sources_ac_s3_cuda,
 
 void FC_FUNC_(add_sources_ac_sim_2_or_3_cuda,
               ADD_SOURCES_AC_SIM_2_OR_3_CUDA)(long* Mesh_pointer, 
-                                                         float* h_adj_sourcearrays,
-                                                         int* size_adj_sourcearrays, 
-                                                         int* phase_is_inner,
-                                                         int* myrank, 
-                                                         int* nrec, 
-                                                         int* pre_computed_index,
-                                                         int* h_islice_selected_rec,
-                                                         int* nadj_rec_local,
-                                                         int* NTSTEP_BETWEEN_ADJSRC){}
+                                               float* h_adj_sourcearrays,
+                                               int* phase_is_inner,
+                                               int* h_ispec_is_inner,
+                                               int* h_ispec_is_acoustic,
+                                               int* h_ispec_selected_rec,
+                                               int* myrank,
+                                               int* nrec,
+                                               int* time_index,
+                                               int* h_islice_selected_rec,
+                                               int* nadj_rec_local,
+                                               int* NTSTEP_BETWEEN_ADJSRC){}
 
 /* from compute_coupling_cuda.cu */
 							
@@ -232,9 +238,8 @@ void FC_FUNC_(compute_kernels_elastic_cuda,
 
 void FC_FUNC_(compute_kernels_strgth_noise_cu,
               COMPUTE_KERNELS_STRGTH_NOISE_CU)(long* Mesh_pointer, 
-                                                    float* h_noise_surface_movie,
-                                                    int* num_free_surface_faces_f,
-						   float* deltat){}
+                                               float* h_noise_surface_movie,
+                                               float* deltat){}
 
 void FC_FUNC_(compute_kernels_acoustic_cuda,
               COMPUTE_KERNELS_ACOUSTIC_CUDA)(
@@ -301,13 +306,11 @@ void FC_FUNC_(make_displ_rand,MAKE_DISPL_RAND)(long* Mesh_pointer_f,float* h_dis
 
 void FC_FUNC_(transfer_surface_to_host,
               TRANSFER_SURFACE_TO_HOST)(long* Mesh_pointer_f,
-                                        realw* h_noise_surface_movie,
-                                        int* num_free_surface_faces){}
+                                        realw* h_noise_surface_movie){}
 
 void FC_FUNC_(noise_read_add_surface_movie_cu,
               NOISE_READ_ADD_SURFACE_MOVIE_CU)(long* Mesh_pointer_f, 
                                                realw* h_noise_surface_movie, 
-                                               int* num_free_surface_faces_f,
                                                int* NOISE_TOMOGRAPHYf){}
 
 						
@@ -363,7 +366,10 @@ void FC_FUNC_(prepare_sim2_or_3_const_device,
               PREPARE_SIM2_OR_3_CONST_DEVICE)(
                                               long* Mesh_pointer_f,
                                               int* islice_selected_rec,
-                                              int* islice_selected_rec_size){}
+                                              int* islice_selected_rec_size,
+                                              int* nadj_rec_local,
+                                              int* nrec,
+                                              int* myrank){}
 
 void FC_FUNC_(prepare_fields_acoustic_device,
               PREPARE_FIELDS_ACOUSTIC_DEVICE)(long* Mesh_pointer_f, 

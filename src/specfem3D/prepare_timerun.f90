@@ -603,7 +603,7 @@
         filesize = b_reclen_potential
         filesize = filesize*NSTEP
 
-        ! daniel: debug check size limit
+        ! debug check size limit
         !if( NSTEP > 2147483647 / b_reclen_potential ) then
         !  print *,'file size needed exceeds integer 4-byte limit: ',b_reclen_potential,NSTEP
         !  print *,'  ',CUSTOM_REAL, NGLLSQUARE, num_abs_boundary_faces,NSTEP
@@ -842,7 +842,8 @@
   ! prepares needed receiver array for adjoint runs
   if( SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3 ) &
     call prepare_sim2_or_3_const_device(Mesh_pointer, &
-                                  islice_selected_rec,size(islice_selected_rec))
+                                       islice_selected_rec,size(islice_selected_rec), &
+                                       nadj_rec_local,nrec,myrank)
 
   ! prepares fields on GPU for noise simulations
   if ( NOISE_TOMOGRAPHY > 0 ) then

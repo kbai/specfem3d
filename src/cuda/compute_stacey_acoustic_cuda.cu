@@ -92,9 +92,6 @@ __global__ void compute_stacey_acoustic_kernel(float* potential_dot_acoustic,
       // gets associated, weighted jacobian
       jacobianw = abs_boundary_jacobian2Dw[INDEX2(NGLL2,igll,iface)];
 
-//daniel
-//if( igll == 0 ) printf("gpu: %i %i %i %i %i %e %e %e\n",i,j,k,ispec,iglob,rhol,kappal,jacobianw);
-
       // Sommerfeld condition
       atomicAdd(&potential_dot_dot_acoustic[iglob],-potential_dot_acoustic[iglob]*jacobianw/cpl/rhol);
 

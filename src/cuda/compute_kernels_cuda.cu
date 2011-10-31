@@ -65,8 +65,8 @@ __global__ void compute_kernels_cudakernel(int* ispec_is_elastic,
                                            float* kappa_kl,
                                            float* epsilon_trace_over_3,
                                            float* b_epsilon_trace_over_3,
-                                           int NSPEC_AB,
-                                           float* d_debug) {
+                                           int NSPEC_AB //,float* d_debug
+                                           ) {
 
   int ispec = blockIdx.x + blockIdx.y*gridDim.x;
 
@@ -147,13 +147,11 @@ TRACE("compute_kernels_elastic_cuda");
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
 
-  float* d_debug;
-  /*
-  float* h_debug;
-  h_debug = (float*)calloc(128,sizeof(float));
-  cudaMalloc((void**)&d_debug,128*sizeof(float));
-  cudaMemcpy(d_debug,h_debug,128*sizeof(float),cudaMemcpyHostToDevice);
-  */
+  //float* d_debug;
+  //float* h_debug;
+  //h_debug = (float*)calloc(128,sizeof(float));
+  //cudaMalloc((void**)&d_debug,128*sizeof(float));
+  //cudaMemcpy(d_debug,h_debug,128*sizeof(float),cudaMemcpyHostToDevice);
 
   compute_kernels_cudakernel<<<grid,threads>>>(mp->d_ispec_is_elastic,mp->d_ibool,
                                                mp->d_accel, mp->d_b_displ,
@@ -173,8 +171,8 @@ TRACE("compute_kernels_elastic_cuda");
                                                mp->d_kappa_kl,
                                                mp->d_epsilon_trace_over_3,
                                                mp->d_b_epsilon_trace_over_3,
-                                               mp->NSPEC_AB,
-                                               d_debug);
+                                               mp->NSPEC_AB //,d_debug
+                                               );
   /*
   cudaMemcpy(h_debug,d_debug,128*sizeof(float),cudaMemcpyDeviceToHost);
   cudaFree(d_debug);
@@ -221,8 +219,8 @@ __global__ void compute_kernels_strength_noise_cuda_kernel(float* displ,
                                                            float* normal_z_noise,
                                                            float* Sigma_kl,
                                                            float deltat,
-                                                           int num_free_surface_faces,
-                                                           float* d_debug) {
+                                                           int num_free_surface_faces //,float* d_debug
+                                                           ) {
   int iface = blockIdx.x + blockIdx.y*gridDim.x;
 
   if(iface < num_free_surface_faces) {
@@ -264,18 +262,17 @@ extern "C"
 void FC_FUNC_(compute_kernels_strgth_noise_cu,
               COMPUTE_KERNELS_STRGTH_NOISE_CU)(long* Mesh_pointer,
                                                     float* h_noise_surface_movie,
-                                                    int* num_free_surface_faces_f,
                                                     float* deltat) {
 
 TRACE("compute_kernels_strgth_noise_cu");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
-  int num_free_surface_faces = *num_free_surface_faces_f;
 
-  cudaMemcpy(mp->d_noise_surface_movie,h_noise_surface_movie,3*25*num_free_surface_faces*sizeof(float),cudaMemcpyHostToDevice);
+  cudaMemcpy(mp->d_noise_surface_movie,h_noise_surface_movie,
+             3*25*(mp->num_free_surface_faces)*sizeof(float),cudaMemcpyHostToDevice);
 
 
-  int num_blocks_x = num_free_surface_faces;
+  int num_blocks_x = mp->num_free_surface_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
     num_blocks_x = ceil(num_blocks_x/2.0);
@@ -286,7 +283,7 @@ TRACE("compute_kernels_strgth_noise_cu");
   dim3 threads(25,1,1);
 
   // float* h_debug = (float*)calloc(128,sizeof(float));
-  float* d_debug;
+  //float* d_debug;
   // cudaMalloc((void**)&d_debug,128*sizeof(float));
   // cudaMemcpy(d_debug,h_debug,128*sizeof(float),cudaMemcpyHostToDevice);
 
@@ -299,8 +296,8 @@ TRACE("compute_kernels_strgth_noise_cu");
                                                                mp->d_normal_y_noise,
                                                                mp->d_normal_z_noise,
                                                                mp->d_Sigma_kl,*deltat,
-                                                               num_free_surface_faces,
-                                                               d_debug);
+                                                               mp->num_free_surface_faces //,d_debug
+                                                               );
 
   // cudaMemcpy(h_debug,d_debug,128*sizeof(float),cudaMemcpyDeviceToHost);
   // for(int i=0;i<8;i++) {
@@ -310,7 +307,6 @@ TRACE("compute_kernels_strgth_noise_cu");
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("compute_kernels_strength_noise_cuda_kernel");
 #endif
-
 }
 
 

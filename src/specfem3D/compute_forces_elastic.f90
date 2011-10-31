@@ -443,9 +443,7 @@ end subroutine elastic_ocean_load
 
 ! distributes routines according to chosen NGLLX in constants.h
 
-!daniel
-! note:
-! i put it here rather than in compute_forces_elastic_Dev.f90 because compiler complains that:
+!daniel: note -- i put it here rather than in compute_forces_elastic_Dev.f90 because compiler complains that:
 ! " The storage extent of the dummy argument exceeds that of the actual argument. "
 
 subroutine compute_forces_elastic_Dev_sim1(iphase)

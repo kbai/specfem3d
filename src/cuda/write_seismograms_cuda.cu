@@ -48,7 +48,8 @@ __global__ void transfer_stations_fields_from_device_kernel(int* number_receiver
                                                             int* ibool,
                                                             float* station_seismo_field,
                                                             float* desired_field,
-                                                            int nrec_local,int* debug_index) {
+                                                            int nrec_local //,int* debug_index
+                                                            ) {
   int blockID = blockIdx.x + blockIdx.y*gridDim.x;
   if(blockID<nrec_local) {
     //int nodeID = threadIdx.x + blockID*blockDim.x;
@@ -98,7 +99,7 @@ TRACE("transfer_field_from_device");
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
 
-  int* d_debug_index;
+  //int* d_debug_index;
   //int* h_debug_index;
   //cudaMalloc((void**)&d_debug_index,125*sizeof(int));
   //h_debug_index = (int*)calloc(125,sizeof(int));
@@ -107,11 +108,12 @@ TRACE("transfer_field_from_device");
 
   // prepare field transfer array on device
   transfer_stations_fields_from_device_kernel<<<grid,threads>>>(mp->d_number_receiver_global,
-                d_ispec_selected,
-                mp->d_ibool,
-                mp->d_station_seismo_field,
-                d_field,
-                mp->nrec_local,d_debug_index);
+                                                                d_ispec_selected,
+                                                                mp->d_ibool,
+                                                                mp->d_station_seismo_field,
+                                                                d_field,
+                                                                mp->nrec_local //,d_debug_index
+                                                                );
 
   //cudaMemcpy(h_debug_index,d_debug_index,125*sizeof(int),cudaMemcpyDeviceToHost);
 

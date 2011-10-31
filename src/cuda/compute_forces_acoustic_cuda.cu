@@ -467,7 +467,7 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
             offset1 = K*NGLL2+J*NGLLX+l;
             temp1l += s_dummy_loc[offset1]*hp1;
 
-            // daniel: not more assumes that hprime_xx = hprime_yy = hprime_zz
+            //no more assumes that hprime_xx = hprime_yy = hprime_zz
             hp2 = hprime_yy[l*NGLLX+J];
             offset2 = K*NGLL2+l*NGLLX+I;
             temp2l += s_dummy_loc[offset2]*hp2;
@@ -547,7 +547,7 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
             offset1 = K*NGLL2+J*NGLLX+l;
             temp1l += s_temp1[offset1]*fac1;
 
-            //daniel: not more assumes hprimewgll_xx = hprimewgll_yy = hprimewgll_zz
+            //no more assumes hprimewgll_xx = hprimewgll_yy = hprimewgll_zz
             fac2 = hprimewgll_yy[J*NGLLX+l];
             offset2 = K*NGLL2+l*NGLLX+I;
             temp2l += s_temp2[offset2]*fac2;

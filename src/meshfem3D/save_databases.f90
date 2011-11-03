@@ -83,60 +83,66 @@
   integer, dimension(8) ::  nspec_interface
 
 
-  open(unit=15,file=prname(1:len_trim(prname))//'Database',status='unknown',action='write',form='formatted')
+  !open(unit=15,file=prname(1:len_trim(prname))//'Database',status='unknown',action='write',form='formatted')
+  open(unit=15,file=prname(1:len_trim(prname))//'Database', &
+        status='unknown',action='write',form='unformatted')
 
-  write(15,*) nglob
+  write(15) nglob
   do iglob=1,nglob
-     write(15,*) iglob,nodes_coords(iglob,1),nodes_coords(iglob,2),nodes_coords(iglob,3)
+     write(15) iglob,nodes_coords(iglob,1),nodes_coords(iglob,2),nodes_coords(iglob,3)
   end do
 
 
 ! Materials properties
-   write(15,*) NMATERIALS, 0
+   write(15) NMATERIALS, 0
    do idoubl = 1,NMATERIALS
       !write(15,*) material_properties(idoubl,:)
       matpropl(:) = material_properties(idoubl,:)
-      write(15,*) matpropl
+      write(15) matpropl
    end do
 
 
-  write(15,*) nspec
+  write(15) nspec
   do ispec=1,nspec
-      write(15,'(11i14)') ispec,true_material_num(ispec),1,ibool(1,1,1,ispec),ibool(2,1,1,ispec),&
+      !write(15,'(11i14)') ispec,true_material_num(ispec),1,ibool(1,1,1,ispec),ibool(2,1,1,ispec),&
+      !     ibool(2,2,1,ispec),ibool(1,2,1,ispec),ibool(1,1,2,ispec),&
+      !     ibool(2,1,2,ispec),ibool(2,2,2,ispec),ibool(1,2,2,ispec)
+      write(15) ispec,true_material_num(ispec),1,ibool(1,1,1,ispec),ibool(2,1,1,ispec),&
            ibool(2,2,1,ispec),ibool(1,2,1,ispec),ibool(1,1,2,ispec),&
            ibool(2,1,2,ispec),ibool(2,2,2,ispec),ibool(1,2,2,ispec)
+
   end do
 
   ! Boundaries
-  write(15,*) 1,nspec2D_xmin
-  write(15,*) 2,nspec2D_xmax
-  write(15,*) 3,nspec2D_ymin
-  write(15,*) 4,nspec2D_ymax
-  write(15,*) 5,NSPEC2D_BOTTOM
-  write(15,*) 6,NSPEC2D_TOP
+  write(15) 1,nspec2D_xmin
+  write(15) 2,nspec2D_xmax
+  write(15) 3,nspec2D_ymin
+  write(15) 4,nspec2D_ymax
+  write(15) 5,NSPEC2D_BOTTOM
+  write(15) 6,NSPEC2D_TOP
 
   do i=1,nspec2D_xmin
-     write(15,*) ibelm_xmin(i),ibool(1,1,1,ibelm_xmin(i)),ibool(1,NGLLY,1,ibelm_xmin(i)),&
+     write(15) ibelm_xmin(i),ibool(1,1,1,ibelm_xmin(i)),ibool(1,NGLLY,1,ibelm_xmin(i)),&
           ibool(1,1,NGLLZ,ibelm_xmin(i)),ibool(1,NGLLY,NGLLZ,ibelm_xmin(i))
   end do
   do i=1,nspec2D_xmax
-     write(15,*) ibelm_xmax(i),ibool(NGLLX,1,1,ibelm_xmax(i)),ibool(NGLLX,NGLLY,1,ibelm_xmax(i)), &
+     write(15) ibelm_xmax(i),ibool(NGLLX,1,1,ibelm_xmax(i)),ibool(NGLLX,NGLLY,1,ibelm_xmax(i)), &
           ibool(NGLLX,1,NGLLZ,ibelm_xmax(i)),ibool(NGLLX,NGLLY,NGLLZ,ibelm_xmax(i))
   end do
   do i=1,nspec2D_ymin
-     write(15,*) ibelm_ymin(i),ibool(1,1,1,ibelm_ymin(i)),ibool(NGLLX,1,1,ibelm_ymin(i)),&
+     write(15) ibelm_ymin(i),ibool(1,1,1,ibelm_ymin(i)),ibool(NGLLX,1,1,ibelm_ymin(i)),&
           ibool(1,1,NGLLZ,ibelm_ymin(i)),ibool(NGLLX,1,NGLLZ,ibelm_ymin(i))
   end do
   do i=1,nspec2D_ymax
-     write(15,*) ibelm_ymax(i),ibool(NGLLX,NGLLY,1,ibelm_ymax(i)),ibool(1,NGLLY,1,ibelm_ymax(i)), &
+     write(15) ibelm_ymax(i),ibool(NGLLX,NGLLY,1,ibelm_ymax(i)),ibool(1,NGLLY,1,ibelm_ymax(i)), &
           ibool(NGLLX,NGLLY,NGLLZ,ibelm_ymax(i)),ibool(1,NGLLY,NGLLZ,ibelm_ymax(i))
   end do
   do i=1,NSPEC2D_BOTTOM
-     write(15,*) ibelm_bottom(i),ibool(1,1,1,ibelm_bottom(i)),ibool(NGLLX,1,1,ibelm_bottom(i)), &
+     write(15) ibelm_bottom(i),ibool(1,1,1,ibelm_bottom(i)),ibool(NGLLX,1,1,ibelm_bottom(i)), &
           ibool(NGLLX,NGLLY,1,ibelm_bottom(i)),ibool(1,NGLLY,1,ibelm_bottom(i))
   end do
   do i=1,NSPEC2D_TOP
-     write(15,*) ibelm_top(i),ibool(1,1,NGLLZ,ibelm_top(i)),ibool(NGLLX,1,NGLLZ,ibelm_top(i)), &
+     write(15) ibelm_top(i),ibool(1,1,NGLLZ,ibelm_top(i)),ibool(NGLLX,1,NGLLZ,ibelm_top(i)), &
           ibool(NGLLX,NGLLY,NGLLZ,ibelm_top(i)),ibool(1,NGLLY,NGLLZ,ibelm_top(i))
   end do
 
@@ -194,79 +200,79 @@
 
   nspec_interfaces_max = maxval(nspec_interface)
 
-  write(15,*) nb_interfaces,nspec_interfaces_max
+  write(15) nb_interfaces,nspec_interfaces_max
 
   if(interfaces(W)) then
-     write(15,*) addressing(iproc_xi-1,iproc_eta),nspec_interface(W)
+     write(15) addressing(iproc_xi-1,iproc_eta),nspec_interface(W)
      do ispec = 1,nspec
-        if(iMPIcut_xi(1,ispec))  write(15,*) ispec,4,ibool(1,1,1,ispec),ibool(1,2,1,ispec), &
+        if(iMPIcut_xi(1,ispec))  write(15) ispec,4,ibool(1,1,1,ispec),ibool(1,2,1,ispec), &
              ibool(1,1,2,ispec),ibool(1,2,2,ispec)
      end do
   end if
 
   if(interfaces(E)) then
-     write(15,*) addressing(iproc_xi+1,iproc_eta),nspec_interface(E)
+     write(15) addressing(iproc_xi+1,iproc_eta),nspec_interface(E)
      do ispec = 1,nspec
-        if(iMPIcut_xi(2,ispec))  write(15,*) ispec,4,ibool(2,1,1,ispec),ibool(2,2,1,ispec), &
+        if(iMPIcut_xi(2,ispec))  write(15) ispec,4,ibool(2,1,1,ispec),ibool(2,2,1,ispec), &
              ibool(2,1,2,ispec),ibool(2,2,2,ispec)
      end do
   end if
 
    if(interfaces(S)) then
-     write(15,*) addressing(iproc_xi,iproc_eta-1),nspec_interface(S)
+     write(15) addressing(iproc_xi,iproc_eta-1),nspec_interface(S)
      do ispec = 1,nspec
-        if(iMPIcut_eta(1,ispec))  write(15,*) ispec,4,ibool(1,1,1,ispec),ibool(2,1,1,ispec), &
+        if(iMPIcut_eta(1,ispec))  write(15) ispec,4,ibool(1,1,1,ispec),ibool(2,1,1,ispec), &
              ibool(1,1,2,ispec),ibool(2,1,2,ispec)
      end do
   end if
 
   if(interfaces(N)) then
-     write(15,*) addressing(iproc_xi,iproc_eta+1),nspec_interface(N)
+     write(15) addressing(iproc_xi,iproc_eta+1),nspec_interface(N)
      do ispec = 1,nspec
-        if(iMPIcut_eta(2,ispec))  write(15,*) ispec,4,ibool(2,2,1,ispec),ibool(1,2,1,ispec), &
+        if(iMPIcut_eta(2,ispec))  write(15) ispec,4,ibool(2,2,1,ispec),ibool(1,2,1,ispec), &
              ibool(2,2,2,ispec),ibool(1,2,2,ispec)
      end do
   end if
 
   if(interfaces(NW)) then
-     write(15,*) addressing(iproc_xi-1,iproc_eta+1),nspec_interface(NW)
+     write(15) addressing(iproc_xi-1,iproc_eta+1),nspec_interface(NW)
      do ispec = 1,nspec
         if((iMPIcut_xi(1,ispec) .eqv. .true.) .and. (iMPIcut_eta(2,ispec) .eqv. .true.))  then
-           write(15,*) ispec,2,ibool(1,2,1,ispec),ibool(1,2,2,ispec),-1,-1
+           write(15) ispec,2,ibool(1,2,1,ispec),ibool(1,2,2,ispec),-1,-1
         end if
      end do
   end if
 
   if(interfaces(NE)) then
-     write(15,*) addressing(iproc_xi+1,iproc_eta+1),nspec_interface(NE)
+     write(15) addressing(iproc_xi+1,iproc_eta+1),nspec_interface(NE)
      do ispec = 1,nspec
         if((iMPIcut_xi(2,ispec) .eqv. .true.) .and. (iMPIcut_eta(2,ispec) .eqv. .true.))  then
-           write(15,*) ispec,2,ibool(2,2,1,ispec),ibool(2,2,2,ispec),-1,-1
+           write(15) ispec,2,ibool(2,2,1,ispec),ibool(2,2,2,ispec),-1,-1
         end if
      end do
   end if
 
   if(interfaces(SE)) then
-     write(15,*) addressing(iproc_xi+1,iproc_eta-1),nspec_interface(SE)
+     write(15) addressing(iproc_xi+1,iproc_eta-1),nspec_interface(SE)
      do ispec = 1,nspec
         if((iMPIcut_xi(2,ispec) .eqv. .true.) .and. (iMPIcut_eta(1,ispec) .eqv. .true.))  then
-           write(15,*) ispec,2,ibool(2,1,1,ispec),ibool(2,1,2,ispec),-1,-1
+           write(15) ispec,2,ibool(2,1,1,ispec),ibool(2,1,2,ispec),-1,-1
         end if
      end do
   end if
 
   if(interfaces(SW)) then
-     write(15,*) addressing(iproc_xi-1,iproc_eta-1),nspec_interface(SW)
+     write(15) addressing(iproc_xi-1,iproc_eta-1),nspec_interface(SW)
      do ispec = 1,nspec
         if((iMPIcut_xi(1,ispec) .eqv. .true.) .and. (iMPIcut_eta(1,ispec) .eqv. .true.))  then
-           write(15,*) ispec,2,ibool(1,1,1,ispec),ibool(1,1,2,ispec),-1,-1
+           write(15) ispec,2,ibool(1,1,1,ispec),ibool(1,1,2,ispec),-1,-1
         end if
      end do
   end if
 
   else
 
-     write(15,*) 0,0
+     write(15) 0,0
 
   end if
 

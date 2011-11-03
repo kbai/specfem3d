@@ -65,7 +65,7 @@ subroutine compute_forces_acoustic()
   logical:: phase_is_inner
 
 
-! enforces free surface (zeroes potentials at free surface)
+  ! enforces free surface (zeroes potentials at free surface)
   if(.NOT. GPU_MODE) then
     ! on CPU
     call acoustic_enforce_free_surface(NSPEC_AB,NGLOB_AB, &
@@ -110,17 +110,17 @@ subroutine compute_forces_acoustic()
                               potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
   endif
 
-! distinguishes two runs: for points on MPI interfaces, and points within the partitions
+  ! distinguishes two runs: for elements on MPI interfaces, and elements within the partitions
   do iphase=1,2
 
-    !first for points on MPI interfaces
+    !first for points on MPI interfaces, thus outer elements
     if( iphase == 1 ) then
       phase_is_inner = .false.
     else
       phase_is_inner = .true.
     endif
 
-! acoustic pressure term
+    ! acoustic pressure term
     if(.NOT. GPU_MODE) then
       ! on CPU
       call compute_forces_acoustic_pot( iphase, NSPEC_AB,NGLOB_AB, &
@@ -184,7 +184,7 @@ subroutine compute_forces_acoustic()
 
     endif ! PML
 
-! absorbing boundaries
+    ! absorbing boundaries
     if(ABSORBING_CONDITIONS) then
       if( PML .and. PML_USE_SOMMERFELD ) then
         ! adds a Sommerfeld condition on the domain's absorbing boundaries
@@ -215,7 +215,7 @@ subroutine compute_forces_acoustic()
       endif
     endif
 
-! elastic coupling
+    ! elastic coupling
     if(ELASTIC_SIMULATION ) then
       if( .NOT. GPU_MODE ) then
         call compute_coupling_acoustic_el(NSPEC_AB,NGLOB_AB, &
@@ -243,13 +243,13 @@ subroutine compute_forces_acoustic()
       endif
     endif
 
-! poroelastic coupling
-! not implemented yet
+    ! poroelastic coupling
+    ! not implemented yet
     if(POROELASTIC_SIMULATION ) &
       !  call compute_coupling_acoustic_poro()
       call exit_MPI(myrank,'poroelastic coupling with acoustic domain not implemented yet!')
 
-! sources
+    ! sources
     call compute_add_sources_acoustic(NSPEC_AB,NGLOB_AB,potential_dot_dot_acoustic, &
                         ibool,ispec_is_inner,phase_is_inner, &
                         NSOURCES,myrank,it,islice_selected_source,ispec_selected_source,&
@@ -262,7 +262,7 @@ subroutine compute_forces_acoustic()
                         NTSTEP_BETWEEN_READ_ADJSRC, &
                         GPU_MODE, Mesh_pointer)
 
-! assemble all the contributions between slices using MPI
+    ! assemble all the contributions between slices using MPI
     if( phase_is_inner .eqv. .false. ) then
       ! sends potential_dot_dot_acoustic values to corresponding MPI interface neighbors (non-blocking)
       if(.NOT. GPU_MODE) then

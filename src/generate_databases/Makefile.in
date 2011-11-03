@@ -78,14 +78,15 @@ libgendatabases_a_OBJECTS = \
 	$O/detect_surface.o \
 	$O/exit_mpi.o \
 	$O/get_absorbing_boundary.o \
-	$O/get_coupling_surfaces.o \
-	$O/get_model.o \
-	$O/get_MPI.o \
 	$O/get_attenuation_model.o \
 	$O/get_cmt.o \
+	$O/get_coupling_surfaces.o \
 	$O/get_element_face.o \
 	$O/get_global.o \
 	$O/get_jacobian_boundaries.o \
+	$O/get_model.o \
+	$O/get_MPI.o \
+	$O/get_perm_color.o \
 	$O/get_shape2D.o \
 	$O/get_shape3D.o \
 	$O/get_value_parameters.o \
@@ -318,6 +319,9 @@ $O/get_model.o:  ${SHARED}/constants.h get_model.f90
 
 $O/get_MPI.o:  ${SHARED}/constants.h get_MPI.f90
 	${FCCOMPILE_CHECK} -c -o $O/get_MPI.o get_MPI.f90
+
+$O/get_perm_color.o:  ${SHARED}/constants.h get_perm_color.f90
+	${FCCOMPILE_CHECK} -c -o $O/get_perm_color.o get_perm_color.f90
 
 $O/create_name_database.o:  ${SHARED}/constants.h ${SHARED}/create_name_database.f90
 	${FCCOMPILE_CHECK} -c -o $O/create_name_database.o ${SHARED}/create_name_database.f90

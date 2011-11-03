@@ -37,7 +37,7 @@
   !   type = 2 : velocity V_y component
   !   type = 3 : velocity V_z component
   !   type = 4 : velocity V norm
-  integer,parameter:: IMAGE_TYPE = 2
+  integer,parameter:: IMAGE_TYPE = 4
 
   ! cross-section surface
   ! cross-section origin point

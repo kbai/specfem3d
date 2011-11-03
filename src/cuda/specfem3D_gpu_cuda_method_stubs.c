@@ -356,6 +356,8 @@ void FC_FUNC_(prepare_constants_device,
                                         int* nrec_f,
                                         int* nrec_local_f,
                                         int* SIMULATION_TYPE,
+                                        int* USE_MESH_COLORING_GPU,
+                                        int* nspec_acoustic,int* nspec_elastic,                                        
                                         int* ncuda_devices)
 {
   fprintf(stderr,"ERROR: GPU_MODE enabled without GPU/CUDA Support. To enable GPU support, reconfigure with --with-cuda flag.\n");
@@ -391,8 +393,10 @@ void FC_FUNC_(prepare_fields_acoustic_device,
                                               int* coupling_ac_el_ispec,
                                               int* coupling_ac_el_ijk,
                                               float* coupling_ac_el_normal,
-                                              float* coupling_ac_el_jacobian2Dw
-                                              ){}							 
+                                              float* coupling_ac_el_jacobian2Dw,
+                                              int* num_colors_outer_acoustic,
+                                              int* num_colors_inner_acoustic,
+                                              int* num_elem_colors_acoustic){}							 
 
 void FC_FUNC_(prepare_fields_acoustic_adj_dev,
               PREPARE_FIELDS_ACOUSTIC_ADJ_DEV)(long* Mesh_pointer_f,
@@ -426,7 +430,10 @@ void FC_FUNC_(prepare_fields_elastic_device,
                                              int* free_surface_ispec,
                                              int* free_surface_ijk,                                             
                                              int* num_free_surface_faces,
-                                             int* ACOUSTIC_SIMULATION){}
+                                             int* ACOUSTIC_SIMULATION,
+                                             int* num_colors_outer_elastic,
+                                             int* num_colors_inner_elastic,
+                                             int* num_elem_colors_elastic){}
   
 void FC_FUNC_(prepare_fields_elastic_adj_dev,
               PREPARE_FIELDS_ELASTIC_ADJ_DEV)(long* Mesh_pointer_f,

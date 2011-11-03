@@ -452,6 +452,8 @@ void FC_FUNC_(prepare_constants_device,
                                         int* nrec_f,
                                         int* nrec_local_f,
                                         int* SIMULATION_TYPE,
+                                        int* USE_MESH_COLORING_GPU_f,
+                                        int* nspec_acoustic,int* nspec_elastic,
                                         int* ncuda_devices) {
 
 TRACE("prepare_constants_device");
@@ -648,6 +650,20 @@ TRACE("prepare_constants_device");
   print_CUDA_error_if_any(cudaMemcpy(mp->d_ispec_selected_rec,h_ispec_selected_rec,
                                      nrec*sizeof(int),cudaMemcpyHostToDevice),1514);
 
+#ifdef USE_MESH_COLORING_GPU
+  mp->use_mesh_coloring_gpu = 1;
+  if( ! *USE_MESH_COLORING_GPU_f ) exit_on_error("error with USE_MESH_COLORING_GPU constant; please re-compile\n");
+#else
+  // mesh coloring
+  // note: this here passes the coloring as an option to the kernel routines
+  //          the performance seems to be the same if one uses the pre-processing directives above or not
+  mp->use_mesh_coloring_gpu = *USE_MESH_COLORING_GPU_f;
+#endif
+
+  // number of elements per domain
+  mp->nspec_acoustic = *nspec_acoustic;
+  mp->nspec_elastic = *nspec_elastic;
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("prepare_constants_device");
 #endif
@@ -746,8 +762,10 @@ void FC_FUNC_(prepare_fields_acoustic_device,
                                               int* coupling_ac_el_ispec,
                                               int* coupling_ac_el_ijk,
                                               float* coupling_ac_el_normal,
-                                              float* coupling_ac_el_jacobian2Dw
-                                              ) {
+                                              float* coupling_ac_el_jacobian2Dw,
+                                              int* num_colors_outer_acoustic,
+                                              int* num_colors_inner_acoustic,
+                                              int* num_elem_colors_acoustic) {
 
   TRACE("prepare_fields_acoustic_device");
 
@@ -850,6 +868,13 @@ void FC_FUNC_(prepare_fields_acoustic_device,
 
   }
 
+  // mesh coloring
+  if( mp->use_mesh_coloring_gpu ){
+    mp->num_colors_outer_acoustic = *num_colors_outer_acoustic;
+    mp->num_colors_inner_acoustic = *num_colors_inner_acoustic;
+    mp->h_num_elem_colors_acoustic = (int*) num_elem_colors_acoustic;
+  }
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("prepare_fields_acoustic_device");
 #endif
@@ -937,7 +962,10 @@ void FC_FUNC_(prepare_fields_elastic_device,
                                              int* free_surface_ispec,
                                              int* free_surface_ijk,
                                              int* num_free_surface_faces,
-                                             int* ACOUSTIC_SIMULATION){
+                                             int* ACOUSTIC_SIMULATION,
+                                             int* num_colors_outer_elastic,
+                                             int* num_colors_inner_elastic,
+                                             int* num_elem_colors_elastic){
 
 TRACE("prepare_fields_elastic_device");
 
@@ -1123,6 +1151,13 @@ TRACE("prepare_fields_elastic_device");
                                           3*25*mp->num_free_surface_faces*sizeof(int),cudaMemcpyHostToDevice),9204);
       }
     }
+  }
+
+  // mesh coloring
+  if( mp->use_mesh_coloring_gpu ){
+    mp->num_colors_outer_elastic = *num_colors_outer_elastic;
+    mp->num_colors_inner_elastic = *num_colors_inner_elastic;
+    mp->h_num_elem_colors_elastic = (int*) num_elem_colors_elastic;
   }
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
@@ -1467,6 +1502,7 @@ TRACE("prepare_cleanup_device");
       cudaFree(mp->d_station_seismo_potential);
       free(mp->h_station_seismo_potential);
     }
+
   } // ACOUSTIC_SIMULATION
 
   // ELASTIC arrays

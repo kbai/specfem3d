@@ -848,6 +848,11 @@
       write(IMAIN,*) '  moho surfaces: ',num_moho
     endif
     call sync_all()
+  else
+    ! allocate dummy array
+    nspec2D_moho_ext = 0
+    allocate(ibelm_moho(nspec2D_moho_ext),nodes_ibelm_moho(4,nspec2D_moho_ext),stat=ier)
+    if( ier /= 0 ) stop 'error allocating dumy array ibelm_moho etc.'
   endif
 
   close(IIN)
@@ -898,7 +903,8 @@
     write(IMAIN,*) 'create regions: '
   endif
   call create_regions_mesh_ext(ibool, &
-                        xstore, ystore, zstore, nspec, npointot, myrank, LOCAL_PATH, &
+                        xstore, ystore, zstore, nspec, &
+                        npointot, myrank, LOCAL_PATH, &
                         nnodes_ext_mesh, nelmnts_ext_mesh, &
                         nodes_coords_ext_mesh, elmnts_ext_mesh, &
                         max_static_memory_size, mat_ext_mesh, materials_ext_mesh, &
@@ -912,19 +918,22 @@
                         ibelm_xmin, ibelm_xmax, ibelm_ymin, ibelm_ymax, ibelm_bottom, ibelm_top, &
                         nodes_ibelm_xmin,nodes_ibelm_xmax,nodes_ibelm_ymin,nodes_ibelm_ymax, &
                         nodes_ibelm_bottom,nodes_ibelm_top, &
-                        SAVE_MESH_FILES,nglob, &
+                        SAVE_MESH_FILES,&
+                        nglob, &
                         ANISOTROPY,NPROC,OCEANS,TOPOGRAPHY, &
                         ATTENUATION,USE_OLSEN_ATTENUATION, &
                         UTM_PROJECTION_ZONE,SUPPRESS_UTM_PROJECTION,NX_TOPO,NY_TOPO, &
                         ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO, &
-                        itopo_bathy)
+                        itopo_bathy, &
+                        nspec2D_moho_ext,ibelm_moho,nodes_ibelm_moho)
 
+! now done inside create_regions_mesh_ext routine...
 ! Moho boundary parameters, 2-D jacobians and normals
-  if( SAVE_MOHO_MESH ) then
-    call create_regions_mesh_save_moho(myrank,nglob,nspec, &
-                        nspec2D_moho_ext,ibelm_moho,nodes_ibelm_moho, &
-                        nodes_coords_ext_mesh,nnodes_ext_mesh,ibool )
-  endif
+!  if( SAVE_MOHO_MESH ) then
+!    call create_regions_mesh_save_moho(myrank,nglob,nspec, &
+!                        nspec2D_moho_ext,ibelm_moho,nodes_ibelm_moho, &
+!                        nodes_coords_ext_mesh,nnodes_ext_mesh,ibool )
+!  endif
 
 ! defines global number of nodes in model
   NGLOB_AB = nglob

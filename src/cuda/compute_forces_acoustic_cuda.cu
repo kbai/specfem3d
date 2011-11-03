@@ -239,61 +239,19 @@ TRACE("transfer_asmbl_pot_to_device");
 
 /* ----------------------------------------------------------------------------------------------- */
 
-void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIMULATION_TYPE);
+//void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIMULATION_TYPE);
 
-__global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,int* d_phase_ispec_inner_acoustic,
-                                       int num_phase_ispec_acoustic, int d_iphase,
-                                       float* d_potential_acoustic, float* d_potential_dot_dot_acoustic,
-                                       float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz,
-                                       float* d_gammax, float* d_gammay, float* d_gammaz,
-                                       float* hprime_xx, float* hprime_yy, float* hprime_zz,
-                                       float* hprimewgll_xx, float* hprimewgll_yy, float* hprimewgll_zz,
-                                       float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,
-                                       float* d_rhostore);
+//__global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,int* d_phase_ispec_inner_acoustic,
+//                                       int num_phase_ispec_acoustic, int d_iphase,
+//                                       float* d_potential_acoustic, float* d_potential_dot_dot_acoustic,
+//                                       float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz,
+//                                       float* d_gammax, float* d_gammay, float* d_gammaz,
+//                                       float* hprime_xx, float* hprime_yy, float* hprime_zz,
+//                                       float* hprimewgll_xx, float* hprimewgll_yy, float* hprimewgll_zz,
+//                                       float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,
+//                                       float* d_rhostore);
 
 
-/* ----------------------------------------------------------------------------------------------- */
-
-// main compute_forces_acoustic CUDA routine
-
-/* ----------------------------------------------------------------------------------------------- */
-
-extern "C"
-void FC_FUNC_(compute_forces_acoustic_cuda,
-              COMPUTE_FORCES_ACOUSTIC_CUDA)(long* Mesh_pointer_f,
-                                            int* iphase,
-                                            int* nspec_outer_acoustic,
-                                            int* nspec_inner_acoustic,
-                                            int* SIMULATION_TYPE) {
-
-TRACE("compute_forces_acoustic_cuda");
-  //double start_time = get_time();
-
-  Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper
-
-  int num_elements;
-
-  if( *iphase == 1 )
-    num_elements = *nspec_outer_acoustic;
-  else
-    num_elements = *nspec_inner_acoustic;
-
-  if( num_elements == 0 ) return;
-
-  //int myrank;
-  /* MPI_Comm_rank(MPI_COMM_WORLD,&myrank); */
-  /* if(myrank==0) { */
-
-  Kernel_2_acoustic(num_elements, mp, *iphase, *SIMULATION_TYPE);
-
-  //cudaThreadSynchronize();
-
-//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  /* MPI_Barrier(MPI_COMM_WORLD); */
-  //double end_time = get_time();
-  //printf("Elapsed time: %e\n",end_time-start_time);
-//#endif
-}
 
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -302,95 +260,21 @@ TRACE("compute_forces_acoustic_cuda");
 
 /* ----------------------------------------------------------------------------------------------- */
 
-void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIMULATION_TYPE)
-{
 
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  exit_on_cuda_error("before acoustic kernel Kernel 2");
-#endif
-
-    /* if the grid can handle the number of blocks, we let it be 1D */
-    /* grid_2_x = nb_elem_color; */
-    /* nb_elem_color is just how many blocks we are computing now */
-
-    int num_blocks_x = nb_blocks_to_compute;
-    int num_blocks_y = 1;
-    while(num_blocks_x > 65535) {
-      num_blocks_x = ceil(num_blocks_x/2.0);
-      num_blocks_y = num_blocks_y*2;
-    }
-
-    int threads_2 = 128;//BLOCK_SIZE_K2;
-    dim3 grid_2(num_blocks_x,num_blocks_y);
-
-
-    // Cuda timing
-    // cudaEvent_t start, stop;
-    // float time;
-    // cudaEventCreate(&start);
-    // cudaEventCreate(&stop);
-    // cudaEventRecord( start, 0 );
-
-    Kernel_2_acoustic_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,
-                                                           mp->NGLOB_AB, mp->d_ibool,
-                                                           mp->d_phase_ispec_inner_acoustic,
-                                                           mp->num_phase_ispec_acoustic, d_iphase,
-                                                           mp->d_potential_acoustic, mp->d_potential_dot_dot_acoustic,
-                                                           mp->d_xix, mp->d_xiy, mp->d_xiz,
-                                                           mp->d_etax, mp->d_etay, mp->d_etaz,
-                                                           mp->d_gammax, mp->d_gammay, mp->d_gammaz,
-                                                           mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz,
-                                                           mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz,
-                                                           mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
-                                                           mp->d_rhostore);
-
-    if(SIMULATION_TYPE == 3) {
-      Kernel_2_acoustic_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,
-                                                            mp->NGLOB_AB, mp->d_ibool,
-                                                            mp->d_phase_ispec_inner_acoustic,
-                                                            mp->num_phase_ispec_acoustic, d_iphase,
-                                                            mp->d_b_potential_acoustic, mp->d_b_potential_dot_dot_acoustic,
-                                                            mp->d_xix, mp->d_xiy, mp->d_xiz,
-                                                            mp->d_etax, mp->d_etay, mp->d_etaz,
-                                                            mp->d_gammax, mp->d_gammay, mp->d_gammaz,
-                                                            mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz,
-                                                            mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz,
-                                                            mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
-                                                            mp->d_rhostore);
-    }
-
-    // cudaEventRecord( stop, 0 );
-    // cudaEventSynchronize( stop );
-    // cudaEventElapsedTime( &time, start, stop );
-    // cudaEventDestroy( start );
-    // cudaEventDestroy( stop );
-    // printf("Kernel2 Execution Time: %f ms\n",time);
-
-    /* cudaThreadSynchronize(); */
-    /* TRACE("Kernel 2 finished"); */
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  //printf("Tried to start with %dx1 blocks\n",nb_blocks_to_compute);
-  exit_on_cuda_error("kernel Kernel_2");
-#endif
-}
-
-/* ----------------------------------------------------------------------------------------------- */
-
-/* KERNEL 2 on device*/
-
-/* ----------------------------------------------------------------------------------------------- */
-
-
-__global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
-                                      int* d_phase_ispec_inner_acoustic,
-                                      int num_phase_ispec_acoustic, int d_iphase,
-                                      float* d_potential_acoustic, float* d_potential_dot_dot_acoustic,
-                                      float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz,
-                                      float* d_gammax, float* d_gammay, float* d_gammaz,
-                                      float* hprime_xx, float* hprime_yy, float* hprime_zz,
-                                      float* hprimewgll_xx, float* hprimewgll_yy, float* hprimewgll_zz,
-                                      float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,
-                                      float* d_rhostore){
+__global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,
+                                       int NGLOB, int* d_ibool,
+                                       int* d_phase_ispec_inner_acoustic,
+                                       int num_phase_ispec_acoustic,
+                                       int d_iphase,
+                                       int use_mesh_coloring_gpu,
+                                       float* d_potential_acoustic, float* d_potential_dot_dot_acoustic,
+                                       float* d_xix, float* d_xiy, float* d_xiz,
+                                       float* d_etax, float* d_etay, float* d_etaz,
+                                       float* d_gammax, float* d_gammay, float* d_gammaz,
+                                       float* hprime_xx, float* hprime_yy, float* hprime_zz,
+                                       float* hprimewgll_xx, float* hprimewgll_yy, float* hprimewgll_zz,
+                                       float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,
+                                       float* d_rhostore){
 
   int bx = blockIdx.y*gridDim.x+blockIdx.x;
   int tx = threadIdx.x;
@@ -428,16 +312,27 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
 // copy from global memory to shared memory
 // each thread writes one of the NGLL^3 = 125 data points
     if (active) {
-      // iphase-1 and working_element-1 for Fortran->C array conventions
-      working_element = d_phase_ispec_inner_acoustic[bx + num_phase_ispec_acoustic*(d_iphase-1)]-1;
+
+#ifdef USE_MESH_COLORING_GPU
+      working_element = bx;
+#else
+      //mesh coloring
+      if( use_mesh_coloring_gpu ){
+        working_element = bx;
+      }else{
+        // iphase-1 and working_element-1 for Fortran->C array conventions
+        working_element = d_phase_ispec_inner_acoustic[bx + num_phase_ispec_acoustic*(d_iphase-1)]-1;
+      }
+#endif
+
       // iglob = d_ibool[working_element*NGLL3_ALIGN + tx]-1;
       iglob = d_ibool[working_element*125 + tx]-1;
 
 #ifdef USE_TEXTURES
-        s_dummy_loc[tx] = tex1Dfetch(tex_potential_acoustic, iglob);
+      s_dummy_loc[tx] = tex1Dfetch(tex_potential_acoustic, iglob);
 #else
   // changing iglob indexing to match fortran row changes fast style
-        s_dummy_loc[tx] = d_potential_acoustic[iglob];
+      s_dummy_loc[tx] = d_potential_acoustic[iglob];
 #endif
     }
 
@@ -589,12 +484,23 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
         d_potential_dot_dot_acoustic[iglob] = tex1Dfetch(tex_potential_dot_dot_acoustic, iglob)
                                               - (fac1*temp1l + fac2*temp2l + fac3*temp3l);
 #else
-  /* OLD version that uses coloring to get around race condition. About 1.6x faster */
-      // d_accel[iglob*3] -= (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l);
-      // d_accel[iglob*3 + 1] -= (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l);
-      // d_accel[iglob*3 + 2] -= (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
+
+#ifdef USE_MESH_COLORING_GPU
+      // no atomic operation needed, colors don't share global points between elements
+      d_potential_dot_dot_acoustic[iglob] -= (fac1*temp1l + fac2*temp2l + fac3*temp3l);
+#else
+      //mesh coloring
+      if( use_mesh_coloring_gpu ){
+
+        // no atomic operation needed, colors don't share global points between elements
+        d_potential_dot_dot_acoustic[iglob] -= (fac1*temp1l + fac2*temp2l + fac3*temp3l);
+
+      }else{
 
         atomicAdd(&d_potential_dot_dot_acoustic[iglob],-(fac1*temp1l + fac2*temp2l + fac3*temp3l));
+
+      }
+#endif
 
 #endif
     }
@@ -604,6 +510,220 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* 
 #endif // of #ifndef MAKE_KERNEL2_BECOME_STUPID_FOR_TESTS
 }
 
+
+/* ----------------------------------------------------------------------------------------------- */
+
+void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
+                       int SIMULATION_TYPE,
+                       int* d_ibool,
+                       float* d_xix,
+                       float* d_xiy,
+                       float* d_xiz,
+                       float* d_etax,
+                       float* d_etay,
+                       float* d_etaz,
+                       float* d_gammax,
+                       float* d_gammay,
+                       float* d_gammaz,
+                       float* d_rhostore)
+{
+
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  exit_on_cuda_error("before acoustic kernel Kernel 2");
+#endif
+
+  /* if the grid can handle the number of blocks, we let it be 1D */
+  /* grid_2_x = nb_elem_color; */
+  /* nb_elem_color is just how many blocks we are computing now */
+
+  int num_blocks_x = nb_blocks_to_compute;
+  int num_blocks_y = 1;
+  while(num_blocks_x > 65535) {
+    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_y = num_blocks_y*2;
+  }
+
+  int threads_2 = 128;//BLOCK_SIZE_K2;
+  dim3 grid_2(num_blocks_x,num_blocks_y);
+
+
+  // Cuda timing
+  // cudaEvent_t start, stop;
+  // float time;
+  // cudaEventCreate(&start);
+  // cudaEventCreate(&stop);
+  // cudaEventRecord( start, 0 );
+
+  Kernel_2_acoustic_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,
+                                                        mp->NGLOB_AB,
+                                                        d_ibool,
+                                                        mp->d_phase_ispec_inner_acoustic,
+                                                        mp->num_phase_ispec_acoustic,
+                                                        d_iphase,
+                                                        mp->use_mesh_coloring_gpu,
+                                                        mp->d_potential_acoustic, mp->d_potential_dot_dot_acoustic,
+                                                        d_xix, d_xiy, d_xiz,
+                                                        d_etax, d_etay, d_etaz,
+                                                        d_gammax, d_gammay, d_gammaz,
+                                                        mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz,
+                                                        mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz,
+                                                        mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
+                                                        d_rhostore);
+
+  if(SIMULATION_TYPE == 3) {
+    Kernel_2_acoustic_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,
+                                                          mp->NGLOB_AB,
+                                                          d_ibool,
+                                                          mp->d_phase_ispec_inner_acoustic,
+                                                          mp->num_phase_ispec_acoustic,
+                                                          d_iphase,
+                                                          mp->use_mesh_coloring_gpu,
+                                                          mp->d_b_potential_acoustic, mp->d_b_potential_dot_dot_acoustic,
+                                                          d_xix, d_xiy, d_xiz,
+                                                          d_etax, d_etay, d_etaz,
+                                                          d_gammax, d_gammay, d_gammaz,
+                                                          mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz,
+                                                          mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz,
+                                                          mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
+                                                          d_rhostore);
+  }
+
+  // cudaEventRecord( stop, 0 );
+  // cudaEventSynchronize( stop );
+  // cudaEventElapsedTime( &time, start, stop );
+  // cudaEventDestroy( start );
+  // cudaEventDestroy( stop );
+  // printf("Kernel2 Execution Time: %f ms\n",time);
+
+  /* cudaThreadSynchronize(); */
+  /* TRACE("Kernel 2 finished"); */
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  //printf("Tried to start with %dx1 blocks\n",nb_blocks_to_compute);
+  exit_on_cuda_error("kernel Kernel_2");
+#endif
+}
+
+/* ----------------------------------------------------------------------------------------------- */
+
+// main compute_forces_acoustic CUDA routine
+
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(compute_forces_acoustic_cuda,
+              COMPUTE_FORCES_ACOUSTIC_CUDA)(long* Mesh_pointer_f,
+                                            int* iphase,
+                                            int* nspec_outer_acoustic,
+                                            int* nspec_inner_acoustic,
+                                            int* SIMULATION_TYPE) {
+
+  TRACE("compute_forces_acoustic_cuda");
+  //double start_time = get_time();
+
+  Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper
+
+  int num_elements;
+
+  if( *iphase == 1 )
+    num_elements = *nspec_outer_acoustic;
+  else
+    num_elements = *nspec_inner_acoustic;
+
+  if( num_elements == 0 ) return;
+
+  //int myrank;
+  /* MPI_Comm_rank(MPI_COMM_WORLD,&myrank); */
+  /* if(myrank==0) { */
+
+  // mesh coloring
+  if( mp->use_mesh_coloring_gpu ){
+
+    // note: array offsets require sorted arrays, such that e.g. ibool starts with elastic elements
+    //         and followed by acoustic ones.
+    //         acoustic elements also start with outer than inner element ordering
+
+    int nb_colors,nb_blocks_to_compute;
+    int istart;
+    int color_offset,color_offset_nonpadded;
+
+    // sets up color loop
+    if( *iphase == 1 ){
+      // outer elements
+      nb_colors = mp->num_colors_outer_acoustic;
+      istart = 0;
+
+      // array offsets (acoustic elements start after elastic ones)
+      color_offset = mp->nspec_elastic * NGLL3_PADDED;
+      color_offset_nonpadded = mp->nspec_elastic * NGLL3_NONPADDED;
+    }else{
+      // inner element colors (start after outer elements)
+      nb_colors = mp->num_colors_outer_acoustic + mp->num_colors_inner_acoustic;
+      istart = mp->num_colors_outer_acoustic;
+
+      // array offsets (inner elements start after outer ones)
+      color_offset = ( mp->nspec_elastic + (*nspec_outer_acoustic) ) * NGLL3_PADDED;
+      color_offset_nonpadded = ( mp->nspec_elastic + (*nspec_outer_acoustic) ) * NGLL3_NONPADDED;
+    }
+
+    // loops over colors
+    for(int icolor = istart; icolor < nb_colors; icolor++){
+
+      nb_blocks_to_compute = mp->h_num_elem_colors_acoustic[icolor];
+
+      // checks
+      //if( nb_blocks_to_compute <= 0 ){
+      //  printf("error number of acoustic color blocks: %d -- color = %d \n",nb_blocks_to_compute,icolor);
+      //  exit(EXIT_FAILURE);
+      //}
+
+      Kernel_2_acoustic(nb_blocks_to_compute,mp,*iphase,
+                         *SIMULATION_TYPE,
+                         mp->d_ibool + color_offset_nonpadded,
+                         mp->d_xix + color_offset,
+                         mp->d_xiy + color_offset,
+                         mp->d_xiz + color_offset,
+                         mp->d_etax + color_offset,
+                         mp->d_etay + color_offset,
+                         mp->d_etaz + color_offset,
+                         mp->d_gammax + color_offset,
+                         mp->d_gammay + color_offset,
+                         mp->d_gammaz + color_offset,
+                         mp->d_rhostore + color_offset);
+
+      // for padded and aligned arrays
+      color_offset += nb_blocks_to_compute * NGLL3_PADDED;
+      // for no-aligned arrays
+      color_offset_nonpadded += nb_blocks_to_compute * NGLL3_NONPADDED;
+    }
+
+  }else{
+
+    // no mesh coloring: uses atomic updates
+
+    Kernel_2_acoustic(num_elements, mp, *iphase,
+                      *SIMULATION_TYPE,
+                      mp->d_ibool,
+                      mp->d_xix,
+                      mp->d_xiy,
+                      mp->d_xiz,
+                      mp->d_etax,
+                      mp->d_etay,
+                      mp->d_etaz,
+                      mp->d_gammax,
+                      mp->d_gammay,
+                      mp->d_gammaz,
+                      mp->d_rhostore);
+
+  }
+
+  //cudaThreadSynchronize();
+
+  //#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  /* MPI_Barrier(MPI_COMM_WORLD); */
+  //double end_time = get_time();
+  //printf("Elapsed time: %e\n",end_time-start_time);
+  //#endif
+}
 
 /* ----------------------------------------------------------------------------------------------- */
 

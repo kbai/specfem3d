@@ -778,7 +778,9 @@
                                   sourcearrays, islice_selected_source, ispec_selected_source, &
                                   number_receiver_global, ispec_selected_rec, &
                                   nrec, nrec_local, &
-                                  SIMULATION_TYPE,ncuda_devices)
+                                  SIMULATION_TYPE, &
+                                  USE_MESH_COLORING_GPU,nspec_acoustic,nspec_elastic, &
+                                  ncuda_devices)
 
   call min_all_i(ncuda_devices,ncuda_devices_min)
   call max_all_i(ncuda_devices,ncuda_devices_max)
@@ -793,7 +795,9 @@
                                   ABSORBING_CONDITIONS,b_reclen_potential,b_absorb_potential, &
                                   ELASTIC_SIMULATION, num_coupling_ac_el_faces, &
                                   coupling_ac_el_ispec,coupling_ac_el_ijk, &
-                                  coupling_ac_el_normal,coupling_ac_el_jacobian2Dw)
+                                  coupling_ac_el_normal,coupling_ac_el_jacobian2Dw, &
+                                  num_colors_outer_acoustic,num_colors_inner_acoustic, &
+                                  num_elem_colors_acoustic)
 
     if( SIMULATION_TYPE == 3 ) &
       call prepare_fields_acoustic_adj_dev(Mesh_pointer, &
@@ -822,7 +826,9 @@
                                   NOISE_TOMOGRAPHY, &
                                   free_surface_normal,free_surface_ispec,free_surface_ijk, &
                                   num_free_surface_faces, &
-                                  ACOUSTIC_SIMULATION)
+                                  ACOUSTIC_SIMULATION, &
+                                  num_colors_outer_elastic,num_colors_inner_elastic, &
+                                  num_elem_colors_elastic)
 
     if( SIMULATION_TYPE == 3 ) &
       call prepare_fields_elastic_adj_dev(Mesh_pointer, NDIM*NGLOB_AB, &

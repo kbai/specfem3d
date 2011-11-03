@@ -53,7 +53,15 @@
                     c22store,c23store,c24store,c25store,c26store,c33store, &
                     c34store,c35store,c36store,c44store,c45store,c46store, &
                     c55store,c56store,c66store, &
-                    ispec_is_acoustic,ispec_is_elastic,ispec_is_poroelastic)
+                    ispec_is_acoustic,ispec_is_elastic,ispec_is_poroelastic, &
+                    ispec_is_inner,nspec_inner_acoustic,nspec_inner_elastic, &
+                    nspec_outer_acoustic,nspec_outer_elastic, &
+                    num_phase_ispec_acoustic,phase_ispec_inner_acoustic, &
+                    num_phase_ispec_elastic,phase_ispec_inner_elastic, &
+                    num_colors_outer_acoustic,num_colors_inner_acoustic, &
+                    num_elem_colors_acoustic, &
+                    num_colors_outer_elastic,num_colors_inner_elastic, &
+                    num_elem_colors_elastic)
 
   implicit none
 
@@ -126,6 +134,23 @@
 
 ! material domain flags
   logical, dimension(nspec) :: ispec_is_acoustic,ispec_is_elastic,ispec_is_poroelastic
+
+! inner/outer elements
+  logical,dimension(nspec) :: ispec_is_inner
+  integer :: nspec_inner_acoustic,nspec_outer_acoustic
+  integer :: nspec_inner_elastic,nspec_outer_elastic
+  integer :: num_phase_ispec_acoustic
+  integer,dimension(num_phase_ispec_acoustic,2) :: phase_ispec_inner_acoustic
+  integer :: num_phase_ispec_elastic
+  integer,dimension(num_phase_ispec_elastic,2) :: phase_ispec_inner_elastic
+
+  ! mesh coloring
+  integer :: num_colors_outer_acoustic,num_colors_inner_acoustic
+  integer, dimension(num_colors_outer_acoustic + num_colors_inner_acoustic) :: &
+    num_elem_colors_acoustic
+  integer :: num_colors_outer_elastic,num_colors_inner_elastic
+  integer, dimension(num_colors_outer_elastic + num_colors_inner_elastic) :: &
+    num_elem_colors_elastic
 
 ! local parameters
   real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: v_tmp
@@ -270,6 +295,33 @@
     write(IOUT) c55store
     write(IOUT) c56store
     write(IOUT) c66store
+  endif
+
+! inner/outer elements
+  write(IOUT) ispec_is_inner
+
+  if( ACOUSTIC_SIMULATION ) then
+    write(IOUT) nspec_inner_acoustic,nspec_outer_acoustic
+    write(IOUT) num_phase_ispec_acoustic
+    if(num_phase_ispec_acoustic > 0 ) write(IOUT) phase_ispec_inner_acoustic
+  endif
+
+  if( ELASTIC_SIMULATION ) then
+    write(IOUT) nspec_inner_elastic,nspec_outer_elastic
+    write(IOUT) num_phase_ispec_elastic
+    if(num_phase_ispec_elastic > 0 ) write(IOUT) phase_ispec_inner_elastic
+  endif
+
+! mesh coloring
+  if( USE_MESH_COLORING_GPU ) then
+    if( ACOUSTIC_SIMULATION ) then
+      write(IOUT) num_colors_outer_acoustic,num_colors_inner_acoustic
+      write(IOUT) num_elem_colors_acoustic
+    endif
+    if( ELASTIC_SIMULATION ) then
+      write(IOUT) num_colors_outer_elastic,num_colors_inner_elastic
+      write(IOUT) num_elem_colors_elastic
+    endif
   endif
 
   close(IOUT)

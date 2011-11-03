@@ -24,10 +24,65 @@
 !
 !=====================================================================
 
+
+! wrapper function
+
   subroutine get_model(myrank,nspec,ibool,mat_ext_mesh,nelmnts_ext_mesh, &
                         materials_ext_mesh,nmat_ext_mesh, &
                         undef_mat_prop,nundefMat_ext_mesh, &
                         ANISOTROPY,LOCAL_PATH)
+
+  use create_regions_mesh_ext_par
+  implicit none
+
+  ! number of spectral elements in each block
+  integer :: myrank,nspec
+  integer, dimension(NGLLX,NGLLY,NGLLZ,nspec) :: ibool
+  ! external mesh
+  integer :: nelmnts_ext_mesh
+  integer :: nmat_ext_mesh,nundefMat_ext_mesh
+  integer, dimension(2,nelmnts_ext_mesh) :: mat_ext_mesh
+  double precision, dimension(6,nmat_ext_mesh) :: materials_ext_mesh
+  character (len=30), dimension(6,nundefMat_ext_mesh):: undef_mat_prop
+  ! anisotropy
+  logical :: ANISOTROPY
+  character(len=256) LOCAL_PATH
+
+  !----------------------------------------------------------
+  ! USER Parameter
+  ! daniel: TODO -- uses Piero's get_model_PREM routine rather than default one
+  logical,parameter :: USE_PIERO_MODEL = .true.
+
+  !----------------------------------------------------------
+
+  if( USE_PIERO_MODEL ) then
+    ! Using PREM model instead
+    call get_model_PREM(myrank,nspec,ibool,mat_ext_mesh,nelmnts_ext_mesh, &
+                        materials_ext_mesh,nmat_ext_mesh, &
+                        undef_mat_prop,nundefMat_ext_mesh, &
+                        ANISOTROPY,LOCAL_PATH)
+
+  else
+    ! DEFAULT routine
+    call get_model_d(myrank,nspec,ibool,mat_ext_mesh,nelmnts_ext_mesh, &
+                    materials_ext_mesh,nmat_ext_mesh, &
+                    undef_mat_prop,nundefMat_ext_mesh, &
+                    ANISOTROPY,LOCAL_PATH)
+  endif
+
+  end subroutine get_model
+
+  !
+  !-----------------------------------------------------------------------------------------------
+  !
+
+! default get model routine
+
+  subroutine get_model_d(myrank,nspec,ibool,mat_ext_mesh,nelmnts_ext_mesh, &
+                        materials_ext_mesh,nmat_ext_mesh, &
+                        undef_mat_prop,nundefMat_ext_mesh, &
+                        ANISOTROPY,LOCAL_PATH)
+
 
   use create_regions_mesh_ext_par
   implicit none
@@ -360,8 +415,11 @@
 
   endif ! USE_EXTERNAL_FILES
 
-  end subroutine get_model
+  end subroutine get_model_d
 
+!
+!-------------------------------------------------------------------------------------------------
+!
   subroutine get_model_PREM(myrank,nspec,ibool,mat_ext_mesh,nelmnts_ext_mesh, &
                         materials_ext_mesh,nmat_ext_mesh, &
                         undef_mat_prop,nundefMat_ext_mesh, &

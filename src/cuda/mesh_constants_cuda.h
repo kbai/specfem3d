@@ -42,12 +42,10 @@
 
 */
 
-
 #ifndef GPU_MESH_
 #define GPU_MESH_
 #include <sys/types.h>
 #include <unistd.h>
-
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -73,27 +71,22 @@
 #define PRINT5(var,offset) // for(i=0;i<10;i++) printf("var(%d)=%f\n",i,var[offset+i]);
 #endif
 
-
-//#undef ENABLE_VERY_SLOW_ERROR_CHECKING
+// error checking after cuda function calls
 #define ENABLE_VERY_SLOW_ERROR_CHECKING
+
 
 /* ----------------------------------------------------------------------------------------------- */
 
 // indexing
 
 #define INDEX2(xsize,x,y) x + (y)*xsize
-#define INDEX3(xsize,ysize,x,y,z) x + (y)*xsize + (z)*xsize*ysize
-#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + (y)*xsize + (z)*xsize*ysize + (i)*xsize*ysize*zsize
-#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + (y)*xsize + (z)*xsize*ysize + (i)*xsize*ysize*zsize + (j)*xsize*ysize*zsize*isize
+#define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
+#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
+#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*j)))
 #define INDEX6(xsize,ysize,zsize,isize,jsize,x,y,z,i,j,k) x + xsize*(y + ysize*(z + zsize*(i + isize*(j + jsize*k))))
 
-#define INDEX4_PADDED(xsize,ysize,zsize,x,y,z,i) x + (y)*xsize + (z)*xsize*ysize + (i)*128
+#define INDEX4_PADDED(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*z) + (i)*128
 
-//daniel: TODO -- check speed of these alternative definitions
-//#define INDEX2(xsize,x,y) x + (y)*xsize
-//#define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
-//#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
-//#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*j)))
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -120,12 +113,19 @@ void exit_on_error(char* info);
 #define NGLL2 25
 #define N_SLS 3
 
+#define NGLL3_NONPADDED 125
+#define NGLL3_PADDED 128
+
 //typedef float real;   // type of variables passed into function
 typedef float realw;  // type of "working" variables
 
 // double precision temporary variables leads to 10% performance
 // decrease in Kernel_2_impl (not very much..)
 typedef float reald;
+
+// (optional) pre-processing directive used in kernels: if defined check that it is also set in src/shared/constants.h:
+// leads up to ~ 5% performance increase
+//#define USE_MESH_COLORING_GPU
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -153,6 +153,9 @@ typedef struct mesh_ {
   // inner / outer elements
   int* d_ispec_is_inner;
 
+  // mesh coloring
+  int use_mesh_coloring_gpu;
+
   // pointers to constant memory arrays
   float* d_hprime_xx; float* d_hprime_yy; float* d_hprime_zz;
   float* d_hprimewgll_xx; float* d_hprimewgll_yy; float* d_hprimewgll_zz;
@@ -173,6 +176,11 @@ typedef struct mesh_ {
   // elastic domain parameters
   int* d_phase_ispec_inner_elastic;
   int num_phase_ispec_elastic;
+
+  // mesh coloring
+  int* h_num_elem_colors_elastic;
+  int num_colors_outer_elastic,num_colors_inner_elastic;
+  int nspec_elastic;
 
   float* d_rmass;
   float* d_send_accel_buffer;
@@ -300,6 +308,11 @@ typedef struct mesh_ {
 
   int* d_phase_ispec_inner_acoustic;
   int num_phase_ispec_acoustic;
+
+  // mesh coloring
+  int* h_num_elem_colors_acoustic;
+  int num_colors_outer_acoustic,num_colors_inner_acoustic;
+  int nspec_acoustic;
 
   float* d_rhostore;
   float* d_kappastore;

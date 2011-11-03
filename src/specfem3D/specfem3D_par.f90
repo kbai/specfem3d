@@ -301,8 +301,12 @@ module specfem_par_elastic
   integer, dimension(:,:), allocatable :: phase_ispec_inner_elastic
   integer :: num_phase_ispec_elastic,nspec_inner_elastic,nspec_outer_elastic
 
-  logical :: ELASTIC_SIMULATION
+! mesh coloring
+  integer :: num_colors_outer_elastic,num_colors_inner_elastic
+  integer, dimension(:), allocatable :: num_elem_colors_elastic
+  integer :: nspec_elastic
 
+  logical :: ELASTIC_SIMULATION
 
 ! ADJOINT elastic
 
@@ -373,6 +377,11 @@ module specfem_par_acoustic
   logical, dimension(:), allocatable :: ispec_is_acoustic
   integer, dimension(:,:), allocatable :: phase_ispec_inner_acoustic
   integer :: num_phase_ispec_acoustic,nspec_inner_acoustic,nspec_outer_acoustic
+
+! mesh coloring
+  integer :: num_colors_outer_acoustic,num_colors_inner_acoustic
+  integer, dimension(:), allocatable :: num_elem_colors_acoustic
+  integer :: nspec_acoustic
 
   logical :: ACOUSTIC_SIMULATION
 

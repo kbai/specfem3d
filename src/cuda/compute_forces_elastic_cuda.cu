@@ -51,28 +51,26 @@ __constant__ float d_wgllwgll_xz[NGLL2];
 __constant__ float d_wgllwgll_yz[NGLL2];
 
 
-void Kernel_2(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
-        int COMPUTE_AND_STORE_STRAIN,int SIMULATION_TYPE,int ATTENUATION);
-
+//void Kernel_2(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
+//        int COMPUTE_AND_STORE_STRAIN,int SIMULATION_TYPE,int ATTENUATION);
 //__global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elastic,
 //                            int num_phase_ispec_elastic, int d_iphase, int* d_ibool);
-
-__global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
-                              int* d_phase_ispec_inner_elastic, int num_phase_ispec_elastic, int d_iphase,
-                              float* d_displ, float* d_accel,
-                              float* d_xix, float* d_xiy, float* d_xiz,
-                              float* d_etax, float* d_etay, float* d_etaz,
-                              float* d_gammax, float* d_gammay, float* d_gammaz,
-                              float* d_kappav, float* d_muv,
-                              //float* d_debug,
-                              int COMPUTE_AND_STORE_STRAIN,
-                              float* epsilondev_xx,float* epsilondev_yy,float* epsilondev_xy,
-                              float* epsilondev_xz,float* epsilondev_yz,float* epsilon_trace_over_3,
-                              int SIMULATION_TYPE,
-                              int ATTENUATION,int NSPEC,
-                              float* one_minus_sum_beta,float* factor_common,
-                              float* R_xx,float* R_yy,float* R_xy,float* R_xz,float* R_yz,
-                              float* alphaval,float* betaval,float* gammaval);
+//__global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
+//                              int* d_phase_ispec_inner_elastic, int num_phase_ispec_elastic, int d_iphase,
+//                              float* d_displ, float* d_accel,
+//                              float* d_xix, float* d_xiy, float* d_xiz,
+//                              float* d_etax, float* d_etay, float* d_etaz,
+//                              float* d_gammax, float* d_gammay, float* d_gammaz,
+//                              float* d_kappav, float* d_muv,
+//                              //float* d_debug,
+//                              int COMPUTE_AND_STORE_STRAIN,
+//                              float* epsilondev_xx,float* epsilondev_yy,float* epsilondev_xy,
+//                              float* epsilondev_xz,float* epsilondev_yz,float* epsilon_trace_over_3,
+//                              int SIMULATION_TYPE,
+//                              int ATTENUATION,int NSPEC,
+//                              float* one_minus_sum_beta,float* factor_common,
+//                              float* R_xx,float* R_yy,float* R_xy,float* R_xz,float* R_yz,
+//                              float* alphaval,float* betaval,float* gammaval);
 
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -173,9 +171,10 @@ TRACE("transfer_boun_accel_from_device");
 /* ----------------------------------------------------------------------------------------------- */
 
 __global__ void assemble_boundary_accel_on_device(float* d_accel, float* d_send_accel_buffer,
-             int num_interfaces_ext_mesh, int max_nibool_interfaces_ext_mesh,
-             int* d_nibool_interfaces_ext_mesh,
-             int* d_ibool_interfaces_ext_mesh) {
+                                                  int num_interfaces_ext_mesh,
+                                                  int max_nibool_interfaces_ext_mesh,
+                                                  int* d_nibool_interfaces_ext_mesh,
+                                                  int* d_ibool_interfaces_ext_mesh) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
   //int bx = blockIdx.y*gridDim.x+blockIdx.x;
@@ -183,7 +182,7 @@ __global__ void assemble_boundary_accel_on_device(float* d_accel, float* d_send_
   int iinterface=0;
 
   for( iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
-    if(id<d_nibool_interfaces_ext_mesh[iinterface]) {
+    if(id < d_nibool_interfaces_ext_mesh[iinterface]) {
 
       // for testing atomic operations against not atomic operations (0.1ms vs. 0.04 ms)
       // d_accel[3*(d_ibool_interfaces_ext_mesh[id+max_nibool_interfaces_ext_mesh*iinterface]-1)] +=
@@ -228,7 +227,7 @@ TRACE("transfer_asmbl_accel_to_device");
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
 
   cudaMemcpy(mp->d_send_accel_buffer, buffer_recv_vector_ext_mesh,
-             3* *max_nibool_interfaces_ext_mesh* *num_interfaces_ext_mesh*sizeof(realw), cudaMemcpyHostToDevice);
+             3*(*max_nibool_interfaces_ext_mesh)*(*num_interfaces_ext_mesh)*sizeof(realw), cudaMemcpyHostToDevice);
 
   int blocksize = 256;
   int size_padded = ((int)ceil(((double)*max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
@@ -278,48 +277,33 @@ TRACE("transfer_asmbl_accel_to_device");
 
 /* ----------------------------------------------------------------------------------------------- */
 
+// KERNEL 2
 
-extern "C"
-void FC_FUNC_(compute_forces_elastic_cuda,
-              COMPUTE_FORCES_ELASTIC_CUDA)(long* Mesh_pointer_f,
-                                           int* iphase,
-                                           int* nspec_outer_elastic,
-                                           int* nspec_inner_elastic,
-                                           int* SIMULATION_TYPE,
-                                           int* COMPUTE_AND_STORE_STRAIN,
-                                           int* ATTENUATION) {
+/* ----------------------------------------------------------------------------------------------- */
 
-TRACE("compute_forces_elastic_cuda");
-// EPIK_TRACER("compute_forces_elastic_cuda");
-//printf("Running compute_forces\n");
-  //double start_time = get_time();
+/* ----------------------------------------------------------------------------------------------- */
 
-  Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper
-
-  int num_elements;
-
-  if( *iphase == 1 )
-    num_elements = *nspec_outer_elastic;
-  else
-    num_elements = *nspec_inner_elastic;
-
-  if( num_elements == 0 ) return;
-
-  //int myrank;
-  /* MPI_Comm_rank(MPI_COMM_WORLD,&myrank); */
-  /* if(myrank==0) { */
-
-  Kernel_2(num_elements,mp,*iphase,*COMPUTE_AND_STORE_STRAIN,*SIMULATION_TYPE,*ATTENUATION);
-
-  //cudaThreadSynchronize();
-
-//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-/* MPI_Barrier(MPI_COMM_WORLD); */
-  //double end_time = get_time();
-  //printf("Elapsed time: %e\n",end_time-start_time);
-//#endif
-}
-
+//__global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elastic,
+//                            int num_phase_ispec_elastic, int d_iphase, int* d_ibool) {
+//  int bx = blockIdx.x;
+//  int tx = threadIdx.x;
+//  int working_element;
+//  //int ispec;
+//  //int NGLL3_ALIGN = 128;
+//  if(tx==0 && bx==0) {
+//
+//    d_debug_output[0] = 420.0;
+//
+//    d_debug_output[2] = num_phase_ispec_elastic;
+//    d_debug_output[3] = d_iphase;
+//    working_element = d_phase_ispec_inner_elastic[bx + num_phase_ispec_elastic*(d_iphase-1)]-1;
+//    d_debug_output[4] = working_element;
+//    d_debug_output[5] = d_phase_ispec_inner_elastic[0];
+//    /* d_debug_output[1] = d_ibool[working_element*NGLL3_ALIGN + tx]-1; */
+//  }
+//  /* d_debug_output[1+tx+128*bx] = 69.0; */
+//
+//}
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -434,165 +418,6 @@ __device__ void compute_element_att_memory(int tx,int working_element,int NSPEC,
   return;
 }
 
-/* ----------------------------------------------------------------------------------------------- */
-
-// KERNEL 2
-
-/* ----------------------------------------------------------------------------------------------- */
-
-void Kernel_2(int nb_blocks_to_compute,
-              Mesh* mp,
-              int d_iphase,
-              int COMPUTE_AND_STORE_STRAIN,
-              int SIMULATION_TYPE,
-              int ATTENUATION){
-
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  exit_on_cuda_error("before kernel Kernel 2");
-#endif
-
-  /* if the grid can handle the number of blocks, we let it be 1D */
-  /* grid_2_x = nb_elem_color; */
-  /* nb_elem_color is just how many blocks we are computing now */
-
-  int num_blocks_x = nb_blocks_to_compute;
-  int num_blocks_y = 1;
-  while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
-    num_blocks_y = num_blocks_y*2;
-  }
-
-  //int threads_2 = 128;//BLOCK_SIZE_K2;
-  //dim3 grid_2(num_blocks_x,num_blocks_y);
-
-  int blocksize = 128;
-  dim3 grid(num_blocks_x,num_blocks_y);
-  dim3 threads(blocksize,1,1);
-
-  // debugging
-  //printf("Starting with grid %dx%d for %d blocks\n",num_blocks_x,num_blocks_y,nb_blocks_to_compute);
-//  float* d_debug;
-//    float* h_debug;
-//    h_debug = (float*)calloc(128,sizeof(float));
-//    cudaMalloc((void**)&d_debug,128*sizeof(float));
-//    cudaMemcpy(d_debug,h_debug,128*sizeof(float),cudaMemcpyHostToDevice);
-
-  // Cuda timing
-  // cudaEvent_t start, stop;
-  // float time;
-  // cudaEventCreate(&start);
-  // cudaEventCreate(&stop);
-  // cudaEventRecord( start, 0 );
-
-  //Kernel_2_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,mp->NGLOB_AB, mp->d_ibool,
-  Kernel_2_impl<<<grid,threads>>>(nb_blocks_to_compute,mp->NGLOB_AB, mp->d_ibool,
-                                               mp->d_phase_ispec_inner_elastic,
-                                               mp->num_phase_ispec_elastic,
-                                               d_iphase,
-                                               mp->d_displ, mp->d_accel,
-                                               mp->d_xix, mp->d_xiy, mp->d_xiz,
-                                               mp->d_etax, mp->d_etay, mp->d_etaz,
-                                               mp->d_gammax, mp->d_gammay, mp->d_gammaz,
-                                               mp->d_kappav, mp->d_muv,
-                                               //d_debug,
-                                               COMPUTE_AND_STORE_STRAIN,
-                                               mp->d_epsilondev_xx,
-                                               mp->d_epsilondev_yy,
-                                               mp->d_epsilondev_xy,
-                                               mp->d_epsilondev_xz,
-                                               mp->d_epsilondev_yz,
-                                               mp->d_epsilon_trace_over_3,
-                                               SIMULATION_TYPE,
-                                               ATTENUATION,mp->NSPEC_AB,
-                                               mp->d_one_minus_sum_beta,mp->d_factor_common,
-                                               mp->d_R_xx,mp->d_R_yy,mp->d_R_xy,mp->d_R_xz,mp->d_R_yz,
-                                               mp->d_alphaval,mp->d_betaval,mp->d_gammaval
-                                               );
-
-
-  // cudaMemcpy(h_debug,d_debug,128*sizeof(float),cudaMemcpyDeviceToHost);
-  // int procid;
-  // MPI_Comm_rank(MPI_COMM_WORLD,&procid);
-  // if(procid==0) {
-  //   for(int i=0;i<17;i++) {
-  //  printf("cudadebug[%d] = %e\n",i,h_debug[i]);
-  //   }
-  // }
-//    free(h_debug);
-//    cudaFree(d_debug);
-// #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-//    exit_on_cuda_error("Kernel_2_impl");
-// #endif
-
-  if(SIMULATION_TYPE == 3) {
-    //Kernel_2_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,mp->NGLOB_AB, mp->d_ibool,
-    Kernel_2_impl<<< grid,threads>>>(nb_blocks_to_compute,mp->NGLOB_AB, mp->d_ibool,
-                                                 mp->d_phase_ispec_inner_elastic,
-                                                 mp->num_phase_ispec_elastic,
-                                                 d_iphase,
-                                                 mp->d_b_displ, mp->d_b_accel,
-                                                 mp->d_xix, mp->d_xiy, mp->d_xiz,
-                                                 mp->d_etax, mp->d_etay, mp->d_etaz,
-                                                 mp->d_gammax, mp->d_gammay, mp->d_gammaz,
-                                                 mp->d_kappav, mp->d_muv,
-                                                 //d_debug,
-                                                 COMPUTE_AND_STORE_STRAIN,
-                                                 mp->d_b_epsilondev_xx,
-                                                 mp->d_b_epsilondev_yy,
-                                                 mp->d_b_epsilondev_xy,
-                                                 mp->d_b_epsilondev_xz,
-                                                 mp->d_b_epsilondev_yz,
-                                                 mp->d_b_epsilon_trace_over_3,
-                                                 SIMULATION_TYPE,
-                                                 ATTENUATION,mp->NSPEC_AB,
-                                                 mp->d_one_minus_sum_beta,mp->d_factor_common,
-                                                 mp->d_b_R_xx,mp->d_b_R_yy,mp->d_b_R_xy,mp->d_b_R_xz,mp->d_b_R_yz,
-                                                 mp->d_b_alphaval,mp->d_b_betaval,mp->d_b_gammaval
-                                                 );
-  }
-
-  // cudaEventRecord( stop, 0 );
-  // cudaEventSynchronize( stop );
-  // cudaEventElapsedTime( &time, start, stop );
-  // cudaEventDestroy( start );
-  // cudaEventDestroy( stop );
-  // printf("Kernel2 Execution Time: %f ms\n",time);
-
-  // cudaMemcpy(h_debug,d_debug,128*sizeof(float),cudaMemcpyDeviceToHost);
-  // for(int i=0;i<10;i++) {
-  // printf("debug[%d]=%e\n",i,h_debug[i]);
-  // }
-
-  /* cudaThreadSynchronize(); */
-  /* LOG("Kernel 2 finished"); */
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  exit_on_cuda_error("Kernel_2_impl ");
-#endif
-}
-
-/* ----------------------------------------------------------------------------------------------- */
-
-//__global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elastic,
-//                            int num_phase_ispec_elastic, int d_iphase, int* d_ibool) {
-//  int bx = blockIdx.x;
-//  int tx = threadIdx.x;
-//  int working_element;
-//  //int ispec;
-//  //int NGLL3_ALIGN = 128;
-//  if(tx==0 && bx==0) {
-//
-//    d_debug_output[0] = 420.0;
-//
-//    d_debug_output[2] = num_phase_ispec_elastic;
-//    d_debug_output[3] = d_iphase;
-//    working_element = d_phase_ispec_inner_elastic[bx + num_phase_ispec_elastic*(d_iphase-1)]-1;
-//    d_debug_output[4] = working_element;
-//    d_debug_output[5] = d_phase_ispec_inner_elastic[0];
-//    /* d_debug_output[1] = d_ibool[working_element*NGLL3_ALIGN + tx]-1; */
-//  }
-//  /* d_debug_output[1+tx+128*bx] = 69.0; */
-//
-//}
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -604,8 +429,12 @@ void Kernel_2(int nb_blocks_to_compute,
 // #define MANUALLY_UNROLLED_LOOPS
 
 
-__global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
-                              int* d_phase_ispec_inner_elastic, int num_phase_ispec_elastic, int d_iphase,
+__global__ void Kernel_2_impl(int nb_blocks_to_compute,
+                              int NGLOB,
+                              int* d_ibool,
+                              int* d_phase_ispec_inner_elastic, int num_phase_ispec_elastic,
+                              int d_iphase,
+                              int use_mesh_coloring_gpu,
                               float* d_displ, float* d_accel,
                               float* d_xix, float* d_xiy, float* d_xiz,
                               float* d_etax, float* d_etay, float* d_etaz,
@@ -617,7 +446,8 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
                               float* epsilondev_xz,float* epsilondev_yz,
                               float* epsilon_trace_over_3,
                               int SIMULATION_TYPE,
-                              int ATTENUATION, int NSPEC,
+                              int ATTENUATION,
+                              int NSPEC,
                               float* one_minus_sum_beta,float* factor_common,
                               float* R_xx, float* R_yy, float* R_xy, float* R_xz, float* R_yz,
                               float* alphaval,float* betaval,float* gammaval
@@ -676,8 +506,19 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
 // copy from global memory to shared memory
 // each thread writes one of the NGLL^3 = 125 data points
     if (active) {
-      // iphase-1 and working_element-1 for Fortran->C array conventions
-      working_element = d_phase_ispec_inner_elastic[bx + num_phase_ispec_elastic*(d_iphase-1)]-1;
+
+#ifdef USE_MESH_COLORING_GPU
+      working_element = bx;
+#else
+      //mesh coloring
+      if( use_mesh_coloring_gpu ){
+        working_element = bx;
+      }else{
+        // iphase-1 and working_element-1 for Fortran->C array conventions
+        working_element = d_phase_ispec_inner_elastic[bx + num_phase_ispec_elastic*(d_iphase-1)]-1;
+      }
+#endif
+
       // iglob = d_ibool[working_element*NGLL3_ALIGN + tx]-1;
       iglob = d_ibool[working_element*125 + tx]-1;
 
@@ -826,8 +667,6 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
       duzdyl = xiyl*tempz1l + etayl*tempz2l + gammayl*tempz3l;
       duzdzl = xizl*tempz1l + etazl*tempz2l + gammazl*tempz3l;
 
-
-
       duxdxl_plus_duydyl = duxdxl + duydyl;
       duxdxl_plus_duzdzl = duxdxl + duzdzl;
       duydyl_plus_duzdzl = duydyl + duzdzl;
@@ -945,14 +784,14 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
         tempy3l += s_tempy3[offset]*fac3;
         tempz3l += s_tempz3[offset]*fac3;
 
-        if(working_element == 169)
-          if(l==0)
-            if(I+J+K == 0) {
+        //if(working_element == 169)
+        //  if(l==0)
+        //    if(I+J+K == 0) {
               // atomicAdd(&d_debug[0],1.0);
               // d_debug[0] = fac3;
               // d_debug[1] = offset;
               // d_debug[2] = s_tempz3[offset];
-            }
+        //    }
       }
 #else
 
@@ -1022,27 +861,44 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
       d_accel[iglob + 2*NGLOB] = tex1Dfetch(tex_accel, iglob + 2*NGLOB) - (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
 #else
   /* OLD/To be implemented version that uses coloring to get around race condition. About 1.6x faster */
-      // d_accel[iglob*3] -= (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l);
-      // d_accel[iglob*3 + 1] -= (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l);
-      // d_accel[iglob*3 + 2] -= (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
 
-      //if(iglob*3+2 == 41153) {
-        // int ot = d_debug[5];
-        // d_debug[0+1+ot] = d_accel[iglob*3+2];
-        // // d_debug[1+1+ot] = fac1*tempz1l;
-        // // d_debug[2+1+ot] = fac2*tempz2l;
-        // // d_debug[3+1+ot] = fac3*tempz3l;
-        // d_debug[1+1+ot] = fac1;
-        // d_debug[2+1+ot] = fac2;
-        // d_debug[3+1+ot] = fac3;
-        // d_debug[4+1+ot] = d_accel[iglob*3+2]-(fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
-        // atomicAdd(&d_debug[0],1.0);
-        // d_debug[6+ot] = d_displ[iglob*3+2];
-      //}
 
-      atomicAdd(&d_accel[iglob*3],-(fac1*tempx1l + fac2*tempx2l + fac3*tempx3l));
-      atomicAdd(&d_accel[iglob*3+1],-(fac1*tempy1l + fac2*tempy2l + fac3*tempy3l));
-      atomicAdd(&d_accel[iglob*3+2],-(fac1*tempz1l + fac2*tempz2l + fac3*tempz3l));
+#ifdef USE_MESH_COLORING_GPU
+      // no atomic operation needed, colors don't share global points between elements
+      d_accel[iglob*3] -= (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l);
+      d_accel[iglob*3 + 1] -= (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l);
+      d_accel[iglob*3 + 2] -= (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
+#else
+      //mesh coloring
+      if( use_mesh_coloring_gpu ){
+
+       // no atomic operation needed, colors don't share global points between elements
+        d_accel[iglob*3] -= (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l);
+        d_accel[iglob*3 + 1] -= (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l);
+        d_accel[iglob*3 + 2] -= (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
+        
+
+      }else{
+
+        //if(iglob*3+2 == 41153) {
+          // int ot = d_debug[5];
+          // d_debug[0+1+ot] = d_accel[iglob*3+2];
+          // // d_debug[1+1+ot] = fac1*tempz1l;
+          // // d_debug[2+1+ot] = fac2*tempz2l;
+          // // d_debug[3+1+ot] = fac3*tempz3l;
+          // d_debug[1+1+ot] = fac1;
+          // d_debug[2+1+ot] = fac2;
+          // d_debug[3+1+ot] = fac3;
+          // d_debug[4+1+ot] = d_accel[iglob*3+2]-(fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
+          // atomicAdd(&d_debug[0],1.0);
+          // d_debug[6+ot] = d_displ[iglob*3+2];
+        //}
+
+        atomicAdd(&d_accel[iglob*3],-(fac1*tempx1l + fac2*tempx2l + fac3*tempx3l));
+        atomicAdd(&d_accel[iglob*3+1],-(fac1*tempy1l + fac2*tempy2l + fac3*tempy3l));
+        atomicAdd(&d_accel[iglob*3+2],-(fac1*tempz1l + fac2*tempz2l + fac3*tempz3l));
+      }
+#endif
 
 #endif
 
@@ -1076,6 +932,359 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
     d_accel[iglob + 2*NGLOB] -= 0.00000001f;
 #endif // of #ifndef MAKE_KERNEL2_BECOME_STUPID_FOR_TESTS
 }
+
+/* ----------------------------------------------------------------------------------------------- */
+
+void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
+              int COMPUTE_AND_STORE_STRAIN,int SIMULATION_TYPE,int ATTENUATION,
+              int* d_ibool,
+              float* d_xix,
+              float* d_xiy,
+              float* d_xiz,
+              float* d_etax,
+              float* d_etay,
+              float* d_etaz,
+              float* d_gammax,
+              float* d_gammay,
+              float* d_gammaz,
+              float* d_kappav,
+              float* d_muv,
+              float* d_epsilondev_xx,
+              float* d_epsilondev_yy,
+              float* d_epsilondev_xy,
+              float* d_epsilondev_xz,
+              float* d_epsilondev_yz,
+              float* d_epsilon_trace_over_3,
+              float* d_one_minus_sum_beta,
+              float* d_factor_common,
+              float* d_R_xx,
+              float* d_R_yy,
+              float* d_R_xy,
+              float* d_R_xz,
+              float* d_R_yz,
+              float* d_b_epsilondev_xx,
+              float* d_b_epsilondev_yy,
+              float* d_b_epsilondev_xy,
+              float* d_b_epsilondev_xz,
+              float* d_b_epsilondev_yz,
+              float* d_b_epsilon_trace_over_3,
+              float* d_b_R_xx,
+              float* d_b_R_yy,
+              float* d_b_R_xy,
+              float* d_b_R_xz,
+              float* d_b_R_yz){
+
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  exit_on_cuda_error("before kernel Kernel 2");
+#endif
+
+  /* if the grid can handle the number of blocks, we let it be 1D */
+  /* grid_2_x = nb_elem_color; */
+  /* nb_elem_color is just how many blocks we are computing now */
+
+  int num_blocks_x = nb_blocks_to_compute;
+  int num_blocks_y = 1;
+  while(num_blocks_x > 65535) {
+    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_y = num_blocks_y*2;
+  }
+
+  //int threads_2 = 128;//BLOCK_SIZE_K2;
+  //dim3 grid_2(num_blocks_x,num_blocks_y);
+
+  int blocksize = 128;
+  dim3 grid(num_blocks_x,num_blocks_y);
+  dim3 threads(blocksize,1,1);
+
+  // debugging
+  //printf("Starting with grid %dx%d for %d blocks\n",num_blocks_x,num_blocks_y,nb_blocks_to_compute);
+  //  float* d_debug;
+  //    float* h_debug;
+  //    h_debug = (float*)calloc(128,sizeof(float));
+  //    cudaMalloc((void**)&d_debug,128*sizeof(float));
+  //    cudaMemcpy(d_debug,h_debug,128*sizeof(float),cudaMemcpyHostToDevice);
+
+  // Cuda timing
+  // cudaEvent_t start, stop;
+  // float time;
+  // cudaEventCreate(&start);
+  // cudaEventCreate(&stop);
+  // cudaEventRecord( start, 0 );
+
+  //Kernel_2_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,mp->NGLOB_AB, mp->d_ibool,
+  Kernel_2_impl<<<grid,threads>>>(nb_blocks_to_compute,
+                                  mp->NGLOB_AB,
+                                  d_ibool,
+                                  mp->d_phase_ispec_inner_elastic,
+                                  mp->num_phase_ispec_elastic,
+                                  d_iphase,
+                                  mp->use_mesh_coloring_gpu,
+                                  mp->d_displ, mp->d_accel,
+                                  d_xix, d_xiy, d_xiz,
+                                  d_etax, d_etay, d_etaz,
+                                  d_gammax, d_gammay, d_gammaz,
+                                  d_kappav, d_muv,
+                                  //d_debug,
+                                  COMPUTE_AND_STORE_STRAIN,
+                                  d_epsilondev_xx,
+                                  d_epsilondev_yy,
+                                  d_epsilondev_xy,
+                                  d_epsilondev_xz,
+                                  d_epsilondev_yz,
+                                  d_epsilon_trace_over_3,
+                                  SIMULATION_TYPE,
+                                  ATTENUATION,mp->NSPEC_AB,
+                                  d_one_minus_sum_beta,
+                                  d_factor_common,
+                                  d_R_xx,d_R_yy,d_R_xy,d_R_xz,d_R_yz,
+                                  mp->d_alphaval,mp->d_betaval,mp->d_gammaval
+                                  );
+
+
+  // cudaMemcpy(h_debug,d_debug,128*sizeof(float),cudaMemcpyDeviceToHost);
+  // int procid;
+  // MPI_Comm_rank(MPI_COMM_WORLD,&procid);
+  // if(procid==0) {
+  //   for(int i=0;i<17;i++) {
+  //  printf("cudadebug[%d] = %e\n",i,h_debug[i]);
+  //   }
+  // }
+  //    free(h_debug);
+  //    cudaFree(d_debug);
+  // #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  //    exit_on_cuda_error("Kernel_2_impl");
+  // #endif
+
+  if(SIMULATION_TYPE == 3) {
+    //Kernel_2_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,mp->NGLOB_AB, mp->d_ibool,
+    Kernel_2_impl<<< grid,threads>>>(nb_blocks_to_compute,
+                                     mp->NGLOB_AB,
+                                     d_ibool,
+                                     mp->d_phase_ispec_inner_elastic,
+                                     mp->num_phase_ispec_elastic,
+                                     d_iphase,
+                                     mp->use_mesh_coloring_gpu,
+                                     mp->d_b_displ, mp->d_b_accel,
+                                     d_xix, d_xiy, d_xiz,
+                                     d_etax, d_etay, d_etaz,
+                                     d_gammax, d_gammay, d_gammaz,
+                                     d_kappav, d_muv,
+                                     //d_debug,
+                                     COMPUTE_AND_STORE_STRAIN,
+                                     d_b_epsilondev_xx,
+                                     d_b_epsilondev_yy,
+                                     d_b_epsilondev_xy,
+                                     d_b_epsilondev_xz,
+                                     d_b_epsilondev_yz,
+                                     d_b_epsilon_trace_over_3,
+                                     SIMULATION_TYPE,
+                                     ATTENUATION,mp->NSPEC_AB,
+                                     d_one_minus_sum_beta,
+                                     d_factor_common,
+                                     d_b_R_xx,d_b_R_yy,d_b_R_xy,d_b_R_xz,d_b_R_yz,
+                                     mp->d_b_alphaval,mp->d_b_betaval,mp->d_b_gammaval
+                                     );
+  }
+
+  // cudaEventRecord( stop, 0 );
+  // cudaEventSynchronize( stop );
+  // cudaEventElapsedTime( &time, start, stop );
+  // cudaEventDestroy( start );
+  // cudaEventDestroy( stop );
+  // printf("Kernel2 Execution Time: %f ms\n",time);
+
+  // cudaMemcpy(h_debug,d_debug,128*sizeof(float),cudaMemcpyDeviceToHost);
+  // for(int i=0;i<10;i++) {
+  // printf("debug[%d]=%e\n",i,h_debug[i]);
+  // }
+
+  /* cudaThreadSynchronize(); */
+  /* LOG("Kernel 2 finished"); */
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  exit_on_cuda_error("Kernel_2_impl ");
+#endif
+}
+
+/* ----------------------------------------------------------------------------------------------- */
+
+
+extern "C"
+void FC_FUNC_(compute_forces_elastic_cuda,
+              COMPUTE_FORCES_ELASTIC_CUDA)(long* Mesh_pointer_f,
+                                           int* iphase,
+                                           int* nspec_outer_elastic,
+                                           int* nspec_inner_elastic,
+                                           int* SIMULATION_TYPE,
+                                           int* COMPUTE_AND_STORE_STRAIN,
+                                           int* ATTENUATION) {
+
+  TRACE("compute_forces_elastic_cuda");
+  // EPIK_TRACER("compute_forces_elastic_cuda");
+  //printf("Running compute_forces\n");
+  //double start_time = get_time();
+
+  Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper
+
+  int num_elements;
+
+  if( *iphase == 1 )
+    num_elements = *nspec_outer_elastic;
+  else
+    num_elements = *nspec_inner_elastic;
+
+  // checks if anything to do
+  if( num_elements == 0 ) return;
+
+  //int myrank;
+  /* MPI_Comm_rank(MPI_COMM_WORLD,&myrank); */
+  /* if(myrank==0) { */
+
+  // mesh coloring
+  if( mp->use_mesh_coloring_gpu ){
+
+    // note: array offsets require sorted arrays, such that e.g. ibool starts with elastic elements
+    //         and followed by acoustic ones.
+    //         elastic elements also start with outer than inner element ordering
+
+    int nb_colors,nb_blocks_to_compute;
+    int istart;
+    int color_offset,color_offset_nonpadded,color_offset_nonpadded_att2;
+
+    // sets up color loop
+    if( *iphase == 1 ){
+      // outer elements
+      nb_colors = mp->num_colors_outer_elastic;
+      istart = 0;
+
+      // array offsets
+      color_offset = 0;
+      color_offset_nonpadded = 0;
+      color_offset_nonpadded_att2 = 0;
+    }else{
+      // inner elements (start after outer elements)
+      nb_colors = mp->num_colors_outer_elastic + mp->num_colors_inner_elastic;
+      istart = mp->num_colors_outer_elastic;
+
+      // array offsets
+      color_offset = (*nspec_outer_elastic) * NGLL3_PADDED;
+      color_offset_nonpadded = (*nspec_outer_elastic) * NGLL3_NONPADDED;
+      color_offset_nonpadded_att2 = (*nspec_outer_elastic) * NGLL3_NONPADDED * N_SLS;
+    }
+
+    // loops over colors
+    for(int icolor = istart; icolor < nb_colors; icolor++){
+
+      nb_blocks_to_compute = mp->h_num_elem_colors_elastic[icolor];
+
+      // checks
+      //if( nb_blocks_to_compute <= 0 ){
+      //  printf("error number of elastic color blocks: %d -- color = %d \n",nb_blocks_to_compute,icolor);
+      //  exit(EXIT_FAILURE);
+      //}
+
+      Kernel_2(nb_blocks_to_compute,mp,*iphase,
+               *COMPUTE_AND_STORE_STRAIN,*SIMULATION_TYPE,*ATTENUATION,
+               mp->d_ibool + color_offset_nonpadded,
+               mp->d_xix + color_offset,
+               mp->d_xiy + color_offset,
+               mp->d_xiz + color_offset,
+               mp->d_etax + color_offset,
+               mp->d_etay + color_offset,
+               mp->d_etaz + color_offset,
+               mp->d_gammax + color_offset,
+               mp->d_gammay + color_offset,
+               mp->d_gammaz + color_offset,
+               mp->d_kappav + color_offset,
+               mp->d_muv + color_offset,
+               mp->d_epsilondev_xx + color_offset_nonpadded,
+               mp->d_epsilondev_yy + color_offset_nonpadded,
+               mp->d_epsilondev_xy + color_offset_nonpadded,
+               mp->d_epsilondev_xz + color_offset_nonpadded,
+               mp->d_epsilondev_yz + color_offset_nonpadded,
+               mp->d_epsilon_trace_over_3 + color_offset_nonpadded,
+               mp->d_one_minus_sum_beta + color_offset_nonpadded,
+               mp->d_factor_common + color_offset_nonpadded_att2,
+               mp->d_R_xx + color_offset_nonpadded,
+               mp->d_R_yy + color_offset_nonpadded,
+               mp->d_R_xy + color_offset_nonpadded,
+               mp->d_R_xz + color_offset_nonpadded,
+               mp->d_R_yz + color_offset_nonpadded,
+               mp->d_b_epsilondev_xx + color_offset_nonpadded,
+               mp->d_b_epsilondev_yy + color_offset_nonpadded,
+               mp->d_b_epsilondev_xy + color_offset_nonpadded,
+               mp->d_b_epsilondev_xz + color_offset_nonpadded,
+               mp->d_b_epsilondev_yz + color_offset_nonpadded,
+               mp->d_b_epsilon_trace_over_3 + color_offset_nonpadded,
+               mp->d_b_R_xx + color_offset_nonpadded,
+               mp->d_b_R_yy + color_offset_nonpadded,
+               mp->d_b_R_xy + color_offset_nonpadded,
+               mp->d_b_R_xz + color_offset_nonpadded,
+               mp->d_b_R_yz + color_offset_nonpadded);
+
+      // for padded and aligned arrays
+      color_offset += nb_blocks_to_compute * NGLL3_PADDED;
+      // for no-aligned arrays
+      color_offset_nonpadded += nb_blocks_to_compute * NGLL3_NONPADDED;
+      // for factor_common array
+      color_offset_nonpadded_att2 += nb_blocks_to_compute * NGLL3_NONPADDED * N_SLS;
+    }
+
+  }else{
+
+    // no mesh coloring: uses atomic updates
+
+    Kernel_2(num_elements,mp,*iphase,
+             *COMPUTE_AND_STORE_STRAIN,*SIMULATION_TYPE,*ATTENUATION,
+             mp->d_ibool,
+             mp->d_xix,
+             mp->d_xiy,
+             mp->d_xiz,
+             mp->d_etax,
+             mp->d_etay,
+             mp->d_etaz,
+             mp->d_gammax,
+             mp->d_gammay,
+             mp->d_gammaz,
+             mp->d_kappav,
+             mp->d_muv,
+             mp->d_epsilondev_xx,
+             mp->d_epsilondev_yy,
+             mp->d_epsilondev_xy,
+             mp->d_epsilondev_xz,
+             mp->d_epsilondev_yz,
+             mp->d_epsilon_trace_over_3,
+             mp->d_one_minus_sum_beta,
+             mp->d_factor_common,
+             mp->d_R_xx,
+             mp->d_R_yy,
+             mp->d_R_xy,
+             mp->d_R_xz,
+             mp->d_R_yz,
+             mp->d_b_epsilondev_xx,
+             mp->d_b_epsilondev_yy,
+             mp->d_b_epsilondev_xy,
+             mp->d_b_epsilondev_xz,
+             mp->d_b_epsilondev_yz,
+             mp->d_b_epsilon_trace_over_3,
+             mp->d_b_R_xx,
+             mp->d_b_R_yy,
+             mp->d_b_R_xy,
+             mp->d_b_R_xz,
+             mp->d_b_R_yz);
+  }
+
+
+
+  //cudaThreadSynchronize();
+
+  //#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  /* MPI_Barrier(MPI_COMM_WORLD); */
+  //double end_time = get_time();
+  //printf("Elapsed time: %e\n",end_time-start_time);
+  //#endif
+}
+
+
 
 /* ----------------------------------------------------------------------------------------------- */
 

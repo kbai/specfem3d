@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
-#include <mpi.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -40,51 +39,29 @@
 
 
 //  cuda constant arrays
-__constant__ float d_hprime_xx[NGLL2];
-__constant__ float d_hprime_yy[NGLL2];
-__constant__ float d_hprime_zz[NGLL2];
-__constant__ float d_hprimewgll_xx[NGLL2];
-__constant__ float d_hprimewgll_yy[NGLL2];
-__constant__ float d_hprimewgll_zz[NGLL2];
-__constant__ float d_wgllwgll_xy[NGLL2];
-__constant__ float d_wgllwgll_xz[NGLL2];
-__constant__ float d_wgllwgll_yz[NGLL2];
+__constant__ realw d_hprime_xx[NGLL2];
+__constant__ realw d_hprime_yy[NGLL2];
+__constant__ realw d_hprime_zz[NGLL2];
+__constant__ realw d_hprimewgll_xx[NGLL2];
+__constant__ realw d_hprimewgll_yy[NGLL2];
+__constant__ realw d_hprimewgll_zz[NGLL2];
+__constant__ realw d_wgllwgll_xy[NGLL2];
+__constant__ realw d_wgllwgll_xz[NGLL2];
+__constant__ realw d_wgllwgll_yz[NGLL2];
 
-
-//void Kernel_2(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
-//        int COMPUTE_AND_STORE_STRAIN,int SIMULATION_TYPE,int ATTENUATION);
-//__global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elastic,
-//                            int num_phase_ispec_elastic, int d_iphase, int* d_ibool);
-//__global__ void Kernel_2_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,
-//                              int* d_phase_ispec_inner_elastic, int num_phase_ispec_elastic, int d_iphase,
-//                              float* d_displ, float* d_accel,
-//                              float* d_xix, float* d_xiy, float* d_xiz,
-//                              float* d_etax, float* d_etay, float* d_etaz,
-//                              float* d_gammax, float* d_gammay, float* d_gammaz,
-//                              float* d_kappav, float* d_muv,
-//                              //float* d_debug,
-//                              int COMPUTE_AND_STORE_STRAIN,
-//                              float* epsilondev_xx,float* epsilondev_yy,float* epsilondev_xy,
-//                              float* epsilondev_xz,float* epsilondev_yz,float* epsilon_trace_over_3,
-//                              int SIMULATION_TYPE,
-//                              int ATTENUATION,int NSPEC,
-//                              float* one_minus_sum_beta,float* factor_common,
-//                              float* R_xx,float* R_yy,float* R_xy,float* R_xz,float* R_yz,
-//                              float* alphaval,float* betaval,float* gammaval);
 
 
 /* ----------------------------------------------------------------------------------------------- */
 
 // prepares a device array with with all inter-element edge-nodes -- this
 // is followed by a memcpy and MPI operations
-__global__ void prepare_boundary_accel_on_device(float* d_accel, float* d_send_accel_buffer,
-             int num_interfaces_ext_mesh, int max_nibool_interfaces_ext_mesh,
-             int* d_nibool_interfaces_ext_mesh,
-             int* d_ibool_interfaces_ext_mesh) {
+__global__ void prepare_boundary_accel_on_device(realw* d_accel, realw* d_send_accel_buffer,
+                                                 int num_interfaces_ext_mesh, 
+                                                 int max_nibool_interfaces_ext_mesh,
+                                                 int* d_nibool_interfaces_ext_mesh,
+                                                 int* d_ibool_interfaces_ext_mesh) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
-  //int bx = blockIdx.y*gridDim.x+blockIdx.x;
-  //int tx = threadIdx.x;
   int iinterface=0;
 
   for( iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
@@ -106,8 +83,8 @@ __global__ void prepare_boundary_accel_on_device(float* d_accel, float* d_send_a
 // (elements on boundary)
 extern "C"
 void FC_FUNC_(transfer_boun_accel_from_device,
-              TRANSFER_BOUN_ACCEL_FROM_DEVICE)(int* size, long* Mesh_pointer_f, float* accel,
-                                                    float* send_accel_buffer,
+              TRANSFER_BOUN_ACCEL_FROM_DEVICE)(int* size, long* Mesh_pointer_f, realw* accel,
+                                                    realw* send_accel_buffer,
                                                     int* num_interfaces_ext_mesh,
                                                     int* max_nibool_interfaces_ext_mesh,
                                                     int* nibool_interfaces_ext_mesh,
@@ -119,8 +96,8 @@ TRACE("transfer_boun_accel_from_device");
 
   if( *num_interfaces_ext_mesh == 0 ) return;
 
-  int blocksize = 256;
-  int size_padded = ((int)ceil(((double)*max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+  int blocksize = BLOCKSIZE_TRANSFER;
+  int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
@@ -133,28 +110,28 @@ TRACE("transfer_boun_accel_from_device");
 
   //timing for memory xfer
   // cudaEvent_t start, stop;
-  // float time;
+  // realw time;
   // cudaEventCreate(&start);
   // cudaEventCreate(&stop);
   // cudaEventRecord( start, 0 );
   if(*FORWARD_OR_ADJOINT == 1) {
     prepare_boundary_accel_on_device<<<grid,threads>>>(mp->d_accel,mp->d_send_accel_buffer,
-                 *num_interfaces_ext_mesh,
-                 *max_nibool_interfaces_ext_mesh,
-                 mp->d_nibool_interfaces_ext_mesh,
-                 mp->d_ibool_interfaces_ext_mesh);
+                                                       mp->num_interfaces_ext_mesh,
+                                                       mp->max_nibool_interfaces_ext_mesh,
+                                                       mp->d_nibool_interfaces_ext_mesh,
+                                                       mp->d_ibool_interfaces_ext_mesh);
   }
   else if(*FORWARD_OR_ADJOINT == 3) {
     prepare_boundary_accel_on_device<<<grid,threads>>>(mp->d_b_accel,mp->d_send_accel_buffer,
-                 *num_interfaces_ext_mesh,
-                 *max_nibool_interfaces_ext_mesh,
-                 mp->d_nibool_interfaces_ext_mesh,
-                 mp->d_ibool_interfaces_ext_mesh);
+                                                       mp->num_interfaces_ext_mesh,
+                                                       mp->max_nibool_interfaces_ext_mesh,
+                                                       mp->d_nibool_interfaces_ext_mesh,
+                                                       mp->d_ibool_interfaces_ext_mesh);
   }
 
 
   cudaMemcpy(send_accel_buffer,mp->d_send_accel_buffer,
-             3* *max_nibool_interfaces_ext_mesh* *num_interfaces_ext_mesh*sizeof(realw),cudaMemcpyDeviceToHost);
+             3*mp->max_nibool_interfaces_ext_mesh*mp->num_interfaces_ext_mesh*sizeof(realw),cudaMemcpyDeviceToHost);
 
   // finish timing of kernel+memcpy
   // cudaEventRecord( stop, 0 );
@@ -170,7 +147,7 @@ TRACE("transfer_boun_accel_from_device");
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void assemble_boundary_accel_on_device(float* d_accel, float* d_send_accel_buffer,
+__global__ void assemble_boundary_accel_on_device(realw* d_accel, realw* d_send_accel_buffer,
                                                   int num_interfaces_ext_mesh,
                                                   int max_nibool_interfaces_ext_mesh,
                                                   int* d_nibool_interfaces_ext_mesh,
@@ -227,10 +204,10 @@ TRACE("transfer_asmbl_accel_to_device");
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
 
   cudaMemcpy(mp->d_send_accel_buffer, buffer_recv_vector_ext_mesh,
-             3*(*max_nibool_interfaces_ext_mesh)*(*num_interfaces_ext_mesh)*sizeof(realw), cudaMemcpyHostToDevice);
+             3*(mp->max_nibool_interfaces_ext_mesh)*(mp->num_interfaces_ext_mesh)*sizeof(realw),cudaMemcpyHostToDevice);
 
-  int blocksize = 256;
-  int size_padded = ((int)ceil(((double)*max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+  int blocksize = BLOCKSIZE_TRANSFER;
+  int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
@@ -242,23 +219,23 @@ TRACE("transfer_asmbl_accel_to_device");
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
   // cudaEvent_t start, stop;
-  // float time;
+  // realw time;
   // cudaEventCreate(&start);
   // cudaEventCreate(&stop);
   // cudaEventRecord( start, 0 );
   if(*FORWARD_OR_ADJOINT == 1) { //assemble forward accel
     assemble_boundary_accel_on_device<<<grid,threads>>>(mp->d_accel, mp->d_send_accel_buffer,
-              *num_interfaces_ext_mesh,
-              *max_nibool_interfaces_ext_mesh,
-              mp->d_nibool_interfaces_ext_mesh,
-              mp->d_ibool_interfaces_ext_mesh);
+                                                        mp->num_interfaces_ext_mesh,
+                                                        mp->max_nibool_interfaces_ext_mesh,
+                                                        mp->d_nibool_interfaces_ext_mesh,
+                                                        mp->d_ibool_interfaces_ext_mesh);
   }
   else if(*FORWARD_OR_ADJOINT == 3) { //assemble adjoint accel
     assemble_boundary_accel_on_device<<<grid,threads>>>(mp->d_b_accel, mp->d_send_accel_buffer,
-              *num_interfaces_ext_mesh,
-              *max_nibool_interfaces_ext_mesh,
-              mp->d_nibool_interfaces_ext_mesh,
-              mp->d_ibool_interfaces_ext_mesh);
+                                                        mp->num_interfaces_ext_mesh,
+                                                        mp->max_nibool_interfaces_ext_mesh,
+                                                        mp->d_nibool_interfaces_ext_mesh,
+                                                        mp->d_ibool_interfaces_ext_mesh);
   }
 
   // cudaEventRecord( stop, 0 );
@@ -283,7 +260,7 @@ TRACE("transfer_asmbl_accel_to_device");
 
 /* ----------------------------------------------------------------------------------------------- */
 
-//__global__ void Kernel_test(float* d_debug_output,int* d_phase_ispec_inner_elastic,
+//__global__ void Kernel_test(realw* d_debug_output,int* d_phase_ispec_inner_elastic,
 //                            int num_phase_ispec_elastic, int d_iphase, int* d_ibool) {
 //  int bx = blockIdx.x;
 //  int tx = threadIdx.x;
@@ -310,11 +287,11 @@ TRACE("transfer_asmbl_accel_to_device");
 // updates stress
 
 __device__ void compute_element_att_stress(int tx,int working_element,int NSPEC,
-                                           float* R_xx,
-                                           float* R_yy,
-                                           float* R_xy,
-                                           float* R_xz,
-                                           float* R_yz,
+                                           realw* R_xx,
+                                           realw* R_yy,
+                                           realw* R_xy,
+                                           realw* R_xz,
+                                           realw* R_yz,
                                            reald* sigma_xx,
                                            reald* sigma_yy,
                                            reald* sigma_zz,
@@ -327,7 +304,7 @@ __device__ void compute_element_att_stress(int tx,int working_element,int NSPEC,
 
   for(i_sls = 0; i_sls < N_SLS; i_sls++){
     // index
-    offset_sls = tx + 125*(working_element + NSPEC*i_sls);
+    offset_sls = tx + NGLL3*(working_element + NSPEC*i_sls);
 
     R_xx_val = R_xx[offset_sls]; //(i,j,k,ispec,i_sls)
     R_yy_val = R_yy[offset_sls];
@@ -347,12 +324,12 @@ __device__ void compute_element_att_stress(int tx,int working_element,int NSPEC,
 // updates R_memory
 
 __device__ void compute_element_att_memory(int tx,int working_element,int NSPEC,
-                                          float* d_muv,
-                                          float* factor_common,
-                                          float* alphaval,float* betaval,float* gammaval,
-                                          float* R_xx,float* R_yy,float* R_xy,float* R_xz,float* R_yz,
-                                          float* epsilondev_xx,float* epsilondev_yy,float* epsilondev_xy,
-                                          float* epsilondev_xz,float* epsilondev_yz,
+                                          realw* d_muv,
+                                          realw* factor_common,
+                                          realw* alphaval,realw* betaval,realw* gammaval,
+                                          realw* R_xx,realw* R_yy,realw* R_xy,realw* R_xz,realw* R_yz,
+                                          realw* epsilondev_xx,realw* epsilondev_yy,realw* epsilondev_xy,
+                                          realw* epsilondev_xz,realw* epsilondev_yz,
                                           reald epsilondev_xx_loc,reald epsilondev_yy_loc,reald epsilondev_xy_loc,
                                           reald epsilondev_xz_loc,reald epsilondev_yz_loc
                                           ){
@@ -365,8 +342,8 @@ __device__ void compute_element_att_memory(int tx,int working_element,int NSPEC,
   reald factor_loc,Sn,Snp1;
 
   // indices
-  offset_align = tx + 128 * working_element;
-  ijk_ispec = tx + 125 * working_element;
+  offset_align = tx + NGLL3_PADDED * working_element;
+  ijk_ispec = tx + NGLL3 * working_element;
 
   mul = d_muv[offset_align];
 
@@ -374,8 +351,8 @@ __device__ void compute_element_att_memory(int tx,int working_element,int NSPEC,
   for(i_sls = 0; i_sls < N_SLS; i_sls++){
 
     // indices
-    offset_common = i_sls + N_SLS*(tx + 125*working_element); // (i_sls,i,j,k,ispec)
-    offset_sls = tx + 125*(working_element + NSPEC*i_sls);   // (i,j,k,ispec,i_sls)
+    offset_common = i_sls + N_SLS*(tx + NGLL3*working_element); // (i_sls,i,j,k,ispec)
+    offset_sls = tx + NGLL3*(working_element + NSPEC*i_sls);   // (i,j,k,ispec,i_sls)
 
     factor_loc = mul * factor_common[offset_common]; //mustore(i,j,k,ispec) * factor_common(i_sls,i,j,k,ispec)
 
@@ -423,7 +400,7 @@ __device__ void compute_element_att_memory(int tx,int working_element,int NSPEC,
 
 // double precision temporary variables leads to 10% performance
 // decrease in Kernel_2_impl (not very much..)
-//typedef float reald;
+//typedef realw reald;
 
 // doesn't seem to change the performance.
 // #define MANUALLY_UNROLLED_LOOPS
@@ -435,23 +412,43 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
                               int* d_phase_ispec_inner_elastic, int num_phase_ispec_elastic,
                               int d_iphase,
                               int use_mesh_coloring_gpu,
-                              float* d_displ, float* d_accel,
-                              float* d_xix, float* d_xiy, float* d_xiz,
-                              float* d_etax, float* d_etay, float* d_etaz,
-                              float* d_gammax, float* d_gammay, float* d_gammaz,
-                              float* d_kappav, float* d_muv,
-                              //float* d_debug,
+                              realw* d_displ, realw* d_accel,
+                              realw* d_xix, realw* d_xiy, realw* d_xiz,
+                              realw* d_etax, realw* d_etay, realw* d_etaz,
+                              realw* d_gammax, realw* d_gammay, realw* d_gammaz,
+                              realw* d_kappav, realw* d_muv,
                               int COMPUTE_AND_STORE_STRAIN,
-                              float* epsilondev_xx,float* epsilondev_yy,float* epsilondev_xy,
-                              float* epsilondev_xz,float* epsilondev_yz,
-                              float* epsilon_trace_over_3,
+                              realw* epsilondev_xx,realw* epsilondev_yy,realw* epsilondev_xy,
+                              realw* epsilondev_xz,realw* epsilondev_yz,
+                              realw* epsilon_trace_over_3,
                               int SIMULATION_TYPE,
                               int ATTENUATION,
                               int NSPEC,
-                              float* one_minus_sum_beta,float* factor_common,
-                              float* R_xx, float* R_yy, float* R_xy, float* R_xz, float* R_yz,
-                              float* alphaval,float* betaval,float* gammaval
-                              ){
+                              realw* one_minus_sum_beta,realw* factor_common,
+                              realw* R_xx, realw* R_yy, realw* R_xy, realw* R_xz, realw* R_yz,
+                              realw* alphaval,realw* betaval,realw* gammaval,
+                              int ANISOTROPY,
+                              realw* d_c11store,
+                              realw* d_c12store,
+                              realw* d_c13store,
+                              realw* d_c14store,
+                              realw* d_c15store,
+                              realw* d_c16store,
+                              realw* d_c22store,
+                              realw* d_c23store,
+                              realw* d_c24store,
+                              realw* d_c25store,
+                              realw* d_c26store,
+                              realw* d_c33store,
+                              realw* d_c34store,
+                              realw* d_c35store,
+                              realw* d_c36store,
+                              realw* d_c44store,
+                              realw* d_c45store,
+                              realw* d_c46store,
+                              realw* d_c55store,
+                              realw* d_c56store,
+                              realw* d_c66store){
 
   /* int bx = blockIdx.y*blockDim.x+blockIdx.x; //possible bug in original code*/
   int bx = blockIdx.y*gridDim.x+blockIdx.x;
@@ -460,8 +457,8 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
 
   //const int NGLLX = 5;
   // const int NGLL2 = 25;
-  const int NGLL3 = 125;
-  const int NGLL3_ALIGN = 128;
+  //const int NGLL3 = NGLL3;
+  const int NGLL3_ALIGN = NGLL3_PADDED;
 
   int K = (tx/NGLL2);
   int J = ((tx-K*NGLL2)/NGLLX);
@@ -479,10 +476,11 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
   reald fac1,fac2,fac3,lambdal,mul,lambdalplus2mul,kappal;
   reald sigma_xx,sigma_yy,sigma_zz,sigma_xy,sigma_xz,sigma_yz;
   reald epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc;
+  reald c11,c12,c13,c14,c15,c16,c22,c23,c24,c25,c26,c33,c34,c35,c36,c44,c45,c46,c55,c56,c66;
 
 #ifndef MANUALLY_UNROLLED_LOOPS
     int l;
-    float hp1,hp2,hp3;
+    realw hp1,hp2,hp3;
 #endif
 
     __shared__ reald s_dummyx_loc[NGLL3];
@@ -520,7 +518,7 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
 #endif
 
       // iglob = d_ibool[working_element*NGLL3_ALIGN + tx]-1;
-      iglob = d_ibool[working_element*125 + tx]-1;
+      iglob = d_ibool[working_element*NGLL3 + tx]-1;
 
 #ifdef USE_TEXTURES
       s_dummyx_loc[tx] = tex1Dfetch(tex_displ, iglob);
@@ -575,13 +573,6 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
           tempx3l += s_dummyx_loc[offset]*hp3;
           tempy3l += s_dummyy_loc[offset]*hp3;
           tempz3l += s_dummyz_loc[offset]*hp3;
-
-    // if(working_element == 169 && tx == 0) {
-    //   atomicAdd(&d_debug[0],1.0);
-    //   d_debug[1+3*l] = tempz3l;
-    //   d_debug[2+3*l] = s_dummyz_loc[offset];
-    //   d_debug[3+3*l] = hp3;
-    // }
 
       }
 #else
@@ -676,7 +667,7 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
 
       // computes deviatoric strain attenuation and/or for kernel calculations
       if(COMPUTE_AND_STORE_STRAIN) {
-        float templ = 0.33333333333333333333f * (duxdxl + duydyl + duzdzl); // 1./3. = 0.33333
+        realw templ = 0.33333333333333333333f * (duxdxl + duydyl + duzdzl); // 1./3. = 0.33333
         /*
         epsilondev_xx[offset] = duxdxl - templ;
         epsilondev_yy[offset] = duydyl - templ;
@@ -692,7 +683,7 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
         epsilondev_yz_loc = 0.5f * duzdyl_plus_duydzl;
 
         if(SIMULATION_TYPE == 3) {
-          epsilon_trace_over_3[tx + working_element*125] = templ;
+          epsilon_trace_over_3[tx + working_element*NGLL3] = templ;
         }
       }
 
@@ -703,21 +694,63 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
       // attenuation
       if(ATTENUATION){
         // use unrelaxed parameters if attenuation
-        mul  = mul * one_minus_sum_beta[tx+working_element*125]; // (i,j,k,ispec)
+        mul  = mul * one_minus_sum_beta[tx+working_element*NGLL3]; // (i,j,k,ispec)
       }
 
-      // isotropic case
-      lambdalplus2mul = kappal + 1.33333333333333333333f * mul;  // 4./3. = 1.3333333
-      lambdal = lambdalplus2mul - 2.0f * mul;
+      // full anisotropic case, stress calculations
+      if(ANISOTROPY){
 
-      // compute the six components of the stress tensor sigma
-      sigma_xx = lambdalplus2mul*duxdxl + lambdal*duydyl_plus_duzdzl;
-      sigma_yy = lambdalplus2mul*duydyl + lambdal*duxdxl_plus_duzdzl;
-      sigma_zz = lambdalplus2mul*duzdzl + lambdal*duxdxl_plus_duydyl;
+        c11 = d_c11store[offset];
+        c12 = d_c12store[offset];
+        c13 = d_c13store[offset];
+        c14 = d_c14store[offset];
+        c15 = d_c15store[offset];
+        c16 = d_c16store[offset];
+        c22 = d_c22store[offset];
+        c23 = d_c23store[offset];
+        c24 = d_c24store[offset];
+        c25 = d_c25store[offset];
+        c26 = d_c26store[offset];
+        c33 = d_c33store[offset];
+        c34 = d_c34store[offset];
+        c35 = d_c35store[offset];
+        c36 = d_c36store[offset];
+        c44 = d_c44store[offset];
+        c45 = d_c45store[offset];
+        c46 = d_c46store[offset];
+        c55 = d_c55store[offset];
+        c56 = d_c56store[offset];
+        c66 = d_c66store[offset];
 
-      sigma_xy = mul*duxdyl_plus_duydxl;
-      sigma_xz = mul*duzdxl_plus_duxdzl;
-      sigma_yz = mul*duzdyl_plus_duydzl;
+        sigma_xx = c11*duxdxl + c16*duxdyl_plus_duydxl + c12*duydyl +
+                   c15*duzdxl_plus_duxdzl + c14*duzdyl_plus_duydzl + c13*duzdzl;
+        sigma_yy = c12*duxdxl + c26*duxdyl_plus_duydxl + c22*duydyl +
+                   c25*duzdxl_plus_duxdzl + c24*duzdyl_plus_duydzl + c23*duzdzl;
+        sigma_zz = c13*duxdxl + c36*duxdyl_plus_duydxl + c23*duydyl +
+                   c35*duzdxl_plus_duxdzl + c34*duzdyl_plus_duydzl + c33*duzdzl;
+        sigma_xy = c16*duxdxl + c66*duxdyl_plus_duydxl + c26*duydyl +
+                   c56*duzdxl_plus_duxdzl + c46*duzdyl_plus_duydzl + c36*duzdzl;
+        sigma_xz = c15*duxdxl + c56*duxdyl_plus_duydxl + c25*duydyl +
+                   c55*duzdxl_plus_duxdzl + c45*duzdyl_plus_duydzl + c35*duzdzl;
+        sigma_yz = c14*duxdxl + c46*duxdyl_plus_duydxl + c24*duydyl +
+                   c45*duzdxl_plus_duxdzl + c44*duzdyl_plus_duydzl + c34*duzdzl;
+
+      }else{
+
+        // isotropic case
+
+        lambdalplus2mul = kappal + 1.33333333333333333333f * mul;  // 4./3. = 1.3333333
+        lambdal = lambdalplus2mul - 2.0f * mul;
+
+        // compute the six components of the stress tensor sigma
+        sigma_xx = lambdalplus2mul*duxdxl + lambdal*duydyl_plus_duzdzl;
+        sigma_yy = lambdalplus2mul*duydyl + lambdal*duxdxl_plus_duzdzl;
+        sigma_zz = lambdalplus2mul*duzdzl + lambdal*duxdxl_plus_duydyl;
+
+        sigma_xy = mul*duxdyl_plus_duydxl;
+        sigma_xz = mul*duzdxl_plus_duxdzl;
+        sigma_yz = mul*duzdyl_plus_duydzl;
+      }
 
       if(ATTENUATION){
         // subtract memory variables if attenuation
@@ -784,14 +817,6 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
         tempy3l += s_tempy3[offset]*fac3;
         tempz3l += s_tempz3[offset]*fac3;
 
-        //if(working_element == 169)
-        //  if(l==0)
-        //    if(I+J+K == 0) {
-              // atomicAdd(&d_debug[0],1.0);
-              // d_debug[0] = fac3;
-              // d_debug[1] = offset;
-              // d_debug[2] = s_tempz3[offset];
-        //    }
       }
 #else
 
@@ -876,23 +901,9 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
         d_accel[iglob*3] -= (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l);
         d_accel[iglob*3 + 1] -= (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l);
         d_accel[iglob*3 + 2] -= (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
-        
+
 
       }else{
-
-        //if(iglob*3+2 == 41153) {
-          // int ot = d_debug[5];
-          // d_debug[0+1+ot] = d_accel[iglob*3+2];
-          // // d_debug[1+1+ot] = fac1*tempz1l;
-          // // d_debug[2+1+ot] = fac2*tempz2l;
-          // // d_debug[3+1+ot] = fac3*tempz3l;
-          // d_debug[1+1+ot] = fac1;
-          // d_debug[2+1+ot] = fac2;
-          // d_debug[3+1+ot] = fac3;
-          // d_debug[4+1+ot] = d_accel[iglob*3+2]-(fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
-          // atomicAdd(&d_debug[0],1.0);
-          // d_debug[6+ot] = d_displ[iglob*3+2];
-        //}
 
         atomicAdd(&d_accel[iglob*3],-(fac1*tempx1l + fac2*tempx2l + fac3*tempx3l));
         atomicAdd(&d_accel[iglob*3+1],-(fac1*tempy1l + fac2*tempy2l + fac3*tempy3l));
@@ -914,7 +925,7 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
 
       // save deviatoric strain for Runge-Kutta scheme
       if( COMPUTE_AND_STORE_STRAIN ){
-        int ijk_ispec = tx + working_element*125;
+        int ijk_ispec = tx + working_element*NGLL3;
 
         // fortran: epsilondev_xx(:,:,:,ispec) = epsilondev_xx_loc(:,:,:)
         epsilondev_xx[ijk_ispec] = epsilondev_xx_loc;
@@ -936,43 +947,65 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
 /* ----------------------------------------------------------------------------------------------- */
 
 void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
-              int COMPUTE_AND_STORE_STRAIN,int SIMULATION_TYPE,int ATTENUATION,
+              int COMPUTE_AND_STORE_STRAIN,int SIMULATION_TYPE,
+              int ATTENUATION,int ANISOTROPY,
               int* d_ibool,
-              float* d_xix,
-              float* d_xiy,
-              float* d_xiz,
-              float* d_etax,
-              float* d_etay,
-              float* d_etaz,
-              float* d_gammax,
-              float* d_gammay,
-              float* d_gammaz,
-              float* d_kappav,
-              float* d_muv,
-              float* d_epsilondev_xx,
-              float* d_epsilondev_yy,
-              float* d_epsilondev_xy,
-              float* d_epsilondev_xz,
-              float* d_epsilondev_yz,
-              float* d_epsilon_trace_over_3,
-              float* d_one_minus_sum_beta,
-              float* d_factor_common,
-              float* d_R_xx,
-              float* d_R_yy,
-              float* d_R_xy,
-              float* d_R_xz,
-              float* d_R_yz,
-              float* d_b_epsilondev_xx,
-              float* d_b_epsilondev_yy,
-              float* d_b_epsilondev_xy,
-              float* d_b_epsilondev_xz,
-              float* d_b_epsilondev_yz,
-              float* d_b_epsilon_trace_over_3,
-              float* d_b_R_xx,
-              float* d_b_R_yy,
-              float* d_b_R_xy,
-              float* d_b_R_xz,
-              float* d_b_R_yz){
+              realw* d_xix,
+              realw* d_xiy,
+              realw* d_xiz,
+              realw* d_etax,
+              realw* d_etay,
+              realw* d_etaz,
+              realw* d_gammax,
+              realw* d_gammay,
+              realw* d_gammaz,
+              realw* d_kappav,
+              realw* d_muv,
+              realw* d_epsilondev_xx,
+              realw* d_epsilondev_yy,
+              realw* d_epsilondev_xy,
+              realw* d_epsilondev_xz,
+              realw* d_epsilondev_yz,
+              realw* d_epsilon_trace_over_3,
+              realw* d_one_minus_sum_beta,
+              realw* d_factor_common,
+              realw* d_R_xx,
+              realw* d_R_yy,
+              realw* d_R_xy,
+              realw* d_R_xz,
+              realw* d_R_yz,
+              realw* d_b_epsilondev_xx,
+              realw* d_b_epsilondev_yy,
+              realw* d_b_epsilondev_xy,
+              realw* d_b_epsilondev_xz,
+              realw* d_b_epsilondev_yz,
+              realw* d_b_epsilon_trace_over_3,
+              realw* d_b_R_xx,
+              realw* d_b_R_yy,
+              realw* d_b_R_xy,
+              realw* d_b_R_xz,
+              realw* d_b_R_yz,
+              realw* d_c11store,
+              realw* d_c12store,
+              realw* d_c13store,
+              realw* d_c14store,
+              realw* d_c15store,
+              realw* d_c16store,
+              realw* d_c22store,
+              realw* d_c23store,
+              realw* d_c24store,
+              realw* d_c25store,
+              realw* d_c26store,
+              realw* d_c33store,
+              realw* d_c34store,
+              realw* d_c35store,
+              realw* d_c36store,
+              realw* d_c44store,
+              realw* d_c45store,
+              realw* d_c46store,
+              realw* d_c55store,
+              realw* d_c56store,
+              realw* d_c66store){
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("before kernel Kernel 2");
@@ -989,29 +1022,17 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
     num_blocks_y = num_blocks_y*2;
   }
 
-  //int threads_2 = 128;//BLOCK_SIZE_K2;
-  //dim3 grid_2(num_blocks_x,num_blocks_y);
-
-  int blocksize = 128;
+  int blocksize = NGLL3_PADDED;
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
 
-  // debugging
-  //printf("Starting with grid %dx%d for %d blocks\n",num_blocks_x,num_blocks_y,nb_blocks_to_compute);
-  //  float* d_debug;
-  //    float* h_debug;
-  //    h_debug = (float*)calloc(128,sizeof(float));
-  //    cudaMalloc((void**)&d_debug,128*sizeof(float));
-  //    cudaMemcpy(d_debug,h_debug,128*sizeof(float),cudaMemcpyHostToDevice);
-
   // Cuda timing
   // cudaEvent_t start, stop;
-  // float time;
+  // realw time;
   // cudaEventCreate(&start);
   // cudaEventCreate(&stop);
   // cudaEventRecord( start, 0 );
 
-  //Kernel_2_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,mp->NGLOB_AB, mp->d_ibool,
   Kernel_2_impl<<<grid,threads>>>(nb_blocks_to_compute,
                                   mp->NGLOB_AB,
                                   d_ibool,
@@ -1024,7 +1045,6 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
                                   d_etax, d_etay, d_etaz,
                                   d_gammax, d_gammay, d_gammaz,
                                   d_kappav, d_muv,
-                                  //d_debug,
                                   COMPUTE_AND_STORE_STRAIN,
                                   d_epsilondev_xx,
                                   d_epsilondev_yy,
@@ -1037,26 +1057,33 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
                                   d_one_minus_sum_beta,
                                   d_factor_common,
                                   d_R_xx,d_R_yy,d_R_xy,d_R_xz,d_R_yz,
-                                  mp->d_alphaval,mp->d_betaval,mp->d_gammaval
+                                  mp->d_alphaval,mp->d_betaval,mp->d_gammaval,
+                                  ANISOTROPY,
+                                  d_c11store,
+                                  d_c12store,
+                                  d_c13store,
+                                  d_c14store,
+                                  d_c15store,
+                                  d_c16store,
+                                  d_c22store,
+                                  d_c23store,
+                                  d_c24store,
+                                  d_c25store,
+                                  d_c26store,
+                                  d_c33store,
+                                  d_c34store,
+                                  d_c35store,
+                                  d_c36store,
+                                  d_c44store,
+                                  d_c45store,
+                                  d_c46store,
+                                  d_c55store,
+                                  d_c56store,
+                                  d_c66store
                                   );
 
 
-  // cudaMemcpy(h_debug,d_debug,128*sizeof(float),cudaMemcpyDeviceToHost);
-  // int procid;
-  // MPI_Comm_rank(MPI_COMM_WORLD,&procid);
-  // if(procid==0) {
-  //   for(int i=0;i<17;i++) {
-  //  printf("cudadebug[%d] = %e\n",i,h_debug[i]);
-  //   }
-  // }
-  //    free(h_debug);
-  //    cudaFree(d_debug);
-  // #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  //    exit_on_cuda_error("Kernel_2_impl");
-  // #endif
-
   if(SIMULATION_TYPE == 3) {
-    //Kernel_2_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,mp->NGLOB_AB, mp->d_ibool,
     Kernel_2_impl<<< grid,threads>>>(nb_blocks_to_compute,
                                      mp->NGLOB_AB,
                                      d_ibool,
@@ -1069,7 +1096,6 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
                                      d_etax, d_etay, d_etaz,
                                      d_gammax, d_gammay, d_gammaz,
                                      d_kappav, d_muv,
-                                     //d_debug,
                                      COMPUTE_AND_STORE_STRAIN,
                                      d_b_epsilondev_xx,
                                      d_b_epsilondev_yy,
@@ -1082,7 +1108,29 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
                                      d_one_minus_sum_beta,
                                      d_factor_common,
                                      d_b_R_xx,d_b_R_yy,d_b_R_xy,d_b_R_xz,d_b_R_yz,
-                                     mp->d_b_alphaval,mp->d_b_betaval,mp->d_b_gammaval
+                                     mp->d_b_alphaval,mp->d_b_betaval,mp->d_b_gammaval,
+                                     ANISOTROPY,
+                                     d_c11store,
+                                     d_c12store,
+                                     d_c13store,
+                                     d_c14store,
+                                     d_c15store,
+                                     d_c16store,
+                                     d_c22store,
+                                     d_c23store,
+                                     d_c24store,
+                                     d_c25store,
+                                     d_c26store,
+                                     d_c33store,
+                                     d_c34store,
+                                     d_c35store,
+                                     d_c36store,
+                                     d_c44store,
+                                     d_c45store,
+                                     d_c46store,
+                                     d_c55store,
+                                     d_c56store,
+                                     d_c66store
                                      );
   }
 
@@ -1092,11 +1140,6 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
   // cudaEventDestroy( start );
   // cudaEventDestroy( stop );
   // printf("Kernel2 Execution Time: %f ms\n",time);
-
-  // cudaMemcpy(h_debug,d_debug,128*sizeof(float),cudaMemcpyDeviceToHost);
-  // for(int i=0;i<10;i++) {
-  // printf("debug[%d]=%e\n",i,h_debug[i]);
-  // }
 
   /* cudaThreadSynchronize(); */
   /* LOG("Kernel 2 finished"); */
@@ -1116,7 +1159,8 @@ void FC_FUNC_(compute_forces_elastic_cuda,
                                            int* nspec_inner_elastic,
                                            int* SIMULATION_TYPE,
                                            int* COMPUTE_AND_STORE_STRAIN,
-                                           int* ATTENUATION) {
+                                           int* ATTENUATION,
+                                           int* ANISOTROPY) {
 
   TRACE("compute_forces_elastic_cuda");
   // EPIK_TRACER("compute_forces_elastic_cuda");
@@ -1134,10 +1178,6 @@ void FC_FUNC_(compute_forces_elastic_cuda,
 
   // checks if anything to do
   if( num_elements == 0 ) return;
-
-  //int myrank;
-  /* MPI_Comm_rank(MPI_COMM_WORLD,&myrank); */
-  /* if(myrank==0) { */
 
   // mesh coloring
   if( mp->use_mesh_coloring_gpu ){
@@ -1167,8 +1207,8 @@ void FC_FUNC_(compute_forces_elastic_cuda,
 
       // array offsets
       color_offset = (*nspec_outer_elastic) * NGLL3_PADDED;
-      color_offset_nonpadded = (*nspec_outer_elastic) * NGLL3_NONPADDED;
-      color_offset_nonpadded_att2 = (*nspec_outer_elastic) * NGLL3_NONPADDED * N_SLS;
+      color_offset_nonpadded = (*nspec_outer_elastic) * NGLL3;
+      color_offset_nonpadded_att2 = (*nspec_outer_elastic) * NGLL3 * N_SLS;
     }
 
     // loops over colors
@@ -1183,7 +1223,8 @@ void FC_FUNC_(compute_forces_elastic_cuda,
       //}
 
       Kernel_2(nb_blocks_to_compute,mp,*iphase,
-               *COMPUTE_AND_STORE_STRAIN,*SIMULATION_TYPE,*ATTENUATION,
+               *COMPUTE_AND_STORE_STRAIN,*SIMULATION_TYPE,
+               *ATTENUATION,*ANISOTROPY,
                mp->d_ibool + color_offset_nonpadded,
                mp->d_xix + color_offset,
                mp->d_xiy + color_offset,
@@ -1219,14 +1260,35 @@ void FC_FUNC_(compute_forces_elastic_cuda,
                mp->d_b_R_yy + color_offset_nonpadded,
                mp->d_b_R_xy + color_offset_nonpadded,
                mp->d_b_R_xz + color_offset_nonpadded,
-               mp->d_b_R_yz + color_offset_nonpadded);
+               mp->d_b_R_yz + color_offset_nonpadded,
+               mp->d_c11store + color_offset,
+               mp->d_c12store + color_offset,
+               mp->d_c13store + color_offset,
+               mp->d_c14store + color_offset,
+               mp->d_c15store + color_offset,
+               mp->d_c16store + color_offset,
+               mp->d_c22store + color_offset,
+               mp->d_c23store + color_offset,
+               mp->d_c24store + color_offset,
+               mp->d_c25store + color_offset,
+               mp->d_c26store + color_offset,
+               mp->d_c33store + color_offset,
+               mp->d_c34store + color_offset,
+               mp->d_c35store + color_offset,
+               mp->d_c36store + color_offset,
+               mp->d_c44store + color_offset,
+               mp->d_c45store + color_offset,
+               mp->d_c46store + color_offset,
+               mp->d_c55store + color_offset,
+               mp->d_c56store + color_offset,
+               mp->d_c66store + color_offset);
 
       // for padded and aligned arrays
       color_offset += nb_blocks_to_compute * NGLL3_PADDED;
       // for no-aligned arrays
-      color_offset_nonpadded += nb_blocks_to_compute * NGLL3_NONPADDED;
+      color_offset_nonpadded += nb_blocks_to_compute * NGLL3;
       // for factor_common array
-      color_offset_nonpadded_att2 += nb_blocks_to_compute * NGLL3_NONPADDED * N_SLS;
+      color_offset_nonpadded_att2 += nb_blocks_to_compute * NGLL3 * N_SLS;
     }
 
   }else{
@@ -1234,7 +1296,8 @@ void FC_FUNC_(compute_forces_elastic_cuda,
     // no mesh coloring: uses atomic updates
 
     Kernel_2(num_elements,mp,*iphase,
-             *COMPUTE_AND_STORE_STRAIN,*SIMULATION_TYPE,*ATTENUATION,
+             *COMPUTE_AND_STORE_STRAIN,*SIMULATION_TYPE,
+             *ATTENUATION,*ANISOTROPY,
              mp->d_ibool,
              mp->d_xix,
              mp->d_xiy,
@@ -1270,18 +1333,29 @@ void FC_FUNC_(compute_forces_elastic_cuda,
              mp->d_b_R_yy,
              mp->d_b_R_xy,
              mp->d_b_R_xz,
-             mp->d_b_R_yz);
+             mp->d_b_R_yz,
+             mp->d_c11store,
+             mp->d_c12store,
+             mp->d_c13store,
+             mp->d_c14store,
+             mp->d_c15store,
+             mp->d_c16store,
+             mp->d_c22store,
+             mp->d_c23store,
+             mp->d_c24store,
+             mp->d_c25store,
+             mp->d_c26store,
+             mp->d_c33store,
+             mp->d_c34store,
+             mp->d_c35store,
+             mp->d_c36store,
+             mp->d_c44store,
+             mp->d_c45store,
+             mp->d_c46store,
+             mp->d_c55store,
+             mp->d_c56store,
+             mp->d_c66store);
   }
-
-
-
-  //cudaThreadSynchronize();
-
-  //#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  /* MPI_Barrier(MPI_COMM_WORLD); */
-  //double end_time = get_time();
-  //printf("Elapsed time: %e\n",end_time-start_time);
-  //#endif
 }
 
 
@@ -1350,9 +1424,9 @@ extern "C"
 void FC_FUNC_(kernel_3_a_cuda,
               KERNEL_3_A_CUDA)(long* Mesh_pointer,
                                int* size_F,
-                               float* deltatover2_F,
+                               realw* deltatover2_F,
                                int* SIMULATION_TYPE_f,
-                               float* b_deltatover2_F,
+                               realw* b_deltatover2_F,
                                int* OCEANS) {
 TRACE("kernel_3_a_cuda");
 
@@ -1362,7 +1436,7 @@ TRACE("kernel_3_a_cuda");
    realw deltatover2 = *deltatover2_F;
    realw b_deltatover2 = *b_deltatover2_F;
 
-   int blocksize=128;
+   int blocksize = BLOCKSIZE_KERNEL3;
    int size_padded = ((int)ceil(((double)size)/((double)blocksize)))*blocksize;
 
    int num_blocks_x = size_padded/blocksize;
@@ -1404,9 +1478,9 @@ extern "C"
 void FC_FUNC_(kernel_3_b_cuda,
               KERNEL_3_B_CUDA)(long* Mesh_pointer,
                              int* size_F,
-                             float* deltatover2_F,
+                             realw* deltatover2_F,
                              int* SIMULATION_TYPE_f,
-                             float* b_deltatover2_F) {
+                             realw* b_deltatover2_F) {
   TRACE("kernel_3_b_cuda");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); // get Mesh from fortran integer wrapper
@@ -1415,7 +1489,7 @@ void FC_FUNC_(kernel_3_b_cuda,
   realw deltatover2 = *deltatover2_F;
   realw b_deltatover2 = *b_deltatover2_F;
 
-  int blocksize=128;
+  int blocksize = BLOCKSIZE_KERNEL3;
   int size_padded = ((int)ceil(((double)size)/((double)blocksize)))*blocksize;
 
   int num_blocks_x = size_padded/blocksize;
@@ -1438,6 +1512,140 @@ void FC_FUNC_(kernel_3_b_cuda,
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   //printf("checking updatedispl_kernel launch...with %dx%d blocks\n",num_blocks_x,num_blocks_y);
   exit_on_cuda_error("after kernel 3 b");
+#endif
+}
+
+
+/* ----------------------------------------------------------------------------------------------- */
+
+/* OCEANS load on free surface */
+
+/* ----------------------------------------------------------------------------------------------- */
+
+
+__global__ void elastic_ocean_load_cuda_kernel(realw* accel,
+                                               realw* rmass,
+                                               realw* rmass_ocean_load,
+                                               int num_free_surface_faces,
+                                               int* free_surface_ispec,
+                                               int* free_surface_ijk,
+                                               realw* free_surface_normal,
+                                               int* ibool,
+                                               int* updated_dof_ocean_load) {
+  // gets spectral element face id
+  int igll = threadIdx.x ;  //  threadIdx.y*blockDim.x will be always = 0 for thread block (25,1,1)
+  int iface = blockIdx.x + gridDim.x*blockIdx.y;
+  realw nx,ny,nz;
+  realw force_normal_comp,additional_term;
+  
+  // for all faces on free surface
+  if( iface < num_free_surface_faces ){
+    
+    int ispec = free_surface_ispec[iface]-1;
+    
+    // gets global point index
+    int i = free_surface_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)] - 1; // (1,igll,iface)
+    int j = free_surface_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)] - 1;
+    int k = free_surface_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)] - 1;
+    
+    int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)] - 1;
+    
+    //if(igll == 0 ) printf("igll %d %d %d %d\n",igll,i,j,k,iglob);
+    
+    // only update this global point once
+    
+    // daniel: TODO - there might be better ways to implement a mutex like below,
+    //            and find a workaround to not use the temporary update array.
+    //            atomicExch: returns the old value, i.e. 0 indicates that we still have to do this point
+    
+    if( atomicExch(&updated_dof_ocean_load[iglob],1) == 0){
+      
+      // get normal
+      nx = free_surface_normal[INDEX3(NDIM,NGLL2,0,igll,iface)]; //(1,igll,iface)
+      ny = free_surface_normal[INDEX3(NDIM,NGLL2,1,igll,iface)];
+      nz = free_surface_normal[INDEX3(NDIM,NGLL2,2,igll,iface)];
+      
+      // make updated component of right-hand side
+      // we divide by rmass() which is 1 / M
+      // we use the total force which includes the Coriolis term above
+      force_normal_comp = ( accel[iglob*3]*nx + accel[iglob*3+1]*ny + accel[iglob*3+2]*nz ) / rmass[iglob];
+      
+      additional_term = (rmass_ocean_load[iglob] - rmass[iglob]) * force_normal_comp;
+      
+      // probably wouldn't need atomicAdd anymore, but just to be sure...
+      atomicAdd(&accel[iglob*3], + additional_term * nx);
+      atomicAdd(&accel[iglob*3+1], + additional_term * ny);
+      atomicAdd(&accel[iglob*3+2], + additional_term * nz);
+    }
+  }
+}
+
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(elastic_ocean_load_cuda,
+              ELASTIC_OCEAN_LOAD_CUDA)(long* Mesh_pointer_f,
+                                       int* SIMULATION_TYPE) {
+  
+  TRACE("elastic_ocean_load_cuda");
+  
+  Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
+  
+  // checks if anything to do
+  if( mp->num_free_surface_faces == 0 ) return;
+  
+  // block sizes: exact blocksize to match NGLLSQUARE
+  int blocksize = NGLL2;
+  
+  int num_blocks_x = mp->num_free_surface_faces;
+  int num_blocks_y = 1;
+  while(num_blocks_x > 65535) {
+    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_y = num_blocks_y*2;
+  }
+  
+  dim3 grid(num_blocks_x,num_blocks_y);
+  dim3 threads(blocksize,1,1);
+  
+  
+  // initializes temporary array to zero
+  print_CUDA_error_if_any(cudaMemset(mp->d_updated_dof_ocean_load,0,
+                                     sizeof(int)*mp->NGLOB_AB),88501);
+  
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  exit_on_cuda_error("before kernel elastic_ocean_load_cuda");
+#endif
+  
+  elastic_ocean_load_cuda_kernel<<<grid,threads>>>(mp->d_accel,
+                                                   mp->d_rmass,
+                                                   mp->d_rmass_ocean_load,
+                                                   mp->num_free_surface_faces,
+                                                   mp->d_free_surface_ispec,
+                                                   mp->d_free_surface_ijk,
+                                                   mp->d_free_surface_normal,
+                                                   mp->d_ibool,
+                                                   mp->d_updated_dof_ocean_load);
+  // for backward/reconstructed potentials
+  if(*SIMULATION_TYPE == 3) {
+    // re-initializes array
+    print_CUDA_error_if_any(cudaMemset(mp->d_updated_dof_ocean_load,0,
+                                       sizeof(int)*mp->NGLOB_AB),88502);
+    
+    elastic_ocean_load_cuda_kernel<<<grid,threads>>>(mp->d_b_accel,
+                                                     mp->d_rmass,
+                                                     mp->d_rmass_ocean_load,
+                                                     mp->num_free_surface_faces,
+                                                     mp->d_free_surface_ispec,
+                                                     mp->d_free_surface_ijk,
+                                                     mp->d_free_surface_normal,
+                                                     mp->d_ibool,
+                                                     mp->d_updated_dof_ocean_load);
+    
+  }
+  
+  
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  exit_on_cuda_error("elastic_ocean_load_cuda");
 #endif
 }
 
@@ -1467,10 +1675,10 @@ void FC_FUNC_(kernel_3_b_cuda,
 
 // constant arrays
 
-void setConst_hprime_xx(float* array,Mesh* mp)
+void setConst_hprime_xx(realw* array,Mesh* mp)
 {
 
-  cudaError_t err = cudaMemcpyToSymbol(d_hprime_xx, array, NGLL2*sizeof(float));
+  cudaError_t err = cudaMemcpyToSymbol(d_hprime_xx, array, NGLL2*sizeof(realw));
   if (err != cudaSuccess)
   {
     fprintf(stderr, "Error in setConst_hprime_xx: %s\n", cudaGetErrorString(err));
@@ -1485,10 +1693,10 @@ void setConst_hprime_xx(float* array,Mesh* mp)
   }
 }
 
-void setConst_hprime_yy(float* array,Mesh* mp)
+void setConst_hprime_yy(realw* array,Mesh* mp)
 {
 
-  cudaError_t err = cudaMemcpyToSymbol(d_hprime_yy, array, NGLL2*sizeof(float));
+  cudaError_t err = cudaMemcpyToSymbol(d_hprime_yy, array, NGLL2*sizeof(realw));
   if (err != cudaSuccess)
   {
     fprintf(stderr, "Error in setConst_hprime_yy: %s\n", cudaGetErrorString(err));
@@ -1503,10 +1711,10 @@ void setConst_hprime_yy(float* array,Mesh* mp)
   }
 }
 
-void setConst_hprime_zz(float* array,Mesh* mp)
+void setConst_hprime_zz(realw* array,Mesh* mp)
 {
 
-  cudaError_t err = cudaMemcpyToSymbol(d_hprime_zz, array, NGLL2*sizeof(float));
+  cudaError_t err = cudaMemcpyToSymbol(d_hprime_zz, array, NGLL2*sizeof(realw));
   if (err != cudaSuccess)
   {
     fprintf(stderr, "Error in setConst_hprime_zz: %s\n", cudaGetErrorString(err));
@@ -1522,9 +1730,9 @@ void setConst_hprime_zz(float* array,Mesh* mp)
 }
 
 
-void setConst_hprimewgll_xx(float* array,Mesh* mp)
+void setConst_hprimewgll_xx(realw* array,Mesh* mp)
 {
-  cudaError_t err = cudaMemcpyToSymbol(d_hprimewgll_xx, array, NGLL2*sizeof(float));
+  cudaError_t err = cudaMemcpyToSymbol(d_hprimewgll_xx, array, NGLL2*sizeof(realw));
   if (err != cudaSuccess)
   {
     fprintf(stderr, "Error in setConst_hprimewgll_xx: %s\n", cudaGetErrorString(err));
@@ -1538,9 +1746,9 @@ void setConst_hprimewgll_xx(float* array,Mesh* mp)
   }
 }
 
-void setConst_hprimewgll_yy(float* array,Mesh* mp)
+void setConst_hprimewgll_yy(realw* array,Mesh* mp)
 {
-  cudaError_t err = cudaMemcpyToSymbol(d_hprimewgll_yy, array, NGLL2*sizeof(float));
+  cudaError_t err = cudaMemcpyToSymbol(d_hprimewgll_yy, array, NGLL2*sizeof(realw));
   if (err != cudaSuccess)
   {
     fprintf(stderr, "Error in setConst_hprimewgll_yy: %s\n", cudaGetErrorString(err));
@@ -1554,9 +1762,9 @@ void setConst_hprimewgll_yy(float* array,Mesh* mp)
   }
 }
 
-void setConst_hprimewgll_zz(float* array,Mesh* mp)
+void setConst_hprimewgll_zz(realw* array,Mesh* mp)
 {
-  cudaError_t err = cudaMemcpyToSymbol(d_hprimewgll_zz, array, NGLL2*sizeof(float));
+  cudaError_t err = cudaMemcpyToSymbol(d_hprimewgll_zz, array, NGLL2*sizeof(realw));
   if (err != cudaSuccess)
   {
     fprintf(stderr, "Error in setConst_hprimewgll_zz: %s\n", cudaGetErrorString(err));
@@ -1570,9 +1778,9 @@ void setConst_hprimewgll_zz(float* array,Mesh* mp)
   }
 }
 
-void setConst_wgllwgll_xy(float* array,Mesh* mp)
+void setConst_wgllwgll_xy(realw* array,Mesh* mp)
 {
-  cudaError_t err = cudaMemcpyToSymbol(d_wgllwgll_xy, array, NGLL2*sizeof(float));
+  cudaError_t err = cudaMemcpyToSymbol(d_wgllwgll_xy, array, NGLL2*sizeof(realw));
   if (err != cudaSuccess)
   {
     fprintf(stderr, "Error in setConst_wgllwgll_xy: %s\n", cudaGetErrorString(err));
@@ -1587,9 +1795,9 @@ void setConst_wgllwgll_xy(float* array,Mesh* mp)
 
 }
 
-void setConst_wgllwgll_xz(float* array,Mesh* mp)
+void setConst_wgllwgll_xz(realw* array,Mesh* mp)
 {
-  cudaError_t err = cudaMemcpyToSymbol(d_wgllwgll_xz, array, NGLL2*sizeof(float));
+  cudaError_t err = cudaMemcpyToSymbol(d_wgllwgll_xz, array, NGLL2*sizeof(realw));
   if (err != cudaSuccess)
   {
     fprintf(stderr, "Error in  setConst_wgllwgll_xz: %s\n", cudaGetErrorString(err));
@@ -1604,9 +1812,9 @@ void setConst_wgllwgll_xz(float* array,Mesh* mp)
 
 }
 
-void setConst_wgllwgll_yz(float* array,Mesh* mp)
+void setConst_wgllwgll_yz(realw* array,Mesh* mp)
 {
-  cudaError_t err = cudaMemcpyToSymbol(d_wgllwgll_yz, array, NGLL2*sizeof(float));
+  cudaError_t err = cudaMemcpyToSymbol(d_wgllwgll_yz, array, NGLL2*sizeof(realw));
   if (err != cudaSuccess)
   {
     fprintf(stderr, "Error in setConst_wgllwgll_yz: %s\n", cudaGetErrorString(err));
@@ -1621,136 +1829,3 @@ void setConst_wgllwgll_yz(float* array,Mesh* mp)
 
 }
 
-
-/* ----------------------------------------------------------------------------------------------- */
-
-/* OCEANS load on free surface */
-
-/* ----------------------------------------------------------------------------------------------- */
-
-
-__global__ void elastic_ocean_load_cuda_kernel(float* accel,
-                                                 float* rmass,
-                                                 float* rmass_ocean_load,
-                                                 int num_free_surface_faces,
-                                                 int* free_surface_ispec,
-                                                 int* free_surface_ijk,
-                                                 float* free_surface_normal,
-                                                 int* ibool,
-                                                 int* updated_dof_ocean_load) {
-  // gets spectral element face id
-  int igll = threadIdx.x ;  //  threadIdx.y*blockDim.x will be always = 0 for thread block (25,1,1)
-  int iface = blockIdx.x + gridDim.x*blockIdx.y;
-  realw nx,ny,nz;
-  realw force_normal_comp,additional_term;
-
-  // for all faces on free surface
-  if( iface < num_free_surface_faces ){
-
-    int ispec = free_surface_ispec[iface]-1;
-
-    // gets global point index
-    int i = free_surface_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)] - 1; // (1,igll,iface)
-    int j = free_surface_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)] - 1;
-    int k = free_surface_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)] - 1;
-
-    int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)] - 1;
-
-    //if(igll == 0 ) printf("igll %d %d %d %d\n",igll,i,j,k,iglob);
-
-    // only update this global point once
-
-    // daniel: TODO - there might be better ways to implement a mutex like below,
-    //            and find a workaround to not use the temporary update array.
-    //            atomicExch: returns the old value, i.e. 0 indicates that we still have to do this point
-
-    if( atomicExch(&updated_dof_ocean_load[iglob],1) == 0){
-
-      // get normal
-      nx = free_surface_normal[INDEX3(NDIM,NGLL2,0,igll,iface)]; //(1,igll,iface)
-      ny = free_surface_normal[INDEX3(NDIM,NGLL2,1,igll,iface)];
-      nz = free_surface_normal[INDEX3(NDIM,NGLL2,2,igll,iface)];
-
-      // make updated component of right-hand side
-      // we divide by rmass() which is 1 / M
-      // we use the total force which includes the Coriolis term above
-      force_normal_comp = ( accel[iglob*3]*nx + accel[iglob*3+1]*ny + accel[iglob*3+2]*nz ) / rmass[iglob];
-
-      additional_term = (rmass_ocean_load[iglob] - rmass[iglob]) * force_normal_comp;
-
-      // probably wouldn't need atomicAdd anymore, but just to be sure...
-      atomicAdd(&accel[iglob*3], + additional_term * nx);
-      atomicAdd(&accel[iglob*3+1], + additional_term * ny);
-      atomicAdd(&accel[iglob*3+2], + additional_term * nz);
-    }
-  }
-}
-
-/* ----------------------------------------------------------------------------------------------- */
-
-extern "C"
-void FC_FUNC_(elastic_ocean_load_cuda,
-              ELASTIC_OCEAN_LOAD_CUDA)(long* Mesh_pointer_f,
-                                       int* SIMULATION_TYPE) {
-
-TRACE("elastic_ocean_load_cuda");
-
-  Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
-
-  // checks if anything to do
-  if( mp->num_free_surface_faces == 0 ) return;
-
-  // block sizes: exact blocksize to match NGLLSQUARE
-  int blocksize = 25;
-
-  int num_blocks_x = mp->num_free_surface_faces;
-  int num_blocks_y = 1;
-  while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
-    num_blocks_y = num_blocks_y*2;
-  }
-
-  dim3 grid(num_blocks_x,num_blocks_y);
-  dim3 threads(blocksize,1,1);
-
-
-  // initializes temporary array to zero
-  print_CUDA_error_if_any(cudaMemset(mp->d_updated_dof_ocean_load,0,
-                                     sizeof(int)*mp->NGLOB_AB),88501);
-
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  exit_on_cuda_error("before kernel elastic_ocean_load_cuda");
-#endif
-
-  elastic_ocean_load_cuda_kernel<<<grid,threads>>>(mp->d_accel,
-                                                   mp->d_rmass,
-                                                   mp->d_rmass_ocean_load,
-                                                   mp->num_free_surface_faces,
-                                                   mp->d_free_surface_ispec,
-                                                   mp->d_free_surface_ijk,
-                                                   mp->d_free_surface_normal,
-                                                   mp->d_ibool,
-                                                   mp->d_updated_dof_ocean_load);
-  // for backward/reconstructed potentials
-  if(*SIMULATION_TYPE == 3) {
-    // re-initializes array
-    print_CUDA_error_if_any(cudaMemset(mp->d_updated_dof_ocean_load,0,
-                                       sizeof(int)*mp->NGLOB_AB),88502);
-
-    elastic_ocean_load_cuda_kernel<<<grid,threads>>>(mp->d_b_accel,
-                                                       mp->d_rmass,
-                                                       mp->d_rmass_ocean_load,
-                                                       mp->num_free_surface_faces,
-                                                       mp->d_free_surface_ispec,
-                                                       mp->d_free_surface_ijk,
-                                                       mp->d_free_surface_normal,
-                                                       mp->d_ibool,
-                                                       mp->d_updated_dof_ocean_load);
-
-  }
-
-
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  exit_on_cuda_error("elastic_ocean_load_cuda");
-#endif
-}

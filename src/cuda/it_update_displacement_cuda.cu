@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
-#include <mpi.h>
 
 #include "config.h"
 #include "mesh_constants_cuda.h"
@@ -70,13 +69,13 @@ extern "C"
 void FC_FUNC_(it_update_displacement_cuda,
               IT_UPDATE_DISPLACMENT_CUDA)(long* Mesh_pointer_f,
                                                  int* size_F,
-                                                 float* deltat_F,
-                                                 float* deltatsqover2_F,
-                                                 float* deltatover2_F,
+                                                 realw* deltat_F,
+                                                 realw* deltatsqover2_F,
+                                                 realw* deltatover2_F,
                                                  int* SIMULATION_TYPE,
-                                                 float* b_deltat_F,
-                                                 float* b_deltatsqover2_F,
-                                                 float* b_deltatover2_F) {
+                                                 realw* b_deltat_F,
+                                                 realw* b_deltatsqover2_F,
+                                                 realw* b_deltatover2_F) {
 
 TRACE("it_update_displacement_cuda");
 
@@ -93,7 +92,7 @@ TRACE("it_update_displacement_cuda");
   realw b_deltatover2 = *b_deltatover2_F;
   //cublasStatus status;
 
-  int blocksize = 128;
+  int blocksize = BLOCKSIZE_KERNEL1;
   int size_padded = ((int)ceil(((double)size)/((double)blocksize)))*blocksize;
 
   int num_blocks_x = size_padded/blocksize;
@@ -175,13 +174,13 @@ extern "C"
 void FC_FUNC_(it_update_displacement_ac_cuda,
               it_update_displacement_ac_cuda)(long* Mesh_pointer_f,
                                                int* size_F,
-                                               float* deltat_F,
-                                               float* deltatsqover2_F,
-                                               float* deltatover2_F,
+                                               realw* deltat_F,
+                                               realw* deltatsqover2_F,
+                                               realw* deltatover2_F,
                                                int* SIMULATION_TYPE,
-                                               float* b_deltat_F,
-                                               float* b_deltatsqover2_F,
-                                               float* b_deltatover2_F) {
+                                               realw* b_deltat_F,
+                                               realw* b_deltatsqover2_F,
+                                               realw* b_deltatover2_F) {
 TRACE("it_update_displacement_ac_cuda");
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper
 
@@ -195,7 +194,7 @@ TRACE("it_update_displacement_ac_cuda");
   realw b_deltatover2 = *b_deltatover2_F;
   //cublasStatus status;
 
-  int blocksize = 128;
+  int blocksize = BLOCKSIZE_KERNEL1;
   int size_padded = ((int)ceil(((double)size)/((double)blocksize)))*blocksize;
 
   int num_blocks_x = size_padded/blocksize;

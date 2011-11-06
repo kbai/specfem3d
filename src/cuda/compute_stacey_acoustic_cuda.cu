@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
-#include <mpi.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -40,22 +39,22 @@
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void compute_stacey_acoustic_kernel(float* potential_dot_acoustic,
-                                               float* potential_dot_dot_acoustic,
+__global__ void compute_stacey_acoustic_kernel(realw* potential_dot_acoustic,
+                                               realw* potential_dot_dot_acoustic,
                                                int* abs_boundary_ispec,
                                                int* abs_boundary_ijk,
                                                realw* abs_boundary_jacobian2Dw,
                                                int* ibool,
-                                               float* rhostore,
-                                               float* kappastore,
+                                               realw* rhostore,
+                                               realw* kappastore,
                                                int* ispec_is_inner,
                                                int* ispec_is_acoustic,
                                                int phase_is_inner,
                                                int SIMULATION_TYPE, int SAVE_FORWARD,
                                                int num_abs_boundary_faces,
-                                               float* b_potential_dot_acoustic,
-                                               float* b_potential_dot_dot_acoustic,
-                                               float* b_absorb_potential
+                                               realw* b_potential_dot_acoustic,
+                                               realw* b_potential_dot_dot_acoustic,
+                                               realw* b_absorb_potential
                                                ) {
 
   int igll = threadIdx.x;
@@ -116,7 +115,7 @@ void FC_FUNC_(compute_stacey_acoustic_cuda,
                                     int* phase_is_innerf,
                                     int* SIMULATION_TYPEf,
                                     int* SAVE_FORWARDf,
-                                    float* h_b_absorb_potential) {
+                                    realw* h_b_absorb_potential) {
 TRACE("compute_stacey_acoustic_cuda");
   //double start_time = get_time();
 
@@ -131,7 +130,7 @@ TRACE("compute_stacey_acoustic_cuda");
 
   // way 2: Elapsed time: 4.379034e-03
   // > NGLLSQUARE==NGLL2==25, no further check inside kernel
-  int blocksize = 25;
+  int blocksize = NGLL2;
 
   int num_blocks_x = mp->d_num_abs_boundary_faces;
   int num_blocks_y = 1;

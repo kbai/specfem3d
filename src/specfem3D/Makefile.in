@@ -133,7 +133,8 @@ libspecfem_a_OBJECTS = \
 
 CUDA_OBJECTS = \
 	$O/check_fields_cuda.cuda.o \
-	$O/compute_add_sources_cuda.cuda.o \
+	$O/compute_add_sources_acoustic_cuda.cuda.o \
+	$O/compute_add_sources_elastic_cuda.cuda.o \
 	$O/compute_coupling_cuda.cuda.o \
 	$O/compute_forces_acoustic_cuda.cuda.o \
 	$O/compute_forces_elastic_cuda.cuda.o \

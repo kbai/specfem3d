@@ -133,8 +133,8 @@
         ! write(*,*) "fortran dt = ", dt
         ! change dt -> DT
         call compute_add_sources_ac_cuda(Mesh_pointer, phase_is_inner, &
-                                              NSOURCES, SIMULATION_TYPE, &
-                                              USE_FORCE_POINT_SOURCE, stf_pre_compute, myrank)
+                                        NSOURCES, SIMULATION_TYPE, &
+                                        stf_pre_compute, myrank)
       endif
 
     else ! .NOT. GPU_MODE
@@ -411,8 +411,8 @@
 
         ! only implements SIMTYPE=3
         call compute_add_sources_ac_s3_cuda(Mesh_pointer, phase_is_inner, &
-                                    NSOURCES, SIMULATION_TYPE, &
-                                    USE_FORCE_POINT_SOURCE, stf_pre_compute, myrank)
+                                           NSOURCES, SIMULATION_TYPE, &
+                                           stf_pre_compute, myrank)
       endif
 
     else ! .NOT. GPU_MODE
@@ -512,5 +512,4 @@
     if( myrank == 0 ) write(IOSTF,*) time_source,stf_used_total_all
   endif
 
-
-end subroutine compute_add_sources_acoustic
+  end subroutine compute_add_sources_acoustic

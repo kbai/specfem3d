@@ -44,6 +44,7 @@
 
 #ifndef GPU_MESH_
 #define GPU_MESH_
+
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -74,22 +75,6 @@
 // error checking after cuda function calls
 #define ENABLE_VERY_SLOW_ERROR_CHECKING
 
-
-/* ----------------------------------------------------------------------------------------------- */
-
-// indexing
-
-#define INDEX2(xsize,x,y) x + (y)*xsize
-#define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
-#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
-#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*j)))
-#define INDEX6(xsize,ysize,zsize,isize,jsize,x,y,z,i,j,k) x + xsize*(y + ysize*(z + zsize*(i + isize*(j + jsize*k))))
-
-#define INDEX4_PADDED(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*z) + (i)*128
-
-
-/* ----------------------------------------------------------------------------------------------- */
-
 #define MAX(x,y)                    (((x) < (y)) ? (y) : (x))
 
 double get_time();
@@ -108,13 +93,21 @@ void exit_on_error(char* info);
 
 /* ----------------------------------------------------------------------------------------------- */
 
+// dimensions
 #define NDIM 3
+
+// Gauss-Lobatto-Legendre 
 #define NGLLX 5
 #define NGLL2 25
-#define N_SLS 3
+#define NGLL3 125 // no padding: requires same size as in fortran for NGLLX * NGLLY * NGLLZ
 
-#define NGLL3_NONPADDED 125
+// padding: 128 == 2**7 might improve on older graphics cards w/ coalescent memory accesses:
 #define NGLL3_PADDED 128
+// no padding: 125 == 5*5*5 to avoid allocation of extra memory
+//#define NGLL3_PADDED 125
+
+// number of standard linear solids
+#define N_SLS 3
 
 //typedef float real;   // type of variables passed into function
 typedef float realw;  // type of "working" variables
@@ -126,6 +119,31 @@ typedef float reald;
 // (optional) pre-processing directive used in kernels: if defined check that it is also set in src/shared/constants.h:
 // leads up to ~ 5% performance increase
 //#define USE_MESH_COLORING_GPU
+
+// cuda kernel block size for updating displacements/potential (newmark time scheme)
+#define BLOCKSIZE_KERNEL1 128
+#define BLOCKSIZE_KERNEL3 128
+#define BLOCKSIZE_TRANSFER 256
+
+/* ----------------------------------------------------------------------------------------------- */
+
+// indexing
+
+#define INDEX2(xsize,x,y) x + (y)*xsize
+
+#define INDEX3(xsize,ysize,x,y,z) x + xsize*(y + ysize*z)
+//#define INDEX3(xsize,ysize,x,y,z) x + (y)*xsize + (z)*xsize*ysize
+
+#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*(z + zsize*i))
+//#define INDEX4(xsize,ysize,zsize,x,y,z,i) x + (y)*xsize + (z)*xsize*ysize + (i)*xsize*ysize*zsize
+
+#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + xsize*(y + ysize*(z + zsize*(i + isize*(j))))
+//#define INDEX5(xsize,ysize,zsize,isize,x,y,z,i,j) x + (y)*xsize + (z)*xsize*ysize + (i)*xsize*ysize*zsize + (j)*xsize*ysize*zsize*isize
+
+#define INDEX6(xsize,ysize,zsize,isize,jsize,x,y,z,i,j,k) x + xsize*(y + ysize*(z + zsize*(i + isize*(j + jsize*k))))
+
+#define INDEX4_PADDED(xsize,ysize,zsize,x,y,z,i) x + xsize*(y + ysize*z) + (i)*NGLL3_PADDED
+//#define INDEX4_PADDED(xsize,ysize,zsize,x,y,z,i) x + (y)*xsize + (z)*xsize*ysize + (i)*NGLL3_PADDED
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -140,12 +158,12 @@ typedef struct mesh_ {
   int NGLOB_AB;
 
   // interpolators
-  float* d_xix; float* d_xiy; float* d_xiz;
-  float* d_etax; float* d_etay; float* d_etaz;
-  float* d_gammax; float* d_gammay; float* d_gammaz;
+  realw* d_xix; realw* d_xiy; realw* d_xiz;
+  realw* d_etax; realw* d_etay; realw* d_etaz;
+  realw* d_gammax; realw* d_gammay; realw* d_gammaz;
 
   // model parameters
-  float* d_kappav; float* d_muv;
+  realw* d_kappav; realw* d_muv;
 
   // global indexing
   int* d_ibool;
@@ -157,18 +175,22 @@ typedef struct mesh_ {
   int use_mesh_coloring_gpu;
 
   // pointers to constant memory arrays
-  float* d_hprime_xx; float* d_hprime_yy; float* d_hprime_zz;
-  float* d_hprimewgll_xx; float* d_hprimewgll_yy; float* d_hprimewgll_zz;
-  float* d_wgllwgll_xy; float* d_wgllwgll_xz; float* d_wgllwgll_yz;
+  realw* d_hprime_xx; realw* d_hprime_yy; realw* d_hprime_zz;
+  realw* d_hprimewgll_xx; realw* d_hprimewgll_yy; realw* d_hprimewgll_zz;
+  realw* d_wgllwgll_xy; realw* d_wgllwgll_xz; realw* d_wgllwgll_yz;
 
+  // mpi buffers
+  int num_interfaces_ext_mesh;
+  int max_nibool_interfaces_ext_mesh;
+  
   // ------------------------------------------------------------------ //
   // elastic wavefield parameters
   // ------------------------------------------------------------------ //
 
   // displacement, velocity, acceleration
-  float* d_displ; float* d_veloc; float* d_accel;
+  realw* d_displ; realw* d_veloc; realw* d_accel;
   // backward/reconstructed elastic wavefield
-  float* d_b_displ; float* d_b_veloc; float* d_b_accel;
+  realw* d_b_displ; realw* d_b_veloc; realw* d_b_accel;
 
   // elastic elements
   int* d_ispec_is_elastic;
@@ -182,8 +204,10 @@ typedef struct mesh_ {
   int num_colors_outer_elastic,num_colors_inner_elastic;
   int nspec_elastic;
 
-  float* d_rmass;
-  float* d_send_accel_buffer;
+  realw* d_rmass;
+  
+  // mpi buffer
+  realw* d_send_accel_buffer;
 
   // interfaces
   int* d_nibool_interfaces_ext_mesh;
@@ -193,18 +217,18 @@ typedef struct mesh_ {
   int d_num_abs_boundary_faces;
   int* d_abs_boundary_ispec;
   int* d_abs_boundary_ijk;
-  float* d_abs_boundary_normal;
-  float* d_abs_boundary_jacobian2Dw;
+  realw* d_abs_boundary_normal;
+  realw* d_abs_boundary_jacobian2Dw;
 
-  float* d_b_absorb_field;
+  realw* d_b_absorb_field;
   int d_b_reclen_field;
 
-  float* d_rho_vp;
-  float* d_rho_vs;
+  realw* d_rho_vp;
+  realw* d_rho_vs;
 
   // sources
   int nsources_local;
-  float* d_sourcearrays;
+  realw* d_sourcearrays;
   double* d_stf_pre_compute;
   int* d_islice_selected_source;
   int* d_ispec_selected_source;
@@ -214,12 +238,13 @@ typedef struct mesh_ {
   int* d_ispec_selected_rec;
   int* d_islice_selected_rec;
   int nrec_local;
-  float* d_station_seismo_field;
-  float* h_station_seismo_field;
+  realw* d_station_seismo_field;
+  realw* h_station_seismo_field;
 
+  // adjoint receivers/sources
   int nadj_rec_local;
-  float* d_adj_sourcearrays;
-  float* h_adj_sourcearrays_slice;
+  realw* d_adj_sourcearrays;
+  realw* h_adj_sourcearrays_slice;
   int* d_pre_computed_irec;
 
   // surface elements (to save for noise tomography and acoustic simulations)
@@ -228,80 +253,103 @@ typedef struct mesh_ {
   int num_free_surface_faces;
 
   // surface movie elements to save for noise tomography
-  float* d_noise_surface_movie;
+  realw* d_noise_surface_movie;
 
   // attenuation
-  float* d_R_xx;
-  float* d_R_yy;
-  float* d_R_xy;
-  float* d_R_xz;
-  float* d_R_yz;
+  realw* d_R_xx;
+  realw* d_R_yy;
+  realw* d_R_xy;
+  realw* d_R_xz;
+  realw* d_R_yz;
 
-  float* d_one_minus_sum_beta;
-  float* d_factor_common;
+  realw* d_one_minus_sum_beta;
+  realw* d_factor_common;
 
-  float* d_alphaval;
-  float* d_betaval;
-  float* d_gammaval;
+  realw* d_alphaval;
+  realw* d_betaval;
+  realw* d_gammaval;
 
   // attenuation & kernel
-  float* d_epsilondev_xx;
-  float* d_epsilondev_yy;
-  float* d_epsilondev_xy;
-  float* d_epsilondev_xz;
-  float* d_epsilondev_yz;
-  float* d_epsilon_trace_over_3;
+  realw* d_epsilondev_xx;
+  realw* d_epsilondev_yy;
+  realw* d_epsilondev_xy;
+  realw* d_epsilondev_xz;
+  realw* d_epsilondev_yz;
+  realw* d_epsilon_trace_over_3;
+
+  // anisotropy
+  realw* d_c11store;
+  realw* d_c12store;
+  realw* d_c13store;
+  realw* d_c14store;
+  realw* d_c15store;
+  realw* d_c16store;
+  realw* d_c22store;
+  realw* d_c23store;
+  realw* d_c24store;
+  realw* d_c25store;
+  realw* d_c26store;
+  realw* d_c33store;
+  realw* d_c34store;
+  realw* d_c35store;
+  realw* d_c36store;
+  realw* d_c44store;
+  realw* d_c45store;
+  realw* d_c46store;
+  realw* d_c55store;
+  realw* d_c56store;
+  realw* d_c66store;
 
   // noise
-  float* d_normal_x_noise;
-  float* d_normal_y_noise;
-  float* d_normal_z_noise;
-  float* d_mask_noise;
-  float* d_free_surface_jacobian2Dw;
+  realw* d_normal_x_noise;
+  realw* d_normal_y_noise;
+  realw* d_normal_z_noise;
+  realw* d_mask_noise;
+  realw* d_free_surface_jacobian2Dw;
 
-  float* d_noise_sourcearray;
+  realw* d_noise_sourcearray;
 
   // attenuation & kernel backward fields
-  float* d_b_R_xx;
-  float* d_b_R_yy;
-  float* d_b_R_xy;
-  float* d_b_R_xz;
-  float* d_b_R_yz;
+  realw* d_b_R_xx;
+  realw* d_b_R_yy;
+  realw* d_b_R_xy;
+  realw* d_b_R_xz;
+  realw* d_b_R_yz;
 
-  float* d_b_epsilondev_xx;
-  float* d_b_epsilondev_yy;
-  float* d_b_epsilondev_xy;
-  float* d_b_epsilondev_xz;
-  float* d_b_epsilondev_yz;
-  float* d_b_epsilon_trace_over_3;
+  realw* d_b_epsilondev_xx;
+  realw* d_b_epsilondev_yy;
+  realw* d_b_epsilondev_xy;
+  realw* d_b_epsilondev_xz;
+  realw* d_b_epsilondev_yz;
+  realw* d_b_epsilon_trace_over_3;
 
-  float* d_b_alphaval;
-  float* d_b_betaval;
-  float* d_b_gammaval;
+  realw* d_b_alphaval;
+  realw* d_b_betaval;
+  realw* d_b_gammaval;
 
   // sensitivity kernels
-  float* d_rho_kl;
-  float* d_mu_kl;
-  float* d_kappa_kl;
+  realw* d_rho_kl;
+  realw* d_mu_kl;
+  realw* d_kappa_kl;
 
   // noise sensitivity kernel
-  float* d_Sigma_kl;
+  realw* d_Sigma_kl;
 
   // approximative hessian for preconditioning kernels
-  float* d_hess_el_kl;
+  realw* d_hess_el_kl;
 
   // oceans
-  float* d_rmass_ocean_load;
-  float* d_free_surface_normal;
+  realw* d_rmass_ocean_load;
+  realw* d_free_surface_normal;
   int* d_updated_dof_ocean_load;
 
   // ------------------------------------------------------------------ //
   // acoustic wavefield
   // ------------------------------------------------------------------ //
   // potential and first and second time derivative
-  float* d_potential_acoustic; float* d_potential_dot_acoustic; float* d_potential_dot_dot_acoustic;
+  realw* d_potential_acoustic; realw* d_potential_dot_acoustic; realw* d_potential_dot_dot_acoustic;
   // backward/reconstructed wavefield
-  float* d_b_potential_acoustic; float* d_b_potential_dot_acoustic; float* d_b_potential_dot_dot_acoustic;
+  realw* d_b_potential_acoustic; realw* d_b_potential_dot_acoustic; realw* d_b_potential_dot_dot_acoustic;
 
   // acoustic domain parameters
   int* d_ispec_is_acoustic;
@@ -314,33 +362,32 @@ typedef struct mesh_ {
   int num_colors_outer_acoustic,num_colors_inner_acoustic;
   int nspec_acoustic;
 
-  float* d_rhostore;
-  float* d_kappastore;
-  float* d_rmass_acoustic;
+  realw* d_rhostore;
+  realw* d_kappastore;
+  realw* d_rmass_acoustic;
+  
+  // mpi buffer
+  realw* d_send_potential_dot_dot_buffer;
 
-  float* d_send_potential_dot_dot_buffer;
-
-  float* d_b_absorb_potential;
+  realw* d_b_absorb_potential;
   int d_b_reclen_potential;
 
   // for writing seismograms
-  float* d_station_seismo_potential;
-  float* h_station_seismo_potential;
+  realw* d_station_seismo_potential;
+  realw* h_station_seismo_potential;
 
   // sensitivity kernels
-  float* d_rho_ac_kl;
-  float* d_kappa_ac_kl;
+  realw* d_rho_ac_kl;
+  realw* d_kappa_ac_kl;
 
   // approximative hessian for preconditioning kernels
-  float* d_hess_ac_kl;
+  realw* d_hess_ac_kl;
 
   // coupling acoustic-elastic
   int* d_coupling_ac_el_ispec;
   int* d_coupling_ac_el_ijk;
-  float* d_coupling_ac_el_normal;
-  float* d_coupling_ac_el_jacobian2Dw;
-
-
+  realw* d_coupling_ac_el_normal;
+  realw* d_coupling_ac_el_jacobian2Dw;
 
 } Mesh;
 

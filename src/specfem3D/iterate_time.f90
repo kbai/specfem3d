@@ -184,6 +184,11 @@
       endif
     endif
   endif
+  ! check stability of the code, exit if unstable
+  ! negative values can occur with some compilers when the unstable value is greater
+  ! than the greatest possible floating-point number of the machine
+  if(Usolidnorm > STABILITY_THRESHOLD .or. Usolidnorm < 0) &
+    call exit_MPI(myrank,'forward simulation became unstable and blew up')
 
 ! compute the maximum of the maxima for all the slices using an MPI reduction
   call max_all_cr(Usolidnorm,Usolidnorm_all)
@@ -207,6 +212,13 @@
         endif
       endif
     endif
+    ! check stability of the code, exit if unstable
+    ! negative values can occur with some compilers when the unstable value is greater
+    ! than the greatest possible floating-point number of the machine
+    if(b_Usolidnorm > STABILITY_THRESHOLD .or. b_Usolidnorm < 0) &
+      call exit_MPI(myrank,'backward simulation became unstable and blew up')
+
+    ! compute max of all slices
     call max_all_cr(b_Usolidnorm,b_Usolidnorm_all)
   endif
 

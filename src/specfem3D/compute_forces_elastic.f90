@@ -124,7 +124,8 @@ subroutine compute_forces_elastic()
       call compute_forces_elastic_cuda(Mesh_pointer, iphase, &
                                       nspec_outer_elastic, &
                                       nspec_inner_elastic, &
-                                      SIMULATION_TYPE,COMPUTE_AND_STORE_STRAIN,ATTENUATION)
+                                      SIMULATION_TYPE, &
+                                      COMPUTE_AND_STORE_STRAIN,ATTENUATION,ANISOTROPY)
     endif ! GPU_MODE
 
 

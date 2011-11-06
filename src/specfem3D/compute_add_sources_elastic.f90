@@ -133,11 +133,7 @@
       ! write(*,*) "fortran dt = ", dt
       ! change dt -> DT
       call compute_add_sources_el_cuda(Mesh_pointer, &
-                                      !NSPEC_AB, NGLOB_AB,
                                       phase_is_inner,NSOURCES, &
-                                      !it, DT, t0, &
-                                      !SIMULATION_TYPE, NSTEP, NOISE_TOMOGRAPHY,&
-                                      !USE_FORCE_POINT_SOURCE, &
                                       stf_pre_compute, myrank)
 
     else ! .NOT. GPU_MODE
@@ -363,7 +359,7 @@
             endif
           enddo ! nrec
         else ! GPU_MODE == .true.
-           call add_sources_el_sim_type_2_or_3(Mesh_pointer,adj_sourcearrays,phase_is_inner, &
+          call add_sources_el_sim_type_2_or_3(Mesh_pointer,adj_sourcearrays,phase_is_inner, &
                                             ispec_is_inner,ispec_is_elastic, &
                                             ispec_selected_rec,myrank,nrec, &
                                             NTSTEP_BETWEEN_READ_ADJSRC - mod(it-1,NTSTEP_BETWEEN_READ_ADJSRC), &
@@ -387,8 +383,8 @@
                                           dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
       enddo
 
-      call compute_add_sources_el_s3_cuda(Mesh_pointer, USE_FORCE_POINT_SOURCE,&
-                                          stf_pre_compute, NSOURCES,phase_is_inner,myrank)
+      call compute_add_sources_el_s3_cuda(Mesh_pointer,stf_pre_compute, &
+                                         NSOURCES,phase_is_inner,myrank)
 
     else ! .NOT. GPU_MODE
 

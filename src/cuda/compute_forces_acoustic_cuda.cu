@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
-#include <mpi.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -42,8 +41,8 @@
 
 // prepares a device array with with all inter-element edge-nodes -- this
 // is followed by a memcpy and MPI operations
-__global__ void prepare_boundary_potential_on_device(float* d_potential_dot_dot_acoustic,
-                                                     float* d_send_potential_dot_dot_buffer,
+__global__ void prepare_boundary_potential_on_device(realw* d_potential_dot_dot_acoustic,
+                                                     realw* d_send_potential_dot_dot_buffer,
                                                      int num_interfaces_ext_mesh,
                                                      int max_nibool_interfaces_ext_mesh,
                                                      int* d_nibool_interfaces_ext_mesh,
@@ -70,8 +69,8 @@ void FC_FUNC_(transfer_boun_pot_from_device,
               TRANSFER_BOUN_POT_FROM_DEVICE)(
                                               int* size,
                                               long* Mesh_pointer_f,
-                                              float* potential_dot_dot_acoustic,
-                                              float* send_potential_dot_dot_buffer,
+                                              realw* potential_dot_dot_acoustic,
+                                              realw* send_potential_dot_dot_buffer,
                                               int* num_interfaces_ext_mesh,
                                               int* max_nibool_interfaces_ext_mesh,
                                               int* nibool_interfaces_ext_mesh,
@@ -84,8 +83,8 @@ TRACE("transfer_boun_pot_from_device");
 
   if( *num_interfaces_ext_mesh == 0 ) return;
 
-  int blocksize = 256;
-  int size_padded = ((int)ceil(((double)*max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+  int blocksize = BLOCKSIZE_TRANSFER;
+  int size_padded = ((int)ceil(((double)(mp->max_nibool_interfaces_ext_mesh))/((double)blocksize)))*blocksize;
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
@@ -99,22 +98,22 @@ TRACE("transfer_boun_pot_from_device");
   if(*FORWARD_OR_ADJOINT == 1) {
     prepare_boundary_potential_on_device<<<grid,threads>>>(mp->d_potential_dot_dot_acoustic,
                                                          mp->d_send_potential_dot_dot_buffer,
-                                                         *num_interfaces_ext_mesh,
-                                                         *max_nibool_interfaces_ext_mesh,
+                                                         mp->num_interfaces_ext_mesh,
+                                                         mp->max_nibool_interfaces_ext_mesh,
                                                          mp->d_nibool_interfaces_ext_mesh,
                                                          mp->d_ibool_interfaces_ext_mesh);
   }
   else if(*FORWARD_OR_ADJOINT == 3) {
     prepare_boundary_potential_on_device<<<grid,threads>>>(mp->d_b_potential_dot_dot_acoustic,
                                                            mp->d_send_potential_dot_dot_buffer,
-                                                           *num_interfaces_ext_mesh,
-                                                           *max_nibool_interfaces_ext_mesh,
+                                                           mp->num_interfaces_ext_mesh,
+                                                           mp->max_nibool_interfaces_ext_mesh,
                                                            mp->d_nibool_interfaces_ext_mesh,
                                                            mp->d_ibool_interfaces_ext_mesh);
   }
 
-  cudaMemcpy(send_potential_dot_dot_buffer,mp->d_send_potential_dot_dot_buffer,
-        *max_nibool_interfaces_ext_mesh* *num_interfaces_ext_mesh*sizeof(realw),cudaMemcpyDeviceToHost);
+  print_CUDA_error_if_any(cudaMemcpy(send_potential_dot_dot_buffer,mp->d_send_potential_dot_dot_buffer,
+      (mp->max_nibool_interfaces_ext_mesh)*(mp->num_interfaces_ext_mesh)*sizeof(realw),cudaMemcpyDeviceToHost),98000);
 
   // finish timing of kernel+memcpy
   // cudaEventRecord( stop, 0 );
@@ -132,8 +131,8 @@ TRACE("transfer_boun_pot_from_device");
 /* ----------------------------------------------------------------------------------------------- */
 
 
-__global__ void assemble_boundary_potential_on_device(float* d_potential_dot_dot_acoustic,
-                                                      float* d_send_potential_dot_dot_buffer,
+__global__ void assemble_boundary_potential_on_device(realw* d_potential_dot_dot_acoustic,
+                                                      realw* d_send_potential_dot_dot_buffer,
                                                       int num_interfaces_ext_mesh,
                                                       int max_nibool_interfaces_ext_mesh,
                                                       int* d_nibool_interfaces_ext_mesh,
@@ -182,18 +181,18 @@ TRACE("transfer_asmbl_pot_to_device");
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
   //double start_time = get_time();
   // cudaEvent_t start, stop;
-  // float time;
+  // realw time;
   // cudaEventCreate(&start);
   // cudaEventCreate(&stop);
   // cudaEventRecord( start, 0 );
 
   // copies buffer onto GPU
   cudaMemcpy(mp->d_send_potential_dot_dot_buffer, buffer_recv_scalar_ext_mesh,
-             *max_nibool_interfaces_ext_mesh* *num_interfaces_ext_mesh*sizeof(realw), cudaMemcpyHostToDevice);
+             (mp->max_nibool_interfaces_ext_mesh)*(mp->num_interfaces_ext_mesh)*sizeof(realw), cudaMemcpyHostToDevice);
 
   // assembles on GPU
-  int blocksize = 256;
-  int size_padded = ((int)ceil(((double)*max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+  int blocksize = BLOCKSIZE_TRANSFER;
+  int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
@@ -208,8 +207,8 @@ TRACE("transfer_asmbl_pot_to_device");
     //assemble forward field
     assemble_boundary_potential_on_device<<<grid,threads>>>(mp->d_potential_dot_dot_acoustic,
                                                           mp->d_send_potential_dot_dot_buffer,
-                                                          *num_interfaces_ext_mesh,
-                                                          *max_nibool_interfaces_ext_mesh,
+                                                          mp->num_interfaces_ext_mesh,
+                                                          mp->max_nibool_interfaces_ext_mesh,
                                                           mp->d_nibool_interfaces_ext_mesh,
                                                           mp->d_ibool_interfaces_ext_mesh);
   }
@@ -217,8 +216,8 @@ TRACE("transfer_asmbl_pot_to_device");
     //assemble reconstructed/backward field
     assemble_boundary_potential_on_device<<<grid,threads>>>(mp->d_b_potential_dot_dot_acoustic,
                                                             mp->d_send_potential_dot_dot_buffer,
-                                                            *num_interfaces_ext_mesh,
-                                                            *max_nibool_interfaces_ext_mesh,
+                                                            mp->num_interfaces_ext_mesh,
+                                                            mp->max_nibool_interfaces_ext_mesh,
                                                             mp->d_nibool_interfaces_ext_mesh,
                                                             mp->d_ibool_interfaces_ext_mesh);
   }
@@ -239,23 +238,6 @@ TRACE("transfer_asmbl_pot_to_device");
 
 /* ----------------------------------------------------------------------------------------------- */
 
-//void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase, int SIMULATION_TYPE);
-
-//__global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,int NGLOB, int* d_ibool,int* d_phase_ispec_inner_acoustic,
-//                                       int num_phase_ispec_acoustic, int d_iphase,
-//                                       float* d_potential_acoustic, float* d_potential_dot_dot_acoustic,
-//                                       float* d_xix, float* d_xiy, float* d_xiz, float* d_etax, float* d_etay, float* d_etaz,
-//                                       float* d_gammax, float* d_gammay, float* d_gammaz,
-//                                       float* hprime_xx, float* hprime_yy, float* hprime_zz,
-//                                       float* hprimewgll_xx, float* hprimewgll_yy, float* hprimewgll_zz,
-//                                       float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,
-//                                       float* d_rhostore);
-
-
-
-
-/* ----------------------------------------------------------------------------------------------- */
-
 /* KERNEL 2 */
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -267,20 +249,20 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,
                                        int num_phase_ispec_acoustic,
                                        int d_iphase,
                                        int use_mesh_coloring_gpu,
-                                       float* d_potential_acoustic, float* d_potential_dot_dot_acoustic,
-                                       float* d_xix, float* d_xiy, float* d_xiz,
-                                       float* d_etax, float* d_etay, float* d_etaz,
-                                       float* d_gammax, float* d_gammay, float* d_gammaz,
-                                       float* hprime_xx, float* hprime_yy, float* hprime_zz,
-                                       float* hprimewgll_xx, float* hprimewgll_yy, float* hprimewgll_zz,
-                                       float* wgllwgll_xy,float* wgllwgll_xz,float* wgllwgll_yz,
-                                       float* d_rhostore){
+                                       realw* d_potential_acoustic, realw* d_potential_dot_dot_acoustic,
+                                       realw* d_xix, realw* d_xiy, realw* d_xiz,
+                                       realw* d_etax, realw* d_etay, realw* d_etaz,
+                                       realw* d_gammax, realw* d_gammay, realw* d_gammaz,
+                                       realw* hprime_xx, realw* hprime_yy, realw* hprime_zz,
+                                       realw* hprimewgll_xx, realw* hprimewgll_yy, realw* hprimewgll_zz,
+                                       realw* wgllwgll_xy,realw* wgllwgll_xz,realw* wgllwgll_yz,
+                                       realw* d_rhostore){
 
   int bx = blockIdx.y*gridDim.x+blockIdx.x;
   int tx = threadIdx.x;
 
-  const int NGLL3 = 125;
-  const int NGLL3_ALIGN = 128;
+  //const int NGLL3 = NGLL3;
+  const int NGLL3_ALIGN = NGLL3_PADDED;
 
   int K = (tx/NGLL2);
   int J = ((tx-K*NGLL2)/NGLLX);
@@ -296,7 +278,7 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,
 
 #ifndef MANUALLY_UNROLLED_LOOPS
     int l;
-    float hp1,hp2,hp3;
+    realw hp1,hp2,hp3;
 #endif
 
     __shared__ reald s_dummy_loc[NGLL3];
@@ -326,7 +308,7 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,
 #endif
 
       // iglob = d_ibool[working_element*NGLL3_ALIGN + tx]-1;
-      iglob = d_ibool[working_element*125 + tx]-1;
+      iglob = d_ibool[working_element*NGLL3 + tx]-1;
 
 #ifdef USE_TEXTURES
       s_dummy_loc[tx] = tex1Dfetch(tex_potential_acoustic, iglob);
@@ -516,16 +498,16 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,
 void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
                        int SIMULATION_TYPE,
                        int* d_ibool,
-                       float* d_xix,
-                       float* d_xiy,
-                       float* d_xiz,
-                       float* d_etax,
-                       float* d_etay,
-                       float* d_etaz,
-                       float* d_gammax,
-                       float* d_gammay,
-                       float* d_gammaz,
-                       float* d_rhostore)
+                       realw* d_xix,
+                       realw* d_xiy,
+                       realw* d_xiz,
+                       realw* d_etax,
+                       realw* d_etay,
+                       realw* d_etaz,
+                       realw* d_gammax,
+                       realw* d_gammay,
+                       realw* d_gammaz,
+                       realw* d_rhostore)
 {
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
@@ -543,13 +525,13 @@ void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
     num_blocks_y = num_blocks_y*2;
   }
 
-  int threads_2 = 128;//BLOCK_SIZE_K2;
+  int threads_2 = NGLL3_PADDED;//BLOCK_SIZE_K2;
   dim3 grid_2(num_blocks_x,num_blocks_y);
 
 
   // Cuda timing
   // cudaEvent_t start, stop;
-  // float time;
+  // realw time;
   // cudaEventCreate(&start);
   // cudaEventCreate(&stop);
   // cudaEventRecord( start, 0 );
@@ -631,10 +613,6 @@ void FC_FUNC_(compute_forces_acoustic_cuda,
 
   if( num_elements == 0 ) return;
 
-  //int myrank;
-  /* MPI_Comm_rank(MPI_COMM_WORLD,&myrank); */
-  /* if(myrank==0) { */
-
   // mesh coloring
   if( mp->use_mesh_coloring_gpu ){
 
@@ -654,7 +632,7 @@ void FC_FUNC_(compute_forces_acoustic_cuda,
 
       // array offsets (acoustic elements start after elastic ones)
       color_offset = mp->nspec_elastic * NGLL3_PADDED;
-      color_offset_nonpadded = mp->nspec_elastic * NGLL3_NONPADDED;
+      color_offset_nonpadded = mp->nspec_elastic * NGLL3;
     }else{
       // inner element colors (start after outer elements)
       nb_colors = mp->num_colors_outer_acoustic + mp->num_colors_inner_acoustic;
@@ -662,19 +640,13 @@ void FC_FUNC_(compute_forces_acoustic_cuda,
 
       // array offsets (inner elements start after outer ones)
       color_offset = ( mp->nspec_elastic + (*nspec_outer_acoustic) ) * NGLL3_PADDED;
-      color_offset_nonpadded = ( mp->nspec_elastic + (*nspec_outer_acoustic) ) * NGLL3_NONPADDED;
+      color_offset_nonpadded = ( mp->nspec_elastic + (*nspec_outer_acoustic) ) * NGLL3;
     }
 
     // loops over colors
     for(int icolor = istart; icolor < nb_colors; icolor++){
 
       nb_blocks_to_compute = mp->h_num_elem_colors_acoustic[icolor];
-
-      // checks
-      //if( nb_blocks_to_compute <= 0 ){
-      //  printf("error number of acoustic color blocks: %d -- color = %d \n",nb_blocks_to_compute,icolor);
-      //  exit(EXIT_FAILURE);
-      //}
 
       Kernel_2_acoustic(nb_blocks_to_compute,mp,*iphase,
                          *SIMULATION_TYPE,
@@ -693,13 +665,12 @@ void FC_FUNC_(compute_forces_acoustic_cuda,
       // for padded and aligned arrays
       color_offset += nb_blocks_to_compute * NGLL3_PADDED;
       // for no-aligned arrays
-      color_offset_nonpadded += nb_blocks_to_compute * NGLL3_NONPADDED;
+      color_offset_nonpadded += nb_blocks_to_compute * NGLL3;
     }
 
   }else{
 
     // no mesh coloring: uses atomic updates
-
     Kernel_2_acoustic(num_elements, mp, *iphase,
                       *SIMULATION_TYPE,
                       mp->d_ibool,
@@ -715,14 +686,6 @@ void FC_FUNC_(compute_forces_acoustic_cuda,
                       mp->d_rhostore);
 
   }
-
-  //cudaThreadSynchronize();
-
-  //#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  /* MPI_Barrier(MPI_COMM_WORLD); */
-  //double end_time = get_time();
-  //printf("Elapsed time: %e\n",end_time-start_time);
-  //#endif
 }
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -732,9 +695,9 @@ void FC_FUNC_(compute_forces_acoustic_cuda,
 /* ----------------------------------------------------------------------------------------------- */
 
 
-__global__ void kernel_3_a_acoustic_cuda_device(float* potential_dot_dot_acoustic,
+__global__ void kernel_3_a_acoustic_cuda_device(realw* potential_dot_dot_acoustic,
                                                 int size,
-                                                float* rmass_acoustic) {
+                                                realw* rmass_acoustic) {
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
 
   /* because of block and grid sizing problems, there is a small */
@@ -747,11 +710,11 @@ __global__ void kernel_3_a_acoustic_cuda_device(float* potential_dot_dot_acousti
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void kernel_3_b_acoustic_cuda_device(float* potential_dot_acoustic,
-                                                float* potential_dot_dot_acoustic,
+__global__ void kernel_3_b_acoustic_cuda_device(realw* potential_dot_acoustic,
+                                                realw* potential_dot_dot_acoustic,
                                                 int size,
                                                 realw deltatover2,
-                                                float* rmass_acoustic) {
+                                                realw* rmass_acoustic) {
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
 
   /* because of block and grid sizing problems, there is a small */
@@ -775,7 +738,7 @@ TRACE("kernel_3_a_acoustic_cuda");
    Mesh* mp = (Mesh*)(*Mesh_pointer); // get Mesh from fortran integer wrapper
    int size = *size_F;
 
-   int blocksize=128;
+   int blocksize = BLOCKSIZE_KERNEL3;
    int size_padded = ((int)ceil(((double)size)/((double)blocksize)))*blocksize;
    int num_blocks_x = size_padded/blocksize;
    int num_blocks_y = 1;
@@ -808,9 +771,9 @@ extern "C"
 void FC_FUNC_(kernel_3_b_acoustic_cuda,KERNEL_3_ACOUSTIC_CUDA)(
                                                              long* Mesh_pointer,
                                                              int* size_F,
-                                                             float* deltatover2_F,
+                                                             realw* deltatover2_F,
                                                              int* SIMULATION_TYPE,
-                                                             float* b_deltatover2_F) {
+                                                             realw* b_deltatover2_F) {
 
 TRACE("kernel_3_b_acoustic_cuda");
 
@@ -819,7 +782,7 @@ TRACE("kernel_3_b_acoustic_cuda");
   realw deltatover2 = *deltatover2_F;
   realw b_deltatover2 = *b_deltatover2_F;
 
-  int blocksize=128;
+  int blocksize = BLOCKSIZE_KERNEL3;
   int size_padded = ((int)ceil(((double)size)/((double)blocksize)))*blocksize;
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
@@ -858,9 +821,9 @@ TRACE("kernel_3_b_acoustic_cuda");
 
 
 __global__ void enforce_free_surface_cuda_kernel(
-                                       float* potential_acoustic,
-                                       float* potential_dot_acoustic,
-                                       float* potential_dot_dot_acoustic,
+                                       realw* potential_acoustic,
+                                       realw* potential_dot_acoustic,
+                                       realw* potential_dot_dot_acoustic,
                                        int num_free_surface_faces,
                                        int* free_surface_ispec,
                                        int* free_surface_ijk,
@@ -874,19 +837,11 @@ __global__ void enforce_free_surface_cuda_kernel(
 
     int ispec = free_surface_ispec[iface]-1;
 
-//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-//  if( iface > 648-1 ){printf("device iface: %i \n",iface);}
-//#endif
-
     // checks if element is in acoustic domain
     if( ispec_is_acoustic[ispec] ){
 
       // gets global point index
       int igll = threadIdx.x + threadIdx.y*blockDim.x;
-
-//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-//      if( igll > 25-1 ){printf("device igll: %i \n",igll);}
-//#endif
 
       int i = free_surface_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)] - 1; // (1,igll,iface)
       int j = free_surface_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)] - 1;
@@ -898,10 +853,6 @@ __global__ void enforce_free_surface_cuda_kernel(
       potential_acoustic[iglob] = 0;
       potential_dot_acoustic[iglob] = 0;
       potential_dot_dot_acoustic[iglob] = 0;
-
-//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-//    if( ispec == 160 && igll < 25 ){printf("device: %i %i %i %i %i \n",igll,i,j,k,iglob);}
-//#endif
     }
   }
 }
@@ -931,25 +882,7 @@ TRACE("acoustic_enforce_free_surf_cuda");
       num_blocks_y = num_blocks_y*2;
     }
     dim3 grid(num_blocks_x,num_blocks_y,1);
-    dim3 threads(25,1,1);
-
-    //#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-    // debugging
-    //int* d_debug;
-    //printf("acoustic_enforce_free_surf_cuda ...\n");
-    //print_CUDA_error_if_any(cudaMalloc((void**)&d_debug,128*sizeof(int)),999);
-
-    //int* h_debug;
-    //h_debug = (int*) calloc(128,sizeof(int));
-    //for(int i=0;i<128;i++){h_debug[i] = 0;}
-    //cudaMemcpy(d_debug,h_debug,128*sizeof(int),cudaMemcpyHostToDevice);
-
-    //printf("acoustic_enforce_free_surf_cuda start...\n");
-    //doesnt' work...: printf("free_surface_ispec: %i %i %i \n",mp->d_free_surface_ispec[0],mp->d_free_surface_ispec[1],mp->d_free_surface_ispec[2]);
-    //printf("free_surface_ispec: %i \n",mp->num_free_surface_faces);
-
-    //cudaThreadSynchronize();
-    //#endif
+    dim3 threads(NGLL2,1,1);
 
     // sets potentials to zero at free surface
     enforce_free_surface_cuda_kernel<<<grid,threads>>>(mp->d_potential_acoustic,
@@ -972,15 +905,6 @@ TRACE("acoustic_enforce_free_surf_cuda");
                                                          mp->d_ispec_is_acoustic);
 
     }
-    //#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-    //cudaThreadSynchronize();
-    //cudaMemcpy(h_debug,d_debug,128*sizeof(int),cudaMemcpyDeviceToHost);
-    //for(int i=0;i<25;i++) {printf("ispec d_debug = %d \n",h_debug[i]);}
-    //cudaFree(d_debug);
-    //free(h_debug);
-    //exit(1);
-    //#endif
-
   }
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING

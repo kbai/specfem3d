@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
-#include <mpi.h>
+
 #include <sys/types.h>
 #include <unistd.h>
 #include <sys/time.h>
@@ -47,26 +47,25 @@
 
 __global__ void compute_kernels_cudakernel(int* ispec_is_elastic,
                                            int* ibool,
-                                           float* accel,
-                                           float* b_displ,
-                                           float* epsilondev_xx,
-                                           float* epsilondev_yy,
-                                           float* epsilondev_xy,
-                                           float* epsilondev_xz,
-                                           float* epsilondev_yz,
-                                           float* b_epsilondev_xx,
-                                           float* b_epsilondev_yy,
-                                           float* b_epsilondev_xy,
-                                           float* b_epsilondev_xz,
-                                           float* b_epsilondev_yz,
-                                           float* rho_kl,
-                                           float deltat,
-                                           float* mu_kl,
-                                           float* kappa_kl,
-                                           float* epsilon_trace_over_3,
-                                           float* b_epsilon_trace_over_3,
-                                           int NSPEC_AB //,float* d_debug
-                                           ) {
+                                           realw* accel,
+                                           realw* b_displ,
+                                           realw* epsilondev_xx,
+                                           realw* epsilondev_yy,
+                                           realw* epsilondev_xy,
+                                           realw* epsilondev_xz,
+                                           realw* epsilondev_yz,
+                                           realw* b_epsilondev_xx,
+                                           realw* b_epsilondev_yy,
+                                           realw* b_epsilondev_xy,
+                                           realw* b_epsilondev_xz,
+                                           realw* b_epsilondev_yz,
+                                           realw* rho_kl,
+                                           realw deltat,
+                                           realw* mu_kl,
+                                           realw* kappa_kl,
+                                           realw* epsilon_trace_over_3,
+                                           realw* b_epsilon_trace_over_3,
+                                           int NSPEC_AB) {
 
   int ispec = blockIdx.x + blockIdx.y*gridDim.x;
 
@@ -77,19 +76,8 @@ __global__ void compute_kernels_cudakernel(int* ispec_is_elastic,
     if( ispec_is_elastic[ispec] ) {
 
       int ijk = threadIdx.x;
-      int ijk_ispec = ijk + 125*ispec;
+      int ijk_ispec = ijk + NGLL3*ispec;
       int iglob = ibool[ijk_ispec] - 1 ;
-
-      // debug
-//      if(ijk_ispec == 9480531) {
-//        d_debug[0] = rho_kl[ijk_ispec];
-//        d_debug[1] = accel[3*iglob];
-//        d_debug[2] = b_displ[3*iglob];
-//        d_debug[3] = deltat * (accel[3*iglob]*b_displ[3*iglob]+
-//                               accel[3*iglob+1]*b_displ[3*iglob+1]+
-//                               accel[3*iglob+2]*b_displ[3*iglob+2]);
-//      }
-
 
       // isotropic kernels:
       // density kernel
@@ -98,18 +86,9 @@ __global__ void compute_kernels_cudakernel(int* ispec_is_elastic,
                                      accel[3*iglob+2]*b_displ[3*iglob+2]);
 
 
-      // debug
-      // if(rho_kl[ijk_ispec] < 1.9983e+18) {
-      // atomicAdd(&d_debug[3],1.0);
-      // d_debug[4] = ijk_ispec;
-      // d_debug[0] = rho_kl[ijk_ispec];
-      // d_debug[1] = accel[3*iglob];
-      // d_debug[2] = b_displ[3*iglob];
-      // }
-
       // shear modulus kernel
-      mu_kl[ijk_ispec] += deltat * (epsilondev_xx[ijk_ispec]*b_epsilondev_xx[ijk_ispec]+ // 1*b1
-                                    epsilondev_yy[ijk_ispec]*b_epsilondev_yy[ijk_ispec]+ // 2*b2
+      mu_kl[ijk_ispec] += deltat * (epsilondev_xx[ijk_ispec]*b_epsilondev_xx[ijk_ispec]+
+                                    epsilondev_yy[ijk_ispec]*b_epsilondev_yy[ijk_ispec]+
                                     (epsilondev_xx[ijk_ispec]+epsilondev_yy[ijk_ispec])*
                                     (b_epsilondev_xx[ijk_ispec]+b_epsilondev_yy[ijk_ispec])+
                                     2*(epsilondev_xy[ijk_ispec]*b_epsilondev_xy[ijk_ispec]+
@@ -129,13 +108,13 @@ __global__ void compute_kernels_cudakernel(int* ispec_is_elastic,
 extern "C"
 void FC_FUNC_(compute_kernels_elastic_cuda,
               COMPUTE_KERNELS_ELASTIC_CUDA)(long* Mesh_pointer,
-                                            float* deltat_f) {
+                                            realw* deltat_f) {
 TRACE("compute_kernels_elastic_cuda");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
 
-  int blocksize = 125; // NGLLX*NGLLY*NGLLZ
-  float deltat = *deltat_f;
+  int blocksize = NGLL3; // NGLLX*NGLLY*NGLLZ
+  realw deltat = *deltat_f;
 
   int num_blocks_x = mp->NSPEC_AB;
   int num_blocks_y = 1;
@@ -146,12 +125,6 @@ TRACE("compute_kernels_elastic_cuda");
 
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
-
-  //float* d_debug;
-  //float* h_debug;
-  //h_debug = (float*)calloc(128,sizeof(float));
-  //cudaMalloc((void**)&d_debug,128*sizeof(float));
-  //cudaMemcpy(d_debug,h_debug,128*sizeof(float),cudaMemcpyHostToDevice);
 
   compute_kernels_cudakernel<<<grid,threads>>>(mp->d_ispec_is_elastic,mp->d_ibool,
                                                mp->d_accel, mp->d_b_displ,
@@ -171,30 +144,7 @@ TRACE("compute_kernels_elastic_cuda");
                                                mp->d_kappa_kl,
                                                mp->d_epsilon_trace_over_3,
                                                mp->d_b_epsilon_trace_over_3,
-                                               mp->NSPEC_AB //,d_debug
-                                               );
-  /*
-  cudaMemcpy(h_debug,d_debug,128*sizeof(float),cudaMemcpyDeviceToHost);
-  cudaFree(d_debug);
-  */
-  // for(int i=0;i<5;i++) {
-  // printf("d_debug[%d]=%e\n",i,h_debug[i]);
-  // }
-  /*
-  free(h_debug);
-  */
-  // float* h_rho = (float*)malloc(sizeof(float)*mp->NSPEC_AB*125);
-  // float maxval = 0;
-  // cudaMemcpy(h_rho,mp->d_rho_kl,sizeof(float)*mp->NSPEC_AB*125,cudaMemcpyDeviceToHost);
-  // int number_big_values = 0;
-  // for(int i=0;i<mp->NSPEC_AB*125;i++) {
-  // maxval = MAX(maxval,fabsf(h_rho[i]));
-  // if(fabsf(h_rho[i]) > 1e10) {
-  // number_big_values++;
-  // }
-  // }
-
-  // printf("maval rho = %e, number>1e10 = %d vs. %d\n",maxval,number_big_values,mp->NSPEC_AB*125);
+                                               mp->NSPEC_AB);
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("compute_kernels_elastic_cuda");
@@ -209,45 +159,33 @@ TRACE("compute_kernels_elastic_cuda");
 /* ----------------------------------------------------------------------------------------------- */
 
 
-__global__ void compute_kernels_strength_noise_cuda_kernel(float* displ,
+__global__ void compute_kernels_strength_noise_cuda_kernel(realw* displ,
                                                            int* free_surface_ispec,
                                                            int* free_surface_ijk,
                                                            int* ibool,
-                                                           float* noise_surface_movie,
-                                                           float* normal_x_noise,
-                                                           float* normal_y_noise,
-                                                           float* normal_z_noise,
-                                                           float* Sigma_kl,
-                                                           float deltat,
-                                                           int num_free_surface_faces //,float* d_debug
-                                                           ) {
+                                                           realw* noise_surface_movie,
+                                                           realw* normal_x_noise,
+                                                           realw* normal_y_noise,
+                                                           realw* normal_z_noise,
+                                                           realw* Sigma_kl,
+                                                           realw deltat,
+                                                           int num_free_surface_faces) {
   int iface = blockIdx.x + blockIdx.y*gridDim.x;
 
   if(iface < num_free_surface_faces) {
 
     int ispec = free_surface_ispec[iface]-1;
     int igll = threadIdx.x;
-    int ipoin = igll + 25*iface;
+    int ipoin = igll + NGLL2*iface;
     int i = free_surface_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)] - 1 ;
     int j = free_surface_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)] - 1;
     int k = free_surface_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)] - 1;
 
     int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)] - 1 ;
 
-    float eta = ( noise_surface_movie[INDEX3(NDIM,NGLL2,0,igll,iface)]*normal_x_noise[ipoin]+
+    realw eta = ( noise_surface_movie[INDEX3(NDIM,NGLL2,0,igll,iface)]*normal_x_noise[ipoin]+
                  noise_surface_movie[INDEX3(NDIM,NGLL2,1,igll,iface)]*normal_y_noise[ipoin]+
                  noise_surface_movie[INDEX3(NDIM,NGLL2,2,igll,iface)]*normal_z_noise[ipoin]);
-
-    // if(ijk_ispec == 78496) {
-    //   d_debug[0] = Sigma_kl[ijk_ispec];
-    //   d_debug[1] = eta;
-    //   d_debug[2] = normal_x_noise[ipoin];
-    //   d_debug[3] = normal_y_noise[ipoin];
-    //   d_debug[4] = normal_z_noise[ipoin];
-    //   d_debug[5] = displ[3*iglob+2];
-    //   d_debug[6] = deltat*eta*normal_z_noise[ipoin]*displ[2+3*iglob];
-    //   d_debug[7] = 0.008*1.000000e-24*normal_z_noise[ipoin]*3.740546e-13;
-    // }
 
     Sigma_kl[INDEX4(5,5,5,i,j,k,ispec)] += deltat*eta*(normal_x_noise[ipoin]*displ[3*iglob]+
                                                        normal_y_noise[ipoin]*displ[1+3*iglob]+
@@ -261,15 +199,15 @@ __global__ void compute_kernels_strength_noise_cuda_kernel(float* displ,
 extern "C"
 void FC_FUNC_(compute_kernels_strgth_noise_cu,
               COMPUTE_KERNELS_STRGTH_NOISE_CU)(long* Mesh_pointer,
-                                                    float* h_noise_surface_movie,
-                                                    float* deltat) {
+                                                    realw* h_noise_surface_movie,
+                                                    realw* deltat) {
 
 TRACE("compute_kernels_strgth_noise_cu");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
 
   cudaMemcpy(mp->d_noise_surface_movie,h_noise_surface_movie,
-             3*25*(mp->num_free_surface_faces)*sizeof(float),cudaMemcpyHostToDevice);
+             3*NGLL2*(mp->num_free_surface_faces)*sizeof(realw),cudaMemcpyHostToDevice);
 
 
   int num_blocks_x = mp->num_free_surface_faces;
@@ -280,12 +218,7 @@ TRACE("compute_kernels_strgth_noise_cu");
   }
 
   dim3 grid(num_blocks_x,num_blocks_y);
-  dim3 threads(25,1,1);
-
-  // float* h_debug = (float*)calloc(128,sizeof(float));
-  //float* d_debug;
-  // cudaMalloc((void**)&d_debug,128*sizeof(float));
-  // cudaMemcpy(d_debug,h_debug,128*sizeof(float),cudaMemcpyHostToDevice);
+  dim3 threads(NGLL2,1,1);
 
   compute_kernels_strength_noise_cuda_kernel<<<grid,threads>>>(mp->d_displ,
                                                                mp->d_free_surface_ispec,
@@ -296,13 +229,7 @@ TRACE("compute_kernels_strgth_noise_cu");
                                                                mp->d_normal_y_noise,
                                                                mp->d_normal_z_noise,
                                                                mp->d_Sigma_kl,*deltat,
-                                                               mp->num_free_surface_faces //,d_debug
-                                                               );
-
-  // cudaMemcpy(h_debug,d_debug,128*sizeof(float),cudaMemcpyDeviceToHost);
-  // for(int i=0;i<8;i++) {
-  //   printf("debug[%d]= %e\n",i,h_debug[i]);
-  // }
+                                                               mp->num_free_surface_faces);
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("compute_kernels_strength_noise_cuda_kernel");
@@ -320,30 +247,30 @@ TRACE("compute_kernels_strgth_noise_cu");
 
 __device__ void compute_gradient_kernel(int ijk,
                                         int ispec,
-                                        float* scalar_field,
-                                        float* vector_field_element,
-                                        float* hprime_xx,
-                                        float* hprime_yy,
-                                        float* hprime_zz,
-                                        float* d_xix,
-                                        float* d_xiy,
-                                        float* d_xiz,
-                                        float* d_etax,
-                                        float* d_etay,
-                                        float* d_etaz,
-                                        float* d_gammax,
-                                        float* d_gammay,
-                                        float* d_gammaz,
-                                        float rhol) {
+                                        realw* scalar_field,
+                                        realw* vector_field_element,
+                                        realw* hprime_xx,
+                                        realw* hprime_yy,
+                                        realw* hprime_zz,
+                                        realw* d_xix,
+                                        realw* d_xiy,
+                                        realw* d_xiz,
+                                        realw* d_etax,
+                                        realw* d_etay,
+                                        realw* d_etaz,
+                                        realw* d_gammax,
+                                        realw* d_gammay,
+                                        realw* d_gammaz,
+                                        realw rhol) {
 
-  float temp1l,temp2l,temp3l;
-  float hp1,hp2,hp3;
-  float xixl,xiyl,xizl,etaxl,etayl,etazl,gammaxl,gammayl,gammazl;
-  float rho_invl;
+  realw temp1l,temp2l,temp3l;
+  realw hp1,hp2,hp3;
+  realw xixl,xiyl,xizl,etaxl,etayl,etazl,gammaxl,gammayl,gammazl;
+  realw rho_invl;
   int l,offset,offset1,offset2,offset3;
 
   //const int NGLLX = 5;
-  const int NGLL3_ALIGN = 128;
+  const int NGLL3_ALIGN = NGLL3_PADDED;
 
   int K = (ijk/NGLL2);
   int J = ((ijk-K*NGLL2)/NGLLX);
@@ -400,26 +327,26 @@ __device__ void compute_gradient_kernel(int ijk,
 
 __global__ void compute_kernels_acoustic_kernel(int* ispec_is_acoustic,
                                                 int* ibool,
-                                                float* rhostore,
-                                                float* kappastore,
-                                                float* hprime_xx,
-                                                float* hprime_yy,
-                                                float* hprime_zz,
-                                                float* d_xix,
-                                                float* d_xiy,
-                                                float* d_xiz,
-                                                float* d_etax,
-                                                float* d_etay,
-                                                float* d_etaz,
-                                                float* d_gammax,
-                                                float* d_gammay,
-                                                float* d_gammaz,
-                                                float* potential_dot_dot_acoustic,
-                                                float* b_potential_acoustic,
-                                                float* b_potential_dot_dot_acoustic,
-                                                float* rho_ac_kl,
-                                                float* kappa_ac_kl,
-                                                float deltat,
+                                                realw* rhostore,
+                                                realw* kappastore,
+                                                realw* hprime_xx,
+                                                realw* hprime_yy,
+                                                realw* hprime_zz,
+                                                realw* d_xix,
+                                                realw* d_xiy,
+                                                realw* d_xiz,
+                                                realw* d_etax,
+                                                realw* d_etay,
+                                                realw* d_etaz,
+                                                realw* d_gammax,
+                                                realw* d_gammay,
+                                                realw* d_gammaz,
+                                                realw* potential_dot_dot_acoustic,
+                                                realw* b_potential_acoustic,
+                                                realw* b_potential_dot_dot_acoustic,
+                                                realw* rho_ac_kl,
+                                                realw* kappa_ac_kl,
+                                                realw deltat,
                                                 int NSPEC_AB) {
 
   int ispec = blockIdx.x + blockIdx.y*gridDim.x;
@@ -433,17 +360,17 @@ __global__ void compute_kernels_acoustic_kernel(int* ispec_is_acoustic,
       int ijk = threadIdx.x;
 
       // local and global indices
-      int ijk_ispec = ijk + 125*ispec;
-      int ijk_ispec_padded = ijk + 128*ispec;
+      int ijk_ispec = ijk + NGLL3*ispec;
+      int ijk_ispec_padded = ijk + NGLL3_PADDED*ispec;
       int iglob = ibool[ijk_ispec] - 1;
 
-      float accel_elm[3];
-      float b_displ_elm[3];
-      float rhol,kappal;
+      realw accel_elm[3];
+      realw b_displ_elm[3];
+      realw rhol,kappal;
 
       // shared memory between all threads within this block
-      __shared__ float scalar_field_displ[125];
-      __shared__ float scalar_field_accel[125];
+      __shared__ realw scalar_field_displ[NGLL3];
+      __shared__ realw scalar_field_accel[NGLL3];
 
       // copy field values
       scalar_field_displ[ijk] = b_potential_acoustic[iglob];
@@ -485,14 +412,14 @@ extern "C"
 void FC_FUNC_(compute_kernels_acoustic_cuda,
               COMPUTE_KERNELS_ACOUSTIC_CUDA)(
                                              long* Mesh_pointer,
-                                             float* deltat_f) {
+                                             realw* deltat_f) {
 
 TRACE("compute_kernels_acoustic_cuda");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
 
-  int blocksize = 125; // NGLLX*NGLLY*NGLLZ
-  float deltat = *deltat_f;
+  int blocksize = NGLL3; // NGLLX*NGLLY*NGLLZ
+  realw deltat = *deltat_f;
 
   int num_blocks_x = mp->NSPEC_AB;
   int num_blocks_y = 1;
@@ -541,10 +468,10 @@ TRACE("compute_kernels_acoustic_cuda");
 
 __global__ void compute_kernels_hess_el_cudakernel(int* ispec_is_elastic,
                                                    int* ibool,
-                                                   float* accel,
-                                                   float* b_accel,
-                                                   float* hess_kl,
-                                                   float deltat,
+                                                   realw* accel,
+                                                   realw* b_accel,
+                                                   realw* hess_kl,
+                                                   realw deltat,
                                                    int NSPEC_AB) {
 
   int ispec = blockIdx.x + blockIdx.y*gridDim.x;
@@ -556,7 +483,7 @@ __global__ void compute_kernels_hess_el_cudakernel(int* ispec_is_elastic,
     if( ispec_is_elastic[ispec] ) {
 
       int ijk = threadIdx.x;
-      int ijk_ispec = ijk + 125*ispec;
+      int ijk_ispec = ijk + NGLL3*ispec;
       int iglob = ibool[ijk_ispec] - 1 ;
 
       // approximate hessian
@@ -571,23 +498,23 @@ __global__ void compute_kernels_hess_el_cudakernel(int* ispec_is_elastic,
 
 __global__ void compute_kernels_hess_ac_cudakernel(int* ispec_is_acoustic,
                                                    int* ibool,
-                                                   float* potential_dot_dot_acoustic,
-                                                   float* b_potential_dot_dot_acoustic,
-                                                   float* rhostore,
-                                                   float* hprime_xx,
-                                                   float* hprime_yy,
-                                                   float* hprime_zz,
-                                                   float* d_xix,
-                                                   float* d_xiy,
-                                                   float* d_xiz,
-                                                   float* d_etax,
-                                                   float* d_etay,
-                                                   float* d_etaz,
-                                                   float* d_gammax,
-                                                   float* d_gammay,
-                                                   float* d_gammaz,
-                                                   float* hess_kl,
-                                                   float deltat,
+                                                   realw* potential_dot_dot_acoustic,
+                                                   realw* b_potential_dot_dot_acoustic,
+                                                   realw* rhostore,
+                                                   realw* hprime_xx,
+                                                   realw* hprime_yy,
+                                                   realw* hprime_zz,
+                                                   realw* d_xix,
+                                                   realw* d_xiy,
+                                                   realw* d_xiz,
+                                                   realw* d_etax,
+                                                   realw* d_etay,
+                                                   realw* d_etaz,
+                                                   realw* d_gammax,
+                                                   realw* d_gammay,
+                                                   realw* d_gammaz,
+                                                   realw* hess_kl,
+                                                   realw deltat,
                                                    int NSPEC_AB) {
 
   int ispec = blockIdx.x + blockIdx.y*gridDim.x;
@@ -600,18 +527,18 @@ __global__ void compute_kernels_hess_ac_cudakernel(int* ispec_is_acoustic,
 
       // local and global indices
       int ijk = threadIdx.x;
-      int ijk_ispec = ijk + 125*ispec;
+      int ijk_ispec = ijk + NGLL3*ispec;
       int iglob = ibool[ijk_ispec] - 1 ;
 
-      int ijk_ispec_padded = ijk + 128*ispec;
+      int ijk_ispec_padded = ijk + NGLL3_PADDED*ispec;
 
-      float accel_elm[3];
-      float b_accel_elm[3];
-      float rhol;
+      realw accel_elm[3];
+      realw b_accel_elm[3];
+      realw rhol;
 
       // shared memory between all threads within this block
-      __shared__ float scalar_field_accel[125];
-      __shared__ float scalar_field_b_accel[125];
+      __shared__ realw scalar_field_accel[NGLL3];
+      __shared__ realw scalar_field_b_accel[NGLL3];
 
       // copy field values
       scalar_field_accel[ijk] = potential_dot_dot_acoustic[iglob];
@@ -649,15 +576,15 @@ __global__ void compute_kernels_hess_ac_cudakernel(int* ispec_is_acoustic,
 extern "C"
 void FC_FUNC_(compute_kernels_hess_cuda,
               COMPUTE_KERNELS_HESS_CUDA)(long* Mesh_pointer,
-                                         float* deltat_f,
+                                         realw* deltat_f,
                                          int* ELASTIC_SIMULATION,
                                          int* ACOUSTIC_SIMULATION) {
   TRACE("compute_kernels_hess_cuda");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
 
-  int blocksize = 125; // NGLLX*NGLLY*NGLLZ
-  float deltat = *deltat_f;
+  int blocksize = NGLL3; // NGLLX*NGLLY*NGLLZ
+  realw deltat = *deltat_f;
 
   int num_blocks_x = mp->NSPEC_AB;
   int num_blocks_y = 1;

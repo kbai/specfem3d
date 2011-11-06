@@ -29,22 +29,24 @@
 #ifndef CUDA_HEADER_H
 #define CUDA_HEADER_H
 
+typedef float realw;  // type of "working" variables
+
 /* ----------------------------------------------------------------------------------------------- */
 
 // setters for these const arrays (very ugly hack, but will have to do)
 
 // elastic
-void setConst_hprime_xx(float* array,Mesh* mp);
-void setConst_hprime_yy(float* array,Mesh* mp);
-void setConst_hprime_zz(float* array,Mesh* mp);
+void setConst_hprime_xx(realw* array,Mesh* mp);
+void setConst_hprime_yy(realw* array,Mesh* mp);
+void setConst_hprime_zz(realw* array,Mesh* mp);
 
-void setConst_hprimewgll_xx(float* array,Mesh* mp);
-void setConst_hprimewgll_yy(float* array,Mesh* mp);
-void setConst_hprimewgll_zz(float* array,Mesh* mp);
+void setConst_hprimewgll_xx(realw* array,Mesh* mp);
+void setConst_hprimewgll_yy(realw* array,Mesh* mp);
+void setConst_hprimewgll_zz(realw* array,Mesh* mp);
 
-void setConst_wgllwgll_xy(float* array,Mesh* mp);
-void setConst_wgllwgll_xz(float* array, Mesh* mp);
-void setConst_wgllwgll_yz(float* array, Mesh* mp);
+void setConst_wgllwgll_xy(realw* array,Mesh* mp);
+void setConst_wgllwgll_xz(realw* array, Mesh* mp);
+void setConst_wgllwgll_yz(realw* array, Mesh* mp);
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -52,21 +54,21 @@ void setConst_wgllwgll_yz(float* array, Mesh* mp);
 
 #ifdef USE_TEXTURES
   // declaration of textures
-  texture<float, 1, cudaReadModeElementType> tex_displ;
-  texture<float, 1, cudaReadModeElementType> tex_accel;
+  texture<realw, 1, cudaReadModeElementType> tex_displ;
+  texture<realw, 1, cudaReadModeElementType> tex_accel;
 
-  texture<float, 1, cudaReadModeElementType> tex_potential_acoustic;
-  texture<float, 1, cudaReadModeElementType> tex_potential_dot_dot_acoustic;
+  texture<realw, 1, cudaReadModeElementType> tex_potential_acoustic;
+  texture<realw, 1, cudaReadModeElementType> tex_potential_dot_dot_acoustic;
 
   // for binding the textures
 
-  void bindTexturesDispl(float* d_displ)
+  void bindTexturesDispl(realw* d_displ)
   {
     cudaError_t err;
 
-    cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<float>();
+    cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<realw>();
 
-    err = cudaBindTexture(NULL,tex_displ, d_displ, channelDescFloat, NDIM*NGLOB*sizeof(float));
+    err = cudaBindTexture(NULL,tex_displ, d_displ, channelDescFloat, NDIM*NGLOB*sizeof(realw));
     if (err != cudaSuccess)
     {
       fprintf(stderr, "Error in bindTexturesDispl for displ: %s\n", cudaGetErrorString(err));
@@ -74,13 +76,13 @@ void setConst_wgllwgll_yz(float* array, Mesh* mp);
     }
   }
 
-  void bindTexturesAccel(float* d_accel)
+  void bindTexturesAccel(realw* d_accel)
   {
     cudaError_t err;
 
-    cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<float>();
+    cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<realw>();
 
-    err = cudaBindTexture(NULL,tex_accel, d_accel, channelDescFloat, NDIM*NGLOB*sizeof(float));
+    err = cudaBindTexture(NULL,tex_accel, d_accel, channelDescFloat, NDIM*NGLOB*sizeof(realw));
     if (err != cudaSuccess)
     {
       fprintf(stderr, "Error in bindTexturesAccel for accel: %s\n", cudaGetErrorString(err));
@@ -88,14 +90,14 @@ void setConst_wgllwgll_yz(float* array, Mesh* mp);
     }
   }
 
-  void bindTexturesPotential(float* d_potential_acoustic)
+  void bindTexturesPotential(realw* d_potential_acoustic)
   {
     cudaError_t err;
 
-    cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<float>();
+    cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<realw>();
 
     err = cudaBindTexture(NULL,tex_potential_acoustic, d_potential_acoustic,
-                          channelDescFloat, NGLOB*sizeof(float));
+                          channelDescFloat, NGLOB*sizeof(realw));
     if (err != cudaSuccess)
     {
       fprintf(stderr, "Error in bindTexturesPotential for potential_acoustic: %s\n", cudaGetErrorString(err));
@@ -103,14 +105,14 @@ void setConst_wgllwgll_yz(float* array, Mesh* mp);
     }
   }
 
-  void bindTexturesPotential_dot_dot(float* d_potential_dot_dot_acoustic)
+  void bindTexturesPotential_dot_dot(realw* d_potential_dot_dot_acoustic)
   {
     cudaError_t err;
 
-    cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<float>();
+    cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<realw>();
 
     err = cudaBindTexture(NULL,tex_potential_dot_dot_acoustic, d_potential_dot_dot_acoustic,
-                          channelDescFloat, NGLOB*sizeof(float));
+                          channelDescFloat, NGLOB*sizeof(realw));
     if (err != cudaSuccess)
     {
       fprintf(stderr, "Error in bindTexturesPotential_dot_dot for potential_dot_dot_acoustic: %s\n", cudaGetErrorString(err));

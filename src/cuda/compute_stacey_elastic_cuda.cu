@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
-#include <mpi.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -56,8 +55,7 @@ __global__ void compute_stacey_elastic_kernel(realw* veloc,
                                               int SAVE_FORWARD,
                                               int num_abs_boundary_faces,
                                               realw* b_accel,
-                                              realw* b_absorb_field //,float* debug_val,int* debug_val_int
-                                              ) {
+                                              realw* b_absorb_field) {
 
   int igll = threadIdx.x; // tx
   int iface = blockIdx.x + gridDim.x*blockIdx.y; // bx
@@ -136,7 +134,7 @@ void FC_FUNC_(compute_stacey_elastic_cuda,
                                            int* phase_is_innerf,
                                            int* SIMULATION_TYPEf,
                                            int* SAVE_FORWARDf,
-                                           float* h_b_absorb_field) {
+                                           realw* h_b_absorb_field) {
 
 TRACE("compute_stacey_elastic_cuda");
 
@@ -155,7 +153,7 @@ TRACE("compute_stacey_elastic_cuda");
 
   // way 2: seems sligthly faster
   // > NGLLSQUARE==NGLL2==25, no further check inside kernel
-  int blocksize = 25;
+  int blocksize = NGLL2;
 
   int num_blocks_x = mp->d_num_abs_boundary_faces;
   int num_blocks_y = 1;
@@ -167,12 +165,7 @@ TRACE("compute_stacey_elastic_cuda");
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
 
-  //float* d_debug_val;
-  //int* d_debug_val_int;
-
   if(SIMULATION_TYPE == 3 && mp->d_num_abs_boundary_faces > 0) {
-    // int val = NSTEP-it+1;
-    // read_abs_(&fid,(char*)b_absorb_field,&b_reclen_field,&val);
     // The read is done in fortran
     print_CUDA_error_if_any(cudaMemcpy(mp->d_b_absorb_field,h_b_absorb_field,
                                        mp->d_b_reclen_field,cudaMemcpyHostToDevice),7700);
@@ -197,8 +190,7 @@ TRACE("compute_stacey_elastic_cuda");
                                                   SIMULATION_TYPE,SAVE_FORWARD,
                                                   mp->d_num_abs_boundary_faces,
                                                   mp->d_b_accel,
-                                                  mp->d_b_absorb_field //,d_debug_val,d_debug_val_int
-                                                  );
+                                                  mp->d_b_absorb_field);
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("compute_stacey_elastic_kernel");

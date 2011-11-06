@@ -407,17 +407,17 @@
                               kappastore,mustore,rho_vp,rho_vs, &
                               DT,model_speed_max,min_resolved_period )
   else if( ACOUSTIC_SIMULATION ) then
-      allocate(rho_vp(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
-      if( ier /= 0 ) stop 'error allocating array rho_vp'
-      allocate(rho_vs(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
-      if( ier /= 0 ) stop 'error allocating array rho_vs'
-      rho_vp = sqrt( kappastore / rhostore ) * rhostore
-      rho_vs = 0.0_CUSTOM_REAL
-      call check_mesh_resolution(myrank,NSPEC_AB,NGLOB_AB, &
+    allocate(rho_vp(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
+    if( ier /= 0 ) stop 'error allocating array rho_vp'
+    allocate(rho_vs(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
+    if( ier /= 0 ) stop 'error allocating array rho_vs'
+    rho_vp = sqrt( kappastore / rhostore ) * rhostore
+    rho_vs = 0.0_CUSTOM_REAL
+    call check_mesh_resolution(myrank,NSPEC_AB,NGLOB_AB, &
                                 ibool,xstore,ystore,zstore, &
                                 kappastore,mustore,rho_vp,rho_vs, &
                                 DT,model_speed_max,min_resolved_period )
-      deallocate(rho_vp,rho_vs)
+    deallocate(rho_vp,rho_vs)
   endif
 
 ! reads adjoint parameters

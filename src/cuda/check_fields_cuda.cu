@@ -47,14 +47,14 @@
 
 extern "C"
 void FC_FUNC_(check_max_norm_displ_gpu,
-              CHECK_MAX_NORM_DISPL_GPU)(int* size, float* displ,long* Mesh_pointer_f,int* announceID) {
+              CHECK_MAX_NORM_DISPL_GPU)(int* size, realw* displ,long* Mesh_pointer_f,int* announceID) {
 
 TRACE("check_max_norm_displ_gpu");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
 
-  cudaMemcpy(displ, mp->d_displ,*size*sizeof(float),cudaMemcpyDeviceToHost);
-  float maxnorm=0;
+  cudaMemcpy(displ, mp->d_displ,*size*sizeof(realw),cudaMemcpyDeviceToHost);
+  realw maxnorm=0;
 
   for(int i=0;i<*size;i++) {
     maxnorm = MAX(maxnorm,fabsf(displ[i]));
@@ -66,13 +66,13 @@ TRACE("check_max_norm_displ_gpu");
 
 extern "C"
 void FC_FUNC_(check_max_norm_vector,
-              CHECK_MAX_NORM_VECTOR)(int* size, float* vector1, int* announceID) {
+              CHECK_MAX_NORM_VECTOR)(int* size, realw* vector1, int* announceID) {
 
 TRACE("check_max_norm_vector");
 
   int procid;
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
-  float maxnorm=0;
+  realw maxnorm=0;
   int maxloc;
   for(int i=0;i<*size;i++) {
     if(maxnorm<fabsf(vector1[i])) {
@@ -87,11 +87,11 @@ TRACE("check_max_norm_vector");
 
 extern "C"
 void FC_FUNC_(check_max_norm_displ,
-              CHECK_MAX_NORM_DISPL)(int* size, float* displ, int* announceID) {
+              CHECK_MAX_NORM_DISPL)(int* size, realw* displ, int* announceID) {
 
 TRACE("check_max_norm_displ");
 
-  float maxnorm=0;
+  realw maxnorm=0;
 
   for(int i=0;i<*size;i++) {
     maxnorm = MAX(maxnorm,fabsf(displ[i]));
@@ -103,19 +103,19 @@ TRACE("check_max_norm_displ");
 
 extern "C"
 void FC_FUNC_(check_max_norm_b_displ_gpu,
-              CHECK_MAX_NORM_B_DISPL_GPU)(int* size, float* b_displ,long* Mesh_pointer_f,int* announceID) {
+              CHECK_MAX_NORM_B_DISPL_GPU)(int* size, realw* b_displ,long* Mesh_pointer_f,int* announceID) {
 
 TRACE("check_max_norm_b_displ_gpu");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
 
-  float* b_accel = (float*)malloc(*size*sizeof(float));
+  realw* b_accel = (realw*)malloc(*size*sizeof(realw));
 
-  cudaMemcpy(b_displ, mp->d_b_displ,*size*sizeof(float),cudaMemcpyDeviceToHost);
-  cudaMemcpy(b_accel, mp->d_b_accel,*size*sizeof(float),cudaMemcpyDeviceToHost);
+  cudaMemcpy(b_displ, mp->d_b_displ,*size*sizeof(realw),cudaMemcpyDeviceToHost);
+  cudaMemcpy(b_accel, mp->d_b_accel,*size*sizeof(realw),cudaMemcpyDeviceToHost);
 
-  float maxnorm=0;
-  float maxnorm_accel=0;
+  realw maxnorm=0;
+  realw maxnorm_accel=0;
 
   for(int i=0;i<*size;i++) {
     maxnorm = MAX(maxnorm,fabsf(b_displ[i]));
@@ -130,15 +130,15 @@ TRACE("check_max_norm_b_displ_gpu");
 
 extern "C"
 void FC_FUNC_(check_max_norm_b_accel_gpu,
-              CHECK_MAX_NORM_B_ACCEL_GPU)(int* size, float* b_accel,long* Mesh_pointer_f,int* announceID) {
+              CHECK_MAX_NORM_B_ACCEL_GPU)(int* size, realw* b_accel,long* Mesh_pointer_f,int* announceID) {
 
 TRACE("check_max_norm_b_accel_gpu");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
 
-  cudaMemcpy(b_accel, mp->d_b_accel,*size*sizeof(float),cudaMemcpyDeviceToHost);
+  cudaMemcpy(b_accel, mp->d_b_accel,*size*sizeof(realw),cudaMemcpyDeviceToHost);
 
-  float maxnorm=0;
+  realw maxnorm=0;
 
   for(int i=0;i<*size;i++) {
     maxnorm = MAX(maxnorm,fabsf(b_accel[i]));
@@ -150,15 +150,15 @@ TRACE("check_max_norm_b_accel_gpu");
 
 extern "C"
 void FC_FUNC_(check_max_norm_b_veloc_gpu,
-              CHECK_MAX_NORM_B_VELOC_GPU)(int* size, float* b_veloc,long* Mesh_pointer_f,int* announceID) {
+              CHECK_MAX_NORM_B_VELOC_GPU)(int* size, realw* b_veloc,long* Mesh_pointer_f,int* announceID) {
 
 TRACE("check_max_norm_b_veloc_gpu");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
 
-  cudaMemcpy(b_veloc, mp->d_b_veloc,*size*sizeof(float),cudaMemcpyDeviceToHost);
+  cudaMemcpy(b_veloc, mp->d_b_veloc,*size*sizeof(realw),cudaMemcpyDeviceToHost);
 
-  float maxnorm=0;
+  realw maxnorm=0;
 
   for(int i=0;i<*size;i++) {
     maxnorm = MAX(maxnorm,fabsf(b_veloc[i]));
@@ -170,11 +170,11 @@ TRACE("check_max_norm_b_veloc_gpu");
 
 extern "C"
 void FC_FUNC_(check_max_norm_b_displ,
-              CHECK_MAX_NORM_B_DISPL)(int* size, float* b_displ,int* announceID) {
+              CHECK_MAX_NORM_B_DISPL)(int* size, realw* b_displ,int* announceID) {
 
 TRACE("check_max_norm_b_displ");
 
-  float maxnorm=0;
+  realw maxnorm=0;
 
   for(int i=0;i<*size;i++) {
     maxnorm = MAX(maxnorm,fabsf(b_displ[i]));
@@ -186,11 +186,11 @@ TRACE("check_max_norm_b_displ");
 
 extern "C"
 void FC_FUNC_(check_max_norm_b_accel,
-              CHECK_MAX_NORM_B_ACCEL)(int* size, float* b_accel,int* announceID) {
+              CHECK_MAX_NORM_B_ACCEL)(int* size, realw* b_accel,int* announceID) {
 
 TRACE("check_max_norm_b_accel");
 
-  float maxnorm=0;
+  realw maxnorm=0;
 
   for(int i=0;i<*size;i++) {
     maxnorm = MAX(maxnorm,fabsf(b_accel[i]));
@@ -202,7 +202,7 @@ TRACE("check_max_norm_b_accel");
 
 extern "C"
 void FC_FUNC_(check_error_vectors,
-              CHECK_ERROR_VECTORS)(int* sizef, float* vector1,float* vector2) {
+              CHECK_ERROR_VECTORS)(int* sizef, realw* vector1,realw* vector2) {
 
 TRACE("check_error_vectors");
 
@@ -256,9 +256,9 @@ TRACE("get_max_accel");
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
   int size = *sizef;
   int it = *itf;
-  float* accel_cpy = (float*)malloc(size*sizeof(float));
-  cudaMemcpy(accel_cpy,mp->d_accel,size*sizeof(float),cudaMemcpyDeviceToHost);
-  float maxval=0;
+  realw* accel_cpy = (realw*)malloc(size*sizeof(realw));
+  cudaMemcpy(accel_cpy,mp->d_accel,size*sizeof(realw),cudaMemcpyDeviceToHost);
+  realw maxval=0;
   for(int i=0;i<size;++i) {
     maxval = MAX(maxval,accel_cpy[i]);
   }
@@ -272,10 +272,10 @@ TRACE("get_max_accel");
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void get_maximum_kernel(float* array, int size, float* d_max){
+__global__ void get_maximum_kernel(realw* array, int size, realw* d_max){
 
   /* simplest version: uses only 1 thread
-   float max;
+   realw max;
    max = 0;
    // finds maximum value in array
    if( size > 0 ){
@@ -288,7 +288,7 @@ __global__ void get_maximum_kernel(float* array, int size, float* d_max){
    */
 
   // reduction example:
-  __shared__ float sdata[256] ;
+  __shared__ realw sdata[256] ;
 
   // load shared mem
   unsigned int tid = threadIdx.x;
@@ -320,7 +320,7 @@ __global__ void get_maximum_kernel(float* array, int size, float* d_max){
 
 extern "C"
 void FC_FUNC_(get_norm_acoustic_from_device,
-              GET_NORM_ACOUSTIC_FROM_DEVICE)(float* norm,
+              GET_NORM_ACOUSTIC_FROM_DEVICE)(realw* norm,
                                                   long* Mesh_pointer_f,
                                                   int* SIMULATION_TYPE) {
 
@@ -328,19 +328,17 @@ TRACE("get_norm_acoustic_from_device");
   //double start_time = get_time();
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
-  float max;
-  float *d_max;
-
-
+  realw max;
+  realw *d_max;
 
   max = 0;
 
   /* way 1 : timing Elapsed time: 8.464813e-03
-   float* h_array;
-   h_array = (float*)calloc(mp->NGLOB_AB,sizeof(float));
+   realw* h_array;
+   h_array = (realw*)calloc(mp->NGLOB_AB,sizeof(realw));
 
    print_CUDA_error_if_any(cudaMemcpy(h_array,mp->d_potential_dot_dot_acoustic,
-   sizeof(float)*(mp->NGLOB_AB),cudaMemcpyDeviceToHost),131);
+   sizeof(realw)*(mp->NGLOB_AB),cudaMemcpyDeviceToHost),131);
 
    // finds maximum value in array
    max = h_array[0];
@@ -352,7 +350,7 @@ TRACE("get_norm_acoustic_from_device");
 
   /* way 2: timing Elapsed time: 8.818102e-02
    // launch simple kernel
-   cudaMalloc((void**)&d_max,sizeof(float));
+   cudaMalloc((void**)&d_max,sizeof(realw));
 
    dim3 grid(1,1);
    dim3 threads(1,1,1);
@@ -360,21 +358,21 @@ TRACE("get_norm_acoustic_from_device");
    get_maximum_kernel<<<grid,threads>>>(mp->d_potential_dot_dot_acoustic,
    mp->NGLOB_AB,
    d_max);
-   print_CUDA_error_if_any(cudaMemcpy(&max,d_max, sizeof(float), cudaMemcpyDeviceToHost),222);
+   print_CUDA_error_if_any(cudaMemcpy(&max,d_max, sizeof(realw), cudaMemcpyDeviceToHost),222);
 
    cudaFree(d_max);
    */
 
   // way 2 b: timing Elapsed time: 1.236916e-03
   // launch simple reduction kernel
-  float* h_max;
+  realw* h_max;
   int blocksize = 256;
 
   int num_blocks_x = ceil(mp->NGLOB_AB/blocksize);
   //printf("num_blocks_x %i \n",num_blocks_x);
 
-  h_max = (float*) calloc(num_blocks_x,sizeof(float));
-  cudaMalloc((void**)&d_max,num_blocks_x*sizeof(float));
+  h_max = (realw*) calloc(num_blocks_x,sizeof(realw));
+  cudaMalloc((void**)&d_max,num_blocks_x*sizeof(realw));
 
   dim3 grid(num_blocks_x,1);
   dim3 threads(blocksize,1,1);
@@ -391,7 +389,7 @@ TRACE("get_norm_acoustic_from_device");
                                          d_max);
   }
 
-  print_CUDA_error_if_any(cudaMemcpy(h_max,d_max,num_blocks_x*sizeof(float),cudaMemcpyDeviceToHost),222);
+  print_CUDA_error_if_any(cudaMemcpy(h_max,d_max,num_blocks_x*sizeof(realw),cudaMemcpyDeviceToHost),222);
 
   // determines max for all blocks
   max = h_max[0];
@@ -417,14 +415,15 @@ TRACE("get_norm_acoustic_from_device");
    //      precision vector x
    int incr = 1;
    int imax = 0;
-   imax = cublasIsamax(mp->NGLOB_AB,(float*)mp->d_potential_dot_dot_acoustic, incr);
+   imax = cublasIsamax(mp->NGLOB_AB,(realw*)mp->d_potential_dot_dot_acoustic, incr);
    status= cublasGetError();
    if (status != CUBLAS_STATUS_SUCCESS) {
    fprintf (stderr, "!!!! CUBLAS error in cublasIsamax\n");
    exit(1);
    }
 
-   print_CUDA_error_if_any(cudaMemcpy(&max,&(mp->d_potential_dot_dot_acoustic[imax]), sizeof(float), cudaMemcpyDeviceToHost),222);
+   print_CUDA_error_if_any(cudaMemcpy(&max,&(mp->d_potential_dot_dot_acoustic[imax]),
+                      sizeof(realw), cudaMemcpyDeviceToHost),222);
 
    printf("maximum %i %i %f \n",mp->NGLOB_AB,imax,max);
 
@@ -453,10 +452,10 @@ TRACE("get_norm_acoustic_from_device");
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void get_maximum_vector_kernel(float* array, int size, float* d_max){
+__global__ void get_maximum_vector_kernel(realw* array, int size, realw* d_max){
 
   // reduction example:
-  __shared__ float sdata[256] ;
+  __shared__ realw sdata[256] ;
 
   // load shared mem
   unsigned int tid = threadIdx.x;
@@ -490,7 +489,7 @@ __global__ void get_maximum_vector_kernel(float* array, int size, float* d_max){
 
 extern "C"
 void FC_FUNC_(get_norm_elastic_from_device,
-              GET_NORM_ELASTIC_FROM_DEVICE)(float* norm,
+              GET_NORM_ELASTIC_FROM_DEVICE)(realw* norm,
                                                  long* Mesh_pointer_f,
                                                  int* SIMULATION_TYPE) {
 
@@ -498,20 +497,20 @@ void FC_FUNC_(get_norm_elastic_from_device,
   //double start_time = get_time();
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
-  float max;
-  float *d_max;
+  realw max;
+  realw *d_max;
 
   max = 0;
 
   // launch simple reduction kernel
-  float* h_max;
+  realw* h_max;
   int blocksize = 256;
 
   int num_blocks_x = ceil(mp->NGLOB_AB/blocksize);
   //printf("num_blocks_x %i \n",num_blocks_x);
 
-  h_max = (float*) calloc(num_blocks_x,sizeof(float));
-  cudaMalloc((void**)&d_max,num_blocks_x*sizeof(float));
+  h_max = (realw*) calloc(num_blocks_x,sizeof(realw));
+  cudaMalloc((void**)&d_max,num_blocks_x*sizeof(realw));
 
   dim3 grid(num_blocks_x,1);
   dim3 threads(blocksize,1,1);
@@ -528,7 +527,7 @@ void FC_FUNC_(get_norm_elastic_from_device,
                                                 d_max);
   }
 
-  print_CUDA_error_if_any(cudaMemcpy(h_max,d_max,num_blocks_x*sizeof(float),cudaMemcpyDeviceToHost),222);
+  print_CUDA_error_if_any(cudaMemcpy(h_max,d_max,num_blocks_x*sizeof(realw),cudaMemcpyDeviceToHost),222);
 
   // determines max for all blocks
   max = h_max[0];

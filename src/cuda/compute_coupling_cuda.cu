@@ -29,7 +29,6 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
-#include <mpi.h>
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -44,13 +43,13 @@
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void compute_coupling_acoustic_el_kernel(float* displ,
-                                                    float* potential_dot_dot_acoustic,
+__global__ void compute_coupling_acoustic_el_kernel(realw* displ,
+                                                    realw* potential_dot_dot_acoustic,
                                                     int num_coupling_ac_el_faces,
                                                     int* coupling_ac_el_ispec,
                                                     int* coupling_ac_el_ijk,
-                                                    float* coupling_ac_el_normal,
-                                                    float* coupling_ac_el_jacobian2Dw,
+                                                    realw* coupling_ac_el_normal,
+                                                    realw* coupling_ac_el_jacobian2Dw,
                                                     int* ibool,
                                                     int* ispec_is_inner,
                                                     int phase_is_inner) {
@@ -130,8 +129,7 @@ void FC_FUNC_(compute_coupling_ac_el_cuda,
   int SIMULATION_TYPE           = *SIMULATION_TYPEf;
 
   // way 1: exact blocksize to match NGLLSQUARE
-  int blocksize = 25;
-
+  int blocksize = NGLL2;
   int num_blocks_x = num_coupling_ac_el_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
@@ -183,13 +181,13 @@ void FC_FUNC_(compute_coupling_ac_el_cuda,
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void compute_coupling_elastic_ac_kernel(float* potential_dot_dot_acoustic,
-                                                    float* accel,
+__global__ void compute_coupling_elastic_ac_kernel(realw* potential_dot_dot_acoustic,
+                                                    realw* accel,
                                                     int num_coupling_ac_el_faces,
                                                     int* coupling_ac_el_ispec,
                                                     int* coupling_ac_el_ijk,
-                                                    float* coupling_ac_el_normal,
-                                                    float* coupling_ac_el_jacobian2Dw,
+                                                    realw* coupling_ac_el_normal,
+                                                    realw* coupling_ac_el_jacobian2Dw,
                                                     int* ibool,
                                                     int* ispec_is_inner,
                                                     int phase_is_inner) {

@@ -780,7 +780,7 @@
                                   nrec, nrec_local, &
                                   SIMULATION_TYPE, &
                                   USE_MESH_COLORING_GPU,nspec_acoustic,nspec_elastic, &
-                                  ncuda_devices)
+                                  myrank,ncuda_devices)
 
   call min_all_i(ncuda_devices,ncuda_devices_min)
   call max_all_i(ncuda_devices,ncuda_devices_max)
@@ -828,7 +828,12 @@
                                   num_free_surface_faces, &
                                   ACOUSTIC_SIMULATION, &
                                   num_colors_outer_elastic,num_colors_inner_elastic, &
-                                  num_elem_colors_elastic)
+                                  num_elem_colors_elastic, &
+                                  ANISOTROPY, &
+                                  c11store,c12store,c13store,c14store,c15store,c16store, &
+                                  c22store,c23store,c24store,c25store,c26store, &
+                                  c33store,c34store,c35store,c36store, &
+                                  c44store,c45store,c46store,c55store,c56store,c66store)
 
     if( SIMULATION_TYPE == 3 ) &
       call prepare_fields_elastic_adj_dev(Mesh_pointer, NDIM*NGLOB_AB, &

@@ -368,7 +368,7 @@ TRACE("get_norm_acoustic_from_device");
   realw* h_max;
   int blocksize = 256;
 
-  int num_blocks_x = ceil(mp->NGLOB_AB/blocksize);
+  int num_blocks_x = (int) ceil(mp->NGLOB_AB/blocksize);
   //printf("num_blocks_x %i \n",num_blocks_x);
 
   h_max = (realw*) calloc(num_blocks_x,sizeof(realw));
@@ -506,7 +506,7 @@ void FC_FUNC_(get_norm_elastic_from_device,
   realw* h_max;
   int blocksize = 256;
 
-  int num_blocks_x = ceil(mp->NGLOB_AB/blocksize);
+  int num_blocks_x = (int) ceil(mp->NGLOB_AB/blocksize);
   //printf("num_blocks_x %i \n",num_blocks_x);
 
   h_max = (realw*) calloc(num_blocks_x,sizeof(realw));

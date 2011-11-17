@@ -102,7 +102,7 @@ TRACE("transfer_boun_accel_from_device");
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -212,7 +212,7 @@ TRACE("transfer_asmbl_accel_to_device");
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -1146,7 +1146,7 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
   int num_blocks_x = nb_blocks_to_compute;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -1580,7 +1580,7 @@ TRACE("kernel_3_a_cuda");
    int num_blocks_x = size_padded/blocksize;
    int num_blocks_y = 1;
    while(num_blocks_x > 65535) {
-     num_blocks_x = ceil(num_blocks_x/2.0);
+     num_blocks_x = (int) ceil(num_blocks_x*0.5f);
      num_blocks_y = num_blocks_y*2;
    }
 
@@ -1633,7 +1633,7 @@ void FC_FUNC_(kernel_3_b_cuda,
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -1738,7 +1738,7 @@ void FC_FUNC_(elastic_ocean_load_cuda,
   int num_blocks_x = mp->num_free_surface_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 

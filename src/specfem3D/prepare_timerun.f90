@@ -860,6 +860,14 @@
     write(IMAIN,*)
   endif
 
+  ! initializes GPU and outputs info to files for all processes
+  call prepare_cuda_device(myrank,ncuda_devices)
+
+  ! collects min/max of local devices found for statistics
+  call sync_all()
+  call min_all_i(ncuda_devices,ncuda_devices_min)
+  call max_all_i(ncuda_devices,ncuda_devices_max)
+
   ! prepares general fields on GPU
   call prepare_constants_device(Mesh_pointer, &
                                   NGLLX, NSPEC_AB, NGLOB_AB, &
@@ -881,11 +889,9 @@
                                   number_receiver_global, ispec_selected_rec, &
                                   nrec, nrec_local, &
                                   SIMULATION_TYPE, &
-                                  USE_MESH_COLORING_GPU,nspec_acoustic,nspec_elastic, &
-                                  myrank,ncuda_devices)
+                                  USE_MESH_COLORING_GPU, &
+                                  nspec_acoustic,nspec_elastic)
 
-  call min_all_i(ncuda_devices,ncuda_devices_min)
-  call max_all_i(ncuda_devices,ncuda_devices_max)
 
   ! prepares fields on GPU for acoustic simulations
   if( ACOUSTIC_SIMULATION ) then
@@ -1013,6 +1019,5 @@
     write(IMAIN,*)"             total =",total_mb," MB",nint(total_mb/total_mb*100.0),"%"
     write(IMAIN,*)
   endif
-
 
   end subroutine prepare_timerun_GPU

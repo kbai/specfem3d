@@ -133,7 +133,7 @@ void FC_FUNC_(compute_coupling_ac_el_cuda,
   int num_blocks_x = num_coupling_ac_el_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -287,7 +287,7 @@ void FC_FUNC_(compute_coupling_el_ac_cuda,
   int num_blocks_x = num_coupling_ac_el_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 

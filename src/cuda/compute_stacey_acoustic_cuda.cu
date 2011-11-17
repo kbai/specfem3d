@@ -146,7 +146,7 @@ TRACE("compute_stacey_acoustic_cuda");
   int num_blocks_x = mp->d_num_abs_boundary_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 

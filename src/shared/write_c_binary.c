@@ -78,7 +78,7 @@ FC_FUNC_(write_real,WRITE_REAL)(float *z) {
  Jul 18, 2003
 
  - uses functions fopen/fread/fwrite for binary file I/O
-  
+
  --------------------------------------- */
 
 #define __USE_GNU
@@ -122,13 +122,13 @@ void open_file_abs_r_fbin(int *fid, char *filename,int *length, long long *files
   char * blank;
   FILE *ft;
   int ret;
-  
+
   // checks filesize
   if( *filesize == 0 ){
     perror("Error file size for reading");
     exit(EXIT_FAILURE);
   }
-  
+
   // Trim the file name.
   fncopy = strndup(filename, *length);
   blank = strchr(fncopy, ' ');
@@ -138,7 +138,7 @@ void open_file_abs_r_fbin(int *fid, char *filename,int *length, long long *files
 
 /*
 //debug checks file size
-// see: 
+// see:
 //https://www.securecoding.cert.org/confluence/display/seccode/FIO19-C.+Do+not+use+fseek()+and+ftell()+to+compute+the+size+of+a+file
   printf("file size: %lld \n",*filesize);
   int fd;
@@ -148,10 +148,10 @@ void open_file_abs_r_fbin(int *fid, char *filename,int *length, long long *files
   if(fd == -1) {
     fprintf(stderr, "Error opening file: %s exiting\n", fncopy);
     exit(-1);
-  }  
-  if( fstat(fd, &stbuf) == 0 ){ 
+  }
+  if( fstat(fd, &stbuf) == 0 ){
     size = stbuf.st_size;
-    printf("file size found is: %lld (Bytes) \n",size);  
+    printf("file size found is: %lld (Bytes) \n",size);
   }
   close(fd);
 */
@@ -161,15 +161,15 @@ void open_file_abs_r_fbin(int *fid, char *filename,int *length, long long *files
   ft = fopen( fncopy, "rb+" ); // read binary file
   if( ft == NULL ) { perror("fopen"); exit(-1); }
 
-  
+
   // sets mode for full buffering
   work_buffer[*fid] = (char *)malloc(MAX_B);
   ret = setvbuf( ft, work_buffer[*fid], _IOFBF, (size_t)MAX_B );
   if( ret != 0 ){
     perror("Error setting working buffer");
-    exit(EXIT_FAILURE);  
+    exit(EXIT_FAILURE);
   }
-    
+
   // stores file index id fid: from 0 to 8
   fp_abs[*fid] = ft;
 
@@ -188,7 +188,7 @@ void open_file_abs_w_fbin(int *fid, char *filename, int *length, long long *file
   char * blank;
   FILE *ft;
   int ret;
-  
+
   // checks filesize
   if( *filesize == 0 ){
     perror("Error file size for writing");
@@ -212,9 +212,9 @@ void open_file_abs_w_fbin(int *fid, char *filename, int *length, long long *file
   ret = setvbuf( ft, work_buffer[*fid], _IOFBF, (size_t)MAX_B );
   if( ret != 0 ){
     perror("Error setting working buffer");
-    exit(EXIT_FAILURE);  
+    exit(EXIT_FAILURE);
   }
-  
+
   // stores file index id fid: from 0 to 8
   fp_abs[*fid] = ft;
 
@@ -262,23 +262,23 @@ void write_abs_fbin(int *fid, char *buffer, int *length, int *index){
   for(i=0;i< 50;i++){
     printf("buffer: %d %e \n",i,dat[i]);
   }
-  
+
   // positions file pointer (for reverse time access)
   // make sure to use 64-bit arithmetic to avoid overflow for very large files
   long long pos,cur;
-  
-  pos = ((long long)*length) * (*index -1 );  
+
+  pos = ((long long)*length) * (*index -1 );
   cur = ftell(ft);
-  
-  printf("current position: %d %lld %lld \n",*fid,cur,pos);  
+
+  printf("current position: %d %lld %lld \n",*fid,cur,pos);
   ret = fseek(ft, pos , SEEK_SET);
   if ( ret != 0 ) {
     perror("Error fseek");
     exit(EXIT_FAILURE);
   }
  */
-  
-  
+
+
   // writes items of maximum MAX_B to the file
   while (remlen > 0){
 
@@ -316,7 +316,7 @@ void read_abs_fbin(int *fid, char *buffer, int *length, int *index){
   // positions file pointer (for reverse time access)
   // make sure to use 64-bit arithmetic to avoid overflow for very large files
   pos = ((long long)*length) * (*index -1 );
-  
+
   ret = fseek(ft, pos , SEEK_SET);
   if ( ret != 0 ) {
     perror("Error fseek");
@@ -328,9 +328,9 @@ void read_abs_fbin(int *fid, char *buffer, int *length, int *index){
   buf = buffer;
   ret = 0;
 
-  // cleans buffer 
+  // cleans buffer
   //memset( buf,0,remlen);
-  
+
   // reads items of maximum MAX_B to the file
   while (remlen > 0){
 
@@ -359,7 +359,7 @@ void read_abs_fbin(int *fid, char *buffer, int *length, int *index){
   float dat[*length/4];
   memcpy(dat,buffer,*length);
   printf("return buffer length: %d %d\n",*length,*index);
-  printf("return buffer size: %d %d \n",sizeof(dat),sizeof(buffer));  
+  printf("return buffer size: %d %d \n",sizeof(dat),sizeof(buffer));
   int i;
   for(i=0;i< 50;i++){
     printf("return buffer: %d %e \n",i,dat[i]);
@@ -431,7 +431,7 @@ void open_file_abs_w_map(int *fid, char *filename, int *length, long long *files
    if( s > 2.0 ){
    printf("file size bigger than 2 GB: %lld B or %f GB \n",*filesize,s);
    }
-   */  
+   */
 
   // Trim the file name.
   fncopy = strndup(filename, *length);

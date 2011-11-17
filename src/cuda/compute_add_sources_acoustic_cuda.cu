@@ -117,7 +117,7 @@ TRACE("compute_add_sources_ac_cuda");
   int num_blocks_x = NSOURCES;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -171,7 +171,7 @@ TRACE("compute_add_sources_ac_s3_cuda");
   int num_blocks_x = NSOURCES;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -293,7 +293,7 @@ TRACE("add_sources_ac_sim_2_or_3_cuda");
   int num_blocks_x = mp->nadj_rec_local;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 

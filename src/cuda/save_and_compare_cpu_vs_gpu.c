@@ -72,7 +72,7 @@ void save_ivector_(int* vector, int* size, int* id, int* cpu_or_gpu) {
   fp = fopen(filename, "wb");
   fwrite(vector, sizeof(int), *size, fp);
   fclose(fp);
-  
+
 }
 
 
@@ -82,7 +82,7 @@ void get_max_from_surface_file_(int* nodes_per_iterationf,int* NSTEP) {
   int procid;
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
   sprintf(filename,"/scratch/eiger/rietmann/SPECFEM3D_AIGLE/in_out_files/DATABASES_MPI/proc%06d_surface_movie",procid);
-  
+
   FILE* fp; int it;
   printf("Opening %s for analysis\n",filename);
   fp = fopen(filename,"rb");
@@ -92,8 +92,8 @@ void get_max_from_surface_file_(int* nodes_per_iterationf,int* NSTEP) {
     printf("FILE ERROR:%s\n",strerror(errno));
     perror("file error\n");
     exit(1);
-  }  
-  
+  }
+
   float* vector = (float*)malloc(nodes_per_iteration*sizeof(float));
   float max_val;
   int i;
@@ -121,7 +121,7 @@ void compare_two_vectors_exact_(int* sizef,float* vector1,float* vector2,int* nu
     if(vector1[i] != vector2[i]) {
       error_count++;
       if(error_count < 10) {
-	printf("err[%d]: %e != %e\n",i,vector1[i],vector2[i]);
+  printf("err[%d]: %e != %e\n",i,vector1[i],vector2[i]);
       }
     }
   }
@@ -137,20 +137,20 @@ void compare_two_vectors_(int* sizef,float* vector1,float* vector2,int* num_erro
   for(i=0;i<size;++i) {
     if(vector1[i] != 0) {
       if( fabsf(vector1[i]-vector2[i])/vector1[i] > 0.01) {
-	if(fabsf(vector1[i]-vector2[i]) > 1e-20) {
-	error_count++;
-    	if(error_count<10) {
-    	  printf("err[%d]: %e != %e\n",i,vector1[i],vector2[i]);
-    	}
+  if(fabsf(vector1[i]-vector2[i]) > 1e-20) {
+  error_count++;
+      if(error_count<10) {
+        printf("err[%d]: %e != %e\n",i,vector1[i],vector2[i]);
+      }
       }
       }
     }
     /* if(vector1[i] != vector2[i]) { */
     /*   if(fabsf(vector1[i]-vector2[i]) > 1e-25) { */
-    /* 	error_count++; */
-    /* 	if(error_count<50) { */
-    /* 	  printf("err[%d]: %e != %e\n",i,vector1[i],vector2[i]); */
-    /* 	} */
+    /*  error_count++; */
+    /*  if(error_count<50) { */
+    /*    printf("err[%d]: %e != %e\n",i,vector1[i],vector2[i]); */
+    /*  } */
     /*   } */
     /* } */
   }
@@ -159,7 +159,7 @@ void compare_two_vectors_(int* sizef,float* vector1,float* vector2,int* num_erro
 }
 
 void compare_surface_files_(int* bytes_per_iteration, int* number_of_iterations) {
-  
+
   char* cpu_file = "/scratch/eiger/rietmann/SPECFEM3D/in_out_files/DATABASES_MPI/cpu_proc000001_surface_movie";
   char* gpu_file = "/scratch/eiger/rietmann/SPECFEM3D/in_out_files/DATABASES_MPI/cpu_v2_proc000001_surface_movie";
 
@@ -169,7 +169,7 @@ void compare_surface_files_(int* bytes_per_iteration, int* number_of_iterations)
   if(fp_cpu == 0) {
     //errorstr = (char*) strerror(errno);
     //printf("CPU FILE ERROR:%s\n",errorstr);
-    printf("CPU FILE ERROR:%s\n",strerror(errno));    
+    printf("CPU FILE ERROR:%s\n",strerror(errno));
     perror("cpu file error\n");
   }
   FILE* fp_gpu;
@@ -178,14 +178,14 @@ void compare_surface_files_(int* bytes_per_iteration, int* number_of_iterations)
   if(fp_gpu == NULL) {
     //errorstr = (char*) strerror(errno);
     //printf("GPU FILE ERROR:%s\n",errorstr);
-    printf("GPU FILE ERROR:%s\n",strerror(errno));    
+    printf("GPU FILE ERROR:%s\n",strerror(errno));
     perror("gpu file error\n");
   }
-  
+
   /* pause_for_debug(); */
-  
+
   float* gpu_vector = (float*)malloc(*bytes_per_iteration);
-  float* cpu_vector = (float*)malloc(*bytes_per_iteration);  
+  float* cpu_vector = (float*)malloc(*bytes_per_iteration);
   int i,it,error_count=0;
   for(it=0;it<*number_of_iterations;it++) {
     int pos = (*bytes_per_iteration)*(it);
@@ -203,14 +203,14 @@ void compare_surface_files_(int* bytes_per_iteration, int* number_of_iterations)
     float cpu_max_val=0;
     if(it<100) {
       for(i=0;i<size;i++) {
-	if((fabs(cpu_vector[i] - gpu_vector[i])/(fabs(cpu_vector[i])+1e-31) > 0.01)) {
-	  if(error_count < 30) printf("ERROR[%d]: %g != %g\n",i,cpu_vector[i], gpu_vector[i]);
-	  if(cpu_vector[i] > 1e-30) error_count++;
-	}
-	if(gpu_vector[i]>gpu_max_val) gpu_max_val = gpu_vector[i];
-	if(gpu_vector[i]<gpu_min_val) gpu_min_val = gpu_vector[i];
-	if(cpu_vector[i]>cpu_max_val) cpu_max_val = cpu_vector[i];
-	if(cpu_vector[i]<cpu_min_val) cpu_min_val = cpu_vector[i];
+  if((fabs(cpu_vector[i] - gpu_vector[i])/(fabs(cpu_vector[i])+1e-31) > 0.01)) {
+    if(error_count < 30) printf("ERROR[%d]: %g != %g\n",i,cpu_vector[i], gpu_vector[i]);
+    if(cpu_vector[i] > 1e-30) error_count++;
+  }
+  if(gpu_vector[i]>gpu_max_val) gpu_max_val = gpu_vector[i];
+  if(gpu_vector[i]<gpu_min_val) gpu_min_val = gpu_vector[i];
+  if(cpu_vector[i]>cpu_max_val) cpu_max_val = cpu_vector[i];
+  if(cpu_vector[i]<cpu_min_val) cpu_min_val = cpu_vector[i];
       }
       printf("%d Total Errors\n",error_count);
       printf("size:%d\n",size);
@@ -245,7 +245,7 @@ void compare_fvector_(float* vector, int* size, int* id, int* cpu_or_gpu) {
     else
        printf("File read error.");
   }
-  
+
   fclose(fp);
 
   int i;
@@ -253,11 +253,11 @@ void compare_fvector_(float* vector, int* size, int* id, int* cpu_or_gpu) {
   for(i=0;i<*size;i++) {
     if((fabs(vector[i] - compare_vector[i])/vector[i] > 0.0001)) {
       if(error_count < 30) {
-	printf("ERROR[%d]: %g != %g\n",i,compare_vector[i], vector[i]);
+  printf("ERROR[%d]: %g != %g\n",i,compare_vector[i], vector[i]);
       }
       error_count++;
-      /* if(compare_vector[i] > 1e-30) error_count++; */      
-    }    
+      /* if(compare_vector[i] > 1e-30) error_count++; */
+    }
   }
   printf("%d Total Errors\n",error_count);
   printf("size:%d\n",*size);
@@ -289,7 +289,7 @@ void compare_ivector_(int* vector, int* size, int* id, int* cpu_or_gpu) {
     else
        printf("File read error.");
   }
-  
+
   fclose(fp);
 
   int i;
@@ -298,7 +298,7 @@ void compare_ivector_(int* vector, int* size, int* id, int* cpu_or_gpu) {
     if((abs(vector[i] - compare_vector[i])/vector[i] > 0.01) && error_count < 30) {
       printf("ERROR[%d]: %g != %g\n",i,compare_vector[i], vector[i]);
       error_count++;
-    }    
+    }
   }
   printf("%d Total Errors\n",error_count);
 }

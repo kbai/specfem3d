@@ -138,7 +138,7 @@ TRACE("transfer_surface_to_host");
   int num_blocks_x = mp->num_free_surface_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
   dim3 grid(num_blocks_x,num_blocks_y,1);
@@ -250,7 +250,7 @@ TRACE("noise_read_add_surface_movie_cu");
   int num_blocks_x = mp->num_free_surface_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
   dim3 grid(num_blocks_x,num_blocks_y,1);

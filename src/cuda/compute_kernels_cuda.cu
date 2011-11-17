@@ -119,7 +119,7 @@ TRACE("compute_kernels_elastic_cuda");
   int num_blocks_x = mp->NSPEC_AB;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -213,7 +213,7 @@ TRACE("compute_kernels_strgth_noise_cu");
   int num_blocks_x = mp->num_free_surface_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -429,7 +429,7 @@ TRACE("compute_kernels_acoustic_cuda");
   int num_blocks_x = mp->NSPEC_AB;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -596,7 +596,7 @@ void FC_FUNC_(compute_kernels_hess_cuda,
   int num_blocks_x = mp->NSPEC_AB;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 

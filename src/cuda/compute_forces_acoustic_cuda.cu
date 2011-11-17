@@ -88,7 +88,7 @@ TRACE("transfer_boun_pot_from_device");
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -196,7 +196,7 @@ TRACE("transfer_asmbl_pot_to_device");
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -546,7 +546,7 @@ void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
   int num_blocks_x = nb_blocks_to_compute;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
 
@@ -778,7 +778,7 @@ TRACE("kernel_3_a_acoustic_cuda");
    int num_blocks_x = size_padded/blocksize;
    int num_blocks_y = 1;
    while(num_blocks_x > 65535) {
-     num_blocks_x = ceil(num_blocks_x/2.0);
+     num_blocks_x = (int) ceil(num_blocks_x*0.5f);
      num_blocks_y = num_blocks_y*2;
    }
    dim3 grid(num_blocks_x,num_blocks_y);
@@ -822,7 +822,7 @@ TRACE("kernel_3_b_acoustic_cuda");
   int num_blocks_x = size_padded/blocksize;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
-    num_blocks_x = ceil(num_blocks_x/2.0);
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
     num_blocks_y = num_blocks_y*2;
   }
   dim3 grid(num_blocks_x,num_blocks_y);
@@ -913,7 +913,7 @@ TRACE("acoustic_enforce_free_surf_cuda");
     int num_blocks_x = mp->num_free_surface_faces;
     int num_blocks_y = 1;
     while(num_blocks_x > 65535) {
-      num_blocks_x = ceil(num_blocks_x/2.0);
+      num_blocks_x = (int) ceil(num_blocks_x*0.5f);
       num_blocks_y = num_blocks_y*2;
     }
     dim3 grid(num_blocks_x,num_blocks_y,1);

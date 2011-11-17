@@ -501,6 +501,14 @@ void FC_FUNC_(prepare_cleanup_device,
                                       int* OCEANS,
                                       int* APPROXIMATE_HESS_KL){}
 
+void FC_FUNC_(prepare_fields_gravity_device,
+              PREPARE_FIELDS_gravity_DEVICE)(long* Mesh_pointer_f,
+                                             int* GRAVITY,
+                                             realw* minus_deriv_gravity, 
+                                             realw* minus_g,
+                                             realw* h_wgll_cube,
+                                             int* ACOUSTIC_SIMULATION,
+                                             realw* rhostore){}
 /* from file transfer_fields_cuda.cu				      */
 
 void FC_FUNC_(transfer_fields_el_to_device,

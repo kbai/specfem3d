@@ -113,13 +113,13 @@
                         potential_acoustic, displ_element,&
                         hprime_xx,hprime_yy,hprime_zz, &
                         xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                        ibool,rhostore)
+                        ibool,rhostore,GRAVITY)
         ! velocity vector
         call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
                         potential_dot_acoustic, veloc_element,&
                         hprime_xx,hprime_yy,hprime_zz, &
                         xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                        ibool,rhostore)
+                        ibool,rhostore,GRAVITY)
 
         ! interpolates displ/veloc/pressure at receiver locations
         call compute_interpolated_dva_ac(displ_element,veloc_element,&
@@ -189,13 +189,13 @@
                         potential_acoustic, displ_element,&
                         hprime_xx,hprime_yy,hprime_zz, &
                         xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                        ibool,rhostore)
+                        ibool,rhostore,GRAVITY)
         ! velocity vector
         call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
                         potential_dot_acoustic, veloc_element,&
                         hprime_xx,hprime_yy,hprime_zz, &
                         xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                        ibool,rhostore)
+                        ibool,rhostore,GRAVITY)
 
         ! interpolates displ/veloc/pressure at receiver locations
         call compute_interpolated_dva_ac(displ_element,veloc_element,&
@@ -229,13 +229,13 @@
                         b_potential_acoustic, displ_element,&
                         hprime_xx,hprime_yy,hprime_zz, &
                         xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                        ibool,rhostore)
+                        ibool,rhostore,GRAVITY)
         ! backward fields: velocity vector
         call compute_gradient(ispec,NSPEC_AB,NGLOB_ADJOINT, &
                         b_potential_dot_acoustic, veloc_element,&
                         hprime_xx,hprime_yy,hprime_zz, &
                         xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                        ibool,rhostore)
+                        ibool,rhostore,GRAVITY)
 
         ! backward fields: interpolates displ/veloc/pressure at receiver locations
         call compute_interpolated_dva_ac(displ_element,veloc_element,&

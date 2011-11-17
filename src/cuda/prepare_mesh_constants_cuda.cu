@@ -702,7 +702,7 @@ TRACE("prepare_sim2_or_3_const_device");
   if( mp->nadj_rec_local > 0 ){
     print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_adj_sourcearrays,
                                        (mp->nadj_rec_local)*3*NGLL3*sizeof(realw)),7003);
-                                       
+
     print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_pre_computed_irec,
                                        (mp->nadj_rec_local)*sizeof(int)),7004);
 
@@ -783,7 +783,7 @@ void FC_FUNC_(prepare_fields_acoustic_device,
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_potential_dot_dot_acoustic),sizeof(realw)*size_glob),9003);
 
   // mpi buffer
-  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_send_potential_dot_dot_buffer), 
+  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_send_potential_dot_dot_buffer),
                       (mp->max_nibool_interfaces_ext_mesh)*(mp->num_interfaces_ext_mesh)*sizeof(realw)),9004);
 
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_rmass_acoustic),sizeof(realw)*size_glob),9005);
@@ -1526,6 +1526,55 @@ void FC_FUNC_(prepare_fields_noise_device,
 #endif
 }
 
+/* ----------------------------------------------------------------------------------------------- */
+
+// GRAVITY simulations
+
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(prepare_fields_gravity_device,
+              PREPARE_FIELDS_gravity_DEVICE)(long* Mesh_pointer_f,
+                                             int* GRAVITY,
+                                             realw* minus_deriv_gravity,
+                                             realw* minus_g,
+                                             realw* h_wgll_cube,
+                                             int* ACOUSTIC_SIMULATION,
+                                             realw* rhostore) {
+
+  TRACE("prepare_fields_gravity_device");
+
+  Mesh* mp = (Mesh*)(*Mesh_pointer_f);
+
+  setConst_wgll_cube(h_wgll_cube,mp);
+
+  mp->gravity = *GRAVITY;
+  if( mp->gravity ){
+    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_minus_deriv_gravity),
+                                       (mp->NGLOB_AB)*sizeof(realw)),7700);
+    print_CUDA_error_if_any(cudaMemcpy(mp->d_minus_deriv_gravity, minus_deriv_gravity,
+                                       (mp->NGLOB_AB)*sizeof(realw),cudaMemcpyHostToDevice),7701);
+
+    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_minus_g),
+                                       (mp->NGLOB_AB)*sizeof(realw)),7702);
+    print_CUDA_error_if_any(cudaMemcpy(mp->d_minus_g, minus_g,
+                                       (mp->NGLOB_AB)*sizeof(realw),cudaMemcpyHostToDevice),7703);
+
+
+    if( *ACOUSTIC_SIMULATION == 0 ){
+      // rhostore not allocated yet
+      int size_padded = NGLL3_PADDED * (mp->NSPEC_AB);
+      // padded array
+      print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_rhostore),size_padded*sizeof(realw)),7706);
+      // transfer constant element data with padding
+      for(int i=0; i < mp->NSPEC_AB; i++) {
+        print_CUDA_error_if_any(cudaMemcpy(mp->d_rhostore+i*NGLL3_PADDED, &rhostore[i*NGLL3],
+                                           NGLL3*sizeof(realw),cudaMemcpyHostToDevice),7707);
+      }
+    }
+  }
+
+}
 
 /* ----------------------------------------------------------------------------------------------- */
 

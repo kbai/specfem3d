@@ -1843,10 +1843,11 @@ subroutine crm_ext_setup_indexing(ibool, &
     stop 'error temporary global permutation incomplete'
   endif
 
+  ! checks perm entries
   if(minval(temp_perm_global) /= 1) call exit_MPI(myrank, 'minval(temp_perm_global) should be 1')
   if(maxval(temp_perm_global) /= nspec) call exit_MPI(myrank, 'maxval(temp_perm_global) should be nspec')
 
-  ! checks if every element was set
+  ! checks if every element was uniquely set
   allocate(mask_global(nspec),stat=ier)
   if( ier /= 0 ) stop 'error allocating temporary mask_global'
   mask_global(:) = .false.

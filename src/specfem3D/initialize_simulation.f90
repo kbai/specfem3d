@@ -49,7 +49,7 @@
                         NTSTEP_BETWEEN_READ_ADJSRC,NOISE_TOMOGRAPHY)
 
   ! GPU_MODE is in par_file
-  call read_gpu_mode(GPU_MODE)
+  call read_gpu_mode(GPU_MODE,GRAVITY)
 
   ! get the base pathname for output files
   call get_value_string(OUTPUT_FILES, 'OUTPUT_FILES', OUTPUT_FILES_PATH(1:len_trim(OUTPUT_FILES_PATH)))
@@ -218,6 +218,9 @@
         stop 'GPU mode does not support N_SLS /= 3 yet'
     endif
   endif
+  if( .not. GPU_MODE .and. GRAVITY ) &
+    stop 'GRAVITY only supported in GPU mode'
+
 
   ! absorbing surfaces
   if( ABSORBING_CONDITIONS ) then

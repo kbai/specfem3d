@@ -261,7 +261,8 @@ __device__ void compute_gradient_kernel(int ijk,
                                         realw* d_gammax,
                                         realw* d_gammay,
                                         realw* d_gammaz,
-                                        realw rhol) {
+                                        realw rhol,
+                                        int gravity) {
 
   realw temp1l,temp2l,temp3l;
   realw hp1,hp2,hp3;
@@ -313,8 +314,11 @@ __device__ void compute_gradient_kernel(int ijk,
   gammayl = d_gammay[offset];
   gammazl = d_gammaz[offset];
 
-  rho_invl = 1.0f / rhol;
-
+  if( gravity ){
+    rho_invl = 1.0f;
+  }else{
+    rho_invl = 1.0f / rhol;
+  }
   // derivatives of acoustic scalar potential field on GLL points
   vector_field_element[0] = (temp1l*xixl + temp2l*etaxl + temp3l*gammaxl) * rho_invl;
   vector_field_element[1] = (temp1l*xiyl + temp2l*etayl + temp3l*gammayl) * rho_invl;
@@ -347,7 +351,8 @@ __global__ void compute_kernels_acoustic_kernel(int* ispec_is_acoustic,
                                                 realw* rho_ac_kl,
                                                 realw* kappa_ac_kl,
                                                 realw deltat,
-                                                int NSPEC_AB) {
+                                                int NSPEC_AB,
+                                                int gravity) {
 
   int ispec = blockIdx.x + blockIdx.y*gridDim.x;
 
@@ -384,13 +389,13 @@ __global__ void compute_kernels_acoustic_kernel(int* ispec_is_acoustic,
       compute_gradient_kernel(ijk,ispec,scalar_field_displ,b_displ_elm,
                               hprime_xx,hprime_yy,hprime_zz,
                               d_xix,d_xiy,d_xiz,d_etax,d_etay,d_etaz,d_gammax,d_gammay,d_gammaz,
-                              rhol);
+                              rhol,gravity);
 
       // acceleration vector
       compute_gradient_kernel(ijk,ispec,scalar_field_accel,accel_elm,
                               hprime_xx,hprime_yy,hprime_zz,
                               d_xix,d_xiy,d_xiz,d_etax,d_etay,d_etaz,d_gammax,d_gammay,d_gammaz,
-                              rhol);
+                              rhol,gravity);
 
       // density kernel
       rho_ac_kl[ijk_ispec] -= deltat * rhol * (accel_elm[0]*b_displ_elm[0] +
@@ -453,7 +458,8 @@ TRACE("compute_kernels_acoustic_cuda");
                                                     mp->d_rho_ac_kl,
                                                     mp->d_kappa_ac_kl,
                                                     deltat,
-                                                    mp->NSPEC_AB);
+                                                    mp->NSPEC_AB,
+                                                    mp->gravity);
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("compute_kernels_acoustic_kernel");
@@ -515,7 +521,8 @@ __global__ void compute_kernels_hess_ac_cudakernel(int* ispec_is_acoustic,
                                                    realw* d_gammaz,
                                                    realw* hess_kl,
                                                    realw deltat,
-                                                   int NSPEC_AB) {
+                                                   int NSPEC_AB,
+                                                   int gravity) {
 
   int ispec = blockIdx.x + blockIdx.y*gridDim.x;
 
@@ -553,14 +560,14 @@ __global__ void compute_kernels_hess_ac_cudakernel(int* ispec_is_acoustic,
                               scalar_field_accel,accel_elm,
                               hprime_xx,hprime_yy,hprime_zz,
                               d_xix,d_xiy,d_xiz,d_etax,d_etay,d_etaz,d_gammax,d_gammay,d_gammaz,
-                              rhol);
+                              rhol,gravity);
 
       // acceleration vector from backward field
       compute_gradient_kernel(ijk,ispec,
                               scalar_field_b_accel,b_accel_elm,
                               hprime_xx,hprime_yy,hprime_zz,
                               d_xix,d_xiy,d_xiz,d_etax,d_etay,d_etaz,d_gammax,d_gammay,d_gammaz,
-                              rhol);
+                              rhol,gravity);
       // approximates hessian
       hess_kl[ijk_ispec] += deltat * (accel_elm[0]*b_accel_elm[0] +
                                       accel_elm[1]*b_accel_elm[1] +
@@ -626,7 +633,8 @@ void FC_FUNC_(compute_kernels_hess_cuda,
                                                          mp->d_gammaz,
                                                          mp->d_hess_ac_kl,
                                                          deltat,
-                                                         mp->NSPEC_AB);
+                                                         mp->NSPEC_AB,
+                                                         mp->gravity);
   }
 
 

@@ -200,13 +200,13 @@
                       b_potential_acoustic, b_displ_elm,&
                       hprime_xx,hprime_yy,hprime_zz, &
                       xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                      ibool,rhostore)
+                      ibool,rhostore,GRAVITY)
       ! adjoint fields: acceleration vector
       call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
                       potential_dot_dot_acoustic, accel_elm,&
                       hprime_xx,hprime_yy,hprime_zz, &
                       xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                      ibool,rhostore)
+                      ibool,rhostore,GRAVITY)
 
       do k = 1, NGLLZ
         do j = 1, NGLLY
@@ -271,14 +271,14 @@
                       potential_dot_dot_acoustic, accel_elm,&
                       hprime_xx,hprime_yy,hprime_zz, &
                       xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                      ibool,rhostore)
+                      ibool,rhostore,GRAVITY)
 
       ! adjoint fields: acceleration vector
       call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
                       b_potential_dot_dot_acoustic, b_accel_elm,&
                       hprime_xx,hprime_yy,hprime_zz, &
                       xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                      ibool,rhostore)
+                      ibool,rhostore,GRAVITY)
 
       do k = 1, NGLLZ
         do j = 1, NGLLY

@@ -190,7 +190,11 @@ __global__ void compute_coupling_elastic_ac_kernel(realw* potential_dot_dot_acou
                                                     realw* coupling_ac_el_jacobian2Dw,
                                                     int* ibool,
                                                     int* ispec_is_inner,
-                                                    int phase_is_inner) {
+                                                    int phase_is_inner,
+                                                    int gravity,
+                                                    realw* minus_g,
+                                                    realw* rhostore,
+                                                    realw* displ) {
 
   int igll = threadIdx.x;
   int iface = blockIdx.x + gridDim.x*blockIdx.y;
@@ -199,6 +203,7 @@ __global__ void compute_coupling_elastic_ac_kernel(realw* potential_dot_dot_acou
   realw pressure;
   realw nx,ny,nz;
   realw jacobianw;
+  realw rhol;
 
   if( iface < num_coupling_ac_el_faces){
 
@@ -216,16 +221,31 @@ __global__ void compute_coupling_elastic_ac_kernel(realw* potential_dot_dot_acou
       k = coupling_ac_el_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)] - 1;
       iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)]-  1;
 
-      // acoustic pressure on global point
-      pressure = - potential_dot_dot_acoustic[iglob];
-
       // gets associated normal on GLL point
+      // note: normal points away from acoustic element
       nx = coupling_ac_el_normal[INDEX3(NDIM,NGLL2,0,igll,iface)]; // (1,igll,iface)
       ny = coupling_ac_el_normal[INDEX3(NDIM,NGLL2,1,igll,iface)]; // (2,igll,iface)
       nz = coupling_ac_el_normal[INDEX3(NDIM,NGLL2,2,igll,iface)]; // (3,igll,iface)
 
       // gets associated, weighted jacobian
       jacobianw = coupling_ac_el_jacobian2Dw[INDEX2(NGLL2,igll,iface)];
+
+      // acoustic pressure on global point
+      if( gravity ){
+        // takes density (from acoustic? element)
+        rhol = rhostore[INDEX4_PADDED(NGLLX,NGLLX,NGLLX,i,j,k,ispec)];
+
+        // note: uses potential chi such that displacement s = grad(chi),
+        //         pressure becomes: p = - kappa ( div( s ) ) = rho ( - dot_dot_chi + g * s )
+        //  g only acting in negative z-direction
+        // daniel: TODO - check coupling would be displ * nz  correct?
+        pressure = rhol*( - potential_dot_dot_acoustic[iglob]
+                         + minus_g[iglob] * displ[iglob*3+2] );
+
+      }else{
+        // no gravity: uses potential chi such that displacement s = 1/rho grad(chi)
+        pressure = - potential_dot_dot_acoustic[iglob];
+      }
 
       // continuity of displacement and pressure on global point
       //
@@ -284,7 +304,11 @@ void FC_FUNC_(compute_coupling_el_ac_cuda,
                                                        mp->d_coupling_ac_el_jacobian2Dw,
                                                        mp->d_ibool,
                                                        mp->d_ispec_is_inner,
-                                                       phase_is_inner);
+                                                       phase_is_inner,
+                                                       mp->gravity,
+                                                       mp->d_minus_g,
+                                                       mp->d_rhostore,
+                                                       mp->d_displ);
 
   //  adjoint simulations
   if (SIMULATION_TYPE == 3 ){
@@ -297,7 +321,11 @@ void FC_FUNC_(compute_coupling_el_ac_cuda,
                                                          mp->d_coupling_ac_el_jacobian2Dw,
                                                          mp->d_ibool,
                                                          mp->d_ispec_is_inner,
-                                                         phase_is_inner);
+                                                         phase_is_inner,
+                                                         mp->gravity,
+                                                         mp->d_minus_g,
+                                                         mp->d_rhostore,
+                                                         mp->d_b_displ);
 
   }
 

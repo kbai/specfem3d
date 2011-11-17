@@ -48,6 +48,8 @@ void setConst_wgllwgll_xy(realw* array,Mesh* mp);
 void setConst_wgllwgll_xz(realw* array, Mesh* mp);
 void setConst_wgllwgll_yz(realw* array, Mesh* mp);
 
+void setConst_wgll_cube(realw* array, Mesh* mp);
+
 /* ----------------------------------------------------------------------------------------------- */
 
 /* CUDA specific things from specfem3D_kernels.cu */

@@ -28,16 +28,14 @@
 
 /* daniel: trivia
 
-- for most real working arrays we use float (single exception so far is stf_pre_compute).
-  TODO: we could use "realw" instead of "float" type declaration to make it easier to switch
-              between a real or double precision simulation (matching CUSTOM_REAL == 4 or 8 in fortran routines).
+- for most working arrays we use now "realw" instead of "float" type declarations to make it easier to switch
+  between a real or double precision simulation
+  (matching CUSTOM_REAL == 4 or 8 in fortran routines).
 
 - instead of boolean "logical" declared in fortran routines, in C (or Cuda-C) we have to use "int" variables.
-
   ifort / gfortran caveat:
     to check whether it is true or false, do not check for == 1 to test for true values since ifort just uses
     non-zero values for true (e.g. can be -1 for true). however, false will be always == 0.
-
   thus, rather use: if( var ) {...}  for testing if true instead of if( var == 1){...} (alternative: one could use if( var != 0 ){...}
 
 */
@@ -96,7 +94,7 @@ void exit_on_error(char* info);
 // dimensions
 #define NDIM 3
 
-// Gauss-Lobatto-Legendre 
+// Gauss-Lobatto-Legendre
 #define NGLLX 5
 #define NGLL2 25
 #define NGLL3 125 // no padding: requires same size as in fortran for NGLLX * NGLLY * NGLLZ
@@ -119,6 +117,10 @@ typedef float reald;
 // (optional) pre-processing directive used in kernels: if defined check that it is also set in src/shared/constants.h:
 // leads up to ~ 5% performance increase
 //#define USE_MESH_COLORING_GPU
+
+// (optional) unrolling loops
+// leads up to ~1% performance increase
+//#define MANUALLY_UNROLLED_LOOPS
 
 // cuda kernel block size for updating displacements/potential (newmark time scheme)
 #define BLOCKSIZE_KERNEL1 128
@@ -178,11 +180,12 @@ typedef struct mesh_ {
   realw* d_hprime_xx; realw* d_hprime_yy; realw* d_hprime_zz;
   realw* d_hprimewgll_xx; realw* d_hprimewgll_yy; realw* d_hprimewgll_zz;
   realw* d_wgllwgll_xy; realw* d_wgllwgll_xz; realw* d_wgllwgll_yz;
+  realw* d_wgll_cube;
 
   // mpi buffers
   int num_interfaces_ext_mesh;
   int max_nibool_interfaces_ext_mesh;
-  
+
   // ------------------------------------------------------------------ //
   // elastic wavefield parameters
   // ------------------------------------------------------------------ //
@@ -205,7 +208,7 @@ typedef struct mesh_ {
   int nspec_elastic;
 
   realw* d_rmass;
-  
+
   // mpi buffer
   realw* d_send_accel_buffer;
 
@@ -365,7 +368,7 @@ typedef struct mesh_ {
   realw* d_rhostore;
   realw* d_kappastore;
   realw* d_rmass_acoustic;
-  
+
   // mpi buffer
   realw* d_send_potential_dot_dot_buffer;
 
@@ -388,6 +391,11 @@ typedef struct mesh_ {
   int* d_coupling_ac_el_ijk;
   realw* d_coupling_ac_el_normal;
   realw* d_coupling_ac_el_jacobian2Dw;
+
+  // gravity
+  int gravity;
+  realw* d_minus_deriv_gravity;
+  realw* d_minus_g;
 
 } Mesh;
 

@@ -234,7 +234,7 @@ __global__ void add_sources_ac_SIM_TYPE_2_OR_3_kernel(realw* potential_dot_dot_a
         int i = threadIdx.x;
         int j = threadIdx.y;
         int k = threadIdx.z;
-        
+
         int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)]-1;
 
         //kappal = kappastore[INDEX4(5,5,5,i,j,k,ispec)];
@@ -251,10 +251,10 @@ __global__ void add_sources_ac_SIM_TYPE_2_OR_3_kernel(realw* potential_dot_dot_a
         //
         // note: we take the first component of the adj_sourcearrays
         //          the idea is to have e.g. a pressure source, where all 3 components would be the same
-        realw stf = adj_sourcearrays[INDEX5(5,5,5,3,i,j,k,0,irec_local)]; // / kappal 
-                                            
+        realw stf = adj_sourcearrays[INDEX5(5,5,5,3,i,j,k,0,irec_local)]; // / kappal
+
         atomicAdd(&potential_dot_dot_acoustic[iglob],stf);
-        
+
                   //+adj_sourcearrays[INDEX6(nadj_rec_local,NTSTEP_BETWEEN_ADJSRC,3,5,5,
                   //                         pre_computed_irec_local_index[irec],pre_computed_index-1,
                   //                         0,i,j,k)] // / kappal

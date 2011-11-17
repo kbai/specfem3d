@@ -33,32 +33,32 @@
   ! USER PARAMETER
 
   ! image data output:
-  !   type = 1 : velocity V_x component
-  !   type = 2 : velocity V_y component
-  !   type = 3 : velocity V_z component
-  !   type = 4 : velocity V norm
-  integer,parameter:: IMAGE_TYPE = 4
+  !   type = 1 : displ/velocity x-component
+  !   type = 2 : displ/velocity y-component
+  !   type = 3 : displ/velocity z-component
+  !   type = 4 : displ/velocity norm
+  integer,parameter:: IMAGE_TYPE = 3 ! 4
 
   ! cross-section surface
   ! cross-section origin point
-  real(kind=CUSTOM_REAL),parameter:: section_xorg = 67000.0
-  real(kind=CUSTOM_REAL),parameter:: section_yorg = 0.0
-  real(kind=CUSTOM_REAL),parameter:: section_zorg = 0.0
+  real(kind=CUSTOM_REAL),parameter:: section_xorg = 0.0 ! 67000.0
+  real(kind=CUSTOM_REAL),parameter:: section_yorg = 0.0 ! 0.0
+  real(kind=CUSTOM_REAL),parameter:: section_zorg = -100.0 ! 0.0
 
   ! cross-section surface normal
-  real(kind=CUSTOM_REAL),parameter:: section_nx = 1.0
-  real(kind=CUSTOM_REAL),parameter:: section_ny = 0.0
-  real(kind=CUSTOM_REAL),parameter:: section_nz = 0.0
+  real(kind=CUSTOM_REAL),parameter:: section_nx = 0.0 !1.0
+  real(kind=CUSTOM_REAL),parameter:: section_ny = 0.0 !0.0
+  real(kind=CUSTOM_REAL),parameter:: section_nz = 1.0 !0.0
 
   ! cross-section (in-plane) horizontal-direction
-  real(kind=CUSTOM_REAL),parameter:: section_hdirx = 0.0
-  real(kind=CUSTOM_REAL),parameter:: section_hdiry = 1.0
-  real(kind=CUSTOM_REAL),parameter:: section_hdirz = 0.0
+  real(kind=CUSTOM_REAL),parameter:: section_hdirx = 1.0 ! 0.0
+  real(kind=CUSTOM_REAL),parameter:: section_hdiry = 0.0 !1.0
+  real(kind=CUSTOM_REAL),parameter:: section_hdirz = 0.0 ! 0.0
 
   ! cross-section (in-plane) vertical-direction
-  real(kind=CUSTOM_REAL),parameter:: section_vdirx = 0.0
-  real(kind=CUSTOM_REAL),parameter:: section_vdiry = 0.0
-  real(kind=CUSTOM_REAL),parameter:: section_vdirz = 1.0
+  real(kind=CUSTOM_REAL),parameter:: section_vdirx = 0.0 ! 0.0
+  real(kind=CUSTOM_REAL),parameter:: section_vdiry = 1.0 ! 0.0
+  real(kind=CUSTOM_REAL),parameter:: section_vdirz = 0.0 ! 1.0
 
   ! non linear display to enhance small amplitudes in color images
   real(kind=CUSTOM_REAL), parameter :: POWER_DISPLAY_COLOR = 0.30_CUSTOM_REAL
@@ -511,7 +511,7 @@
   implicit none
 
   ! local parameters
-  real(kind=CUSTOM_REAL),dimension(NDIM) :: veloc_val
+  real(kind=CUSTOM_REAL),dimension(NDIM) :: val_vector
   real(kind=CUSTOM_REAL):: temp
   integer :: i,j,k,iglob,ispec,iproc
 
@@ -528,15 +528,15 @@
     ispec = ispec_image_color(i,j)
 
     ! gets velocity for point iglob
-    call get_iglob_veloc(iglob,ispec,veloc_val)
+    call get_iglob_veloc(iglob,ispec,val_vector)
 
     ! data type
     if( IMAGE_TYPE == 4 ) then
       ! velocity norm
-      temp = sqrt( veloc_val(1)**2 + veloc_val(2)**2 + veloc_val(3)**2 )
+      temp = sqrt( val_vector(1)**2 + val_vector(2)**2 + val_vector(3)**2 )
     else
       ! velocity component
-      temp = veloc_val(IMAGE_TYPE)
+      temp = val_vector(IMAGE_TYPE)
     endif
 
     ! stores data
@@ -834,34 +834,48 @@
 
 !=============================================================
 
-  subroutine get_iglob_veloc(iglob,ispec,veloc_val)
+  subroutine get_iglob_veloc(iglob,ispec,val_vector)
 
   use constants,only: CUSTOM_REAL,NGLLX,NGLLY,NGLLZ,NDIM
-  use specfem_par_acoustic,only: ACOUSTIC_SIMULATION,potential_dot_acoustic,&
-                                rhostore,ispec_is_acoustic,b_potential_dot_acoustic
-  use specfem_par_elastic,only: ELASTIC_SIMULATION,veloc,ispec_is_elastic,b_veloc
+  use specfem_par_acoustic,only: ACOUSTIC_SIMULATION,potential_acoustic,potential_dot_acoustic, &
+                                rhostore,ispec_is_acoustic, &
+                                b_potential_acoustic,b_potential_dot_acoustic
+  use specfem_par_elastic,only: ELASTIC_SIMULATION,displ,veloc, &
+                                ispec_is_elastic,b_displ,b_veloc
   use specfem_par,only: NSPEC_AB,NGLOB_AB,hprime_xx,hprime_yy,hprime_zz, &
                         xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                        ibool,SIMULATION_TYPE
+                        ibool,SIMULATION_TYPE,GRAVITY
+  use specfem_par_movie,only:SAVE_DISPLACEMENT
   implicit none
 
   integer,intent(in) :: iglob,ispec
-  real(kind=CUSTOM_REAL),dimension(NDIM),intent(out):: veloc_val
+  real(kind=CUSTOM_REAL),dimension(NDIM),intent(out):: val_vector
 
   ! local parameters
-  real(kind=CUSTOM_REAL),dimension(NDIM,NGLLX,NGLLY,NGLLZ):: veloc_element
+  real(kind=CUSTOM_REAL),dimension(NDIM,NGLLX,NGLLY,NGLLZ):: val_element
   integer :: i,j,k
 
   ! returns first element encountered for iglob index
   if( ELASTIC_SIMULATION ) then
     if( ispec_is_elastic(ispec) ) then
-      if( SIMULATION_TYPE == 3 ) then
-        ! to display re-constructed wavefield
-        !veloc_val(:) = b_veloc(:,iglob)
-        ! to display adjoint wavefield
-        veloc_val(:) = veloc(:,iglob)
+      if(SAVE_DISPLACEMENT) then
+        if( SIMULATION_TYPE == 3 ) then
+          ! to display re-constructed wavefield
+          !val_vector(:) = b_displ(:,iglob)
+          ! to display adjoint wavefield
+          val_vector(:) = displ(:,iglob)
+        else
+          val_vector(:) = displ(:,iglob)
+        endif
       else
-        veloc_val(:) = veloc(:,iglob)
+        if( SIMULATION_TYPE == 3 ) then
+          ! to display re-constructed wavefield
+          !val_vector(:) = b_veloc(:,iglob)
+          ! to display adjoint wavefield
+          val_vector(:) = veloc(:,iglob)
+        else
+          val_vector(:) = veloc(:,iglob)
+        endif
       endif
 
       ! returns with this result
@@ -871,20 +885,38 @@
 
   if( ACOUSTIC_SIMULATION ) then
     if( ispec_is_acoustic(ispec) ) then
-      if( SIMULATION_TYPE == 3 ) then
-        ! velocity vector for backward/reconstructed wavefield
-        call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
-                          b_potential_dot_acoustic, veloc_element,&
+      if(SAVE_DISPLACEMENT) then
+        if( SIMULATION_TYPE == 3 ) then
+          ! displacement vector from backward potential
+          call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
+                          b_potential_acoustic, val_element,&
                           hprime_xx,hprime_yy,hprime_zz, &
                           xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                          ibool,rhostore)
+                          ibool,rhostore,GRAVITY)
+        else
+          ! displacement vector
+          call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
+                          potential_acoustic, val_element,&
+                          hprime_xx,hprime_yy,hprime_zz, &
+                          xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
+                          ibool,rhostore,GRAVITY)
+        endif
       else
-        ! velocity vector
-        call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
-                          potential_dot_acoustic, veloc_element,&
+        if( SIMULATION_TYPE == 3 ) then
+          ! velocity vector for backward/reconstructed wavefield
+          call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
+                          b_potential_dot_acoustic, val_element,&
                           hprime_xx,hprime_yy,hprime_zz, &
                           xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                          ibool,rhostore)
+                          ibool,rhostore,GRAVITY)
+        else
+          ! velocity vector
+          call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
+                          potential_dot_acoustic, val_element,&
+                          hprime_xx,hprime_yy,hprime_zz, &
+                          xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
+                          ibool,rhostore,GRAVITY)
+        endif
       endif
 
       ! returns corresponding iglob velocity entry
@@ -892,7 +924,7 @@
         do j=1,NGLLY
           do i=1,NGLLX
             if( ibool(i,j,k,ispec) == iglob ) then
-              veloc_val(:) = veloc_element(:,i,j,k)
+              val_vector(:) = val_element(:,i,j,k)
               return
             endif
           enddo

@@ -76,6 +76,13 @@
     endif
 
     write(IMAIN,*)
+    if(GRAVITY) then
+      write(IMAIN,*) 'incorporating gravity'
+    else
+      write(IMAIN,*) 'no gravity'
+    endif
+
+    write(IMAIN,*)
     if(ACOUSTIC_SIMULATION) then
       write(IMAIN,*) 'incorporating acoustic simulation'
     else
@@ -163,6 +170,9 @@
 
   ! prepares attenuation arrays
   call prepare_timerun_attenuation()
+
+  ! prepares gravity arrays
+  call prepare_timerun_gravity()
 
   ! initializes PML arrays
   if( ABSORBING_CONDITIONS  ) then
@@ -404,6 +414,98 @@
   endif
 
   end subroutine prepare_timerun_attenuation
+
+!
+!-------------------------------------------------------------------------------------------------
+!
+
+  subroutine prepare_timerun_gravity()
+
+! precomputes gravity factors
+
+  use specfem_par
+  use specfem_par_acoustic
+  use specfem_par_elastic
+  use specfem_par_poroelastic
+  implicit none
+
+  ! local parameters
+  double precision RICB,RCMB,RTOPDDOUBLEPRIME, &
+    R80,R220,R400,R600,R670,R771,RMOHO,RMIDDLE_CRUST,ROCEAN
+  double precision :: rspl_gravity(NR),gspl(NR),gspl2(NR)
+  double precision :: radius,g,dg ! radius_km
+  !double precision :: g_cmb_dble,g_icb_dble
+  double precision :: rho,drhodr,vp,vs,Qkappa,Qmu
+  integer :: nspl_gravity !int_radius
+  integer :: i,j,k,iglob,ier
+
+  ! sets up weights needed for integration of gravity
+  do k=1,NGLLZ
+    do j=1,NGLLY
+      do i=1,NGLLX
+        wgll_cube(i,j,k) = sngl( wxgll(i)*wygll(j)*wzgll(k) )
+      enddo
+    enddo
+  enddo
+
+  ! store g, rho and dg/dr=dg using normalized radius in lookup table every 100 m
+  ! get density and velocity from PREM model using dummy doubling flag
+  ! this assumes that the gravity perturbations are small and smooth
+  ! and that we can neglect the 3D model and use PREM every 100 m in all cases
+  ! this is probably a rather reasonable assumption
+  if(GRAVITY) then
+
+    ! allocates gravity arrays
+    allocate( minus_deriv_gravity(NGLOB_AB), &
+             minus_g(NGLOB_AB), stat=ier)
+    if( ier /= 0 ) stop 'error allocating gravity arrays'
+
+    ! sets up spline table
+    call make_gravity(nspl_gravity,rspl_gravity,gspl,gspl2, &
+                          ROCEAN,RMIDDLE_CRUST,RMOHO,R80,R220,R400,R600,R670, &
+                          R771,RTOPDDOUBLEPRIME,RCMB,RICB)
+
+    ! pre-calculates gravity terms for all global points
+    do iglob = 1,NGLOB_AB
+
+      ! normalized radius ( zstore values given in m, negative values for depth)
+      radius = ( R_EARTH + zstore(iglob) ) / R_EARTH
+      call spline_evaluation(rspl_gravity,gspl,gspl2,nspl_gravity,radius,g)
+
+      ! use PREM density profile to calculate gravity (fine for other 1D models)
+      call model_prem_iso(radius,rho,drhodr,vp,vs,Qkappa,Qmu, &
+                        RICB,RCMB,RTOPDDOUBLEPRIME, &
+                        R600,R670,R220,R771,R400,R80,RMOHO,RMIDDLE_CRUST,ROCEAN)
+
+      ! re-dimensionalize
+      radius = radius * R_EARTH ! in m
+      vp = vp * R_EARTH*dsqrt(PI*GRAV*RHOAV)  ! in m / s
+      rho = rho  * RHOAV  ! in kg / m^3
+      g = g * R_EARTH*(PI*GRAV*RHOAV) ! in m / s^2 ( should be around 10 m/s^2 )
+
+      dg = 4.0d0*rho - 2.0d0*g/radius
+
+      minus_deriv_gravity(iglob) = - dg
+      minus_g(iglob) = - g ! in negative z-direction - g ! / vp**2
+
+      ! debug
+      !if( iglob == 1 .or. iglob == 1000 .or. iglob == 10000 ) then
+      !  print*,'gravity: radius=',radius,'g=',g,'depth=',radius-R_EARTH
+      !  print*,'vp=',vp,'rho=',rho,'kappa=',(vp**2) * rho
+      !  print*,'minus_g..=',minus_g(iglob)
+      !endif
+    enddo
+
+  else
+
+    ! allocates dummy gravity arrays
+    allocate( minus_deriv_gravity(0), &
+             minus_g(0), stat=ier)
+    if( ier /= 0 ) stop 'error allocating gravity arrays'
+
+  endif
+
+  end subroutine prepare_timerun_gravity
 
 
 !
@@ -871,6 +973,11 @@
                                   mask_noise,free_surface_jacobian2Dw)
 
   endif ! NOISE_TOMOGRAPHY
+
+  ! prepares gravity arrays
+  call prepare_fields_gravity_device(Mesh_pointer,GRAVITY, &
+                                    minus_deriv_gravity,minus_g,wgll_cube,&
+                                    ACOUSTIC_SIMULATION,rhostore)
 
   ! sends initial data to device
 

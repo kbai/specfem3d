@@ -54,8 +54,8 @@ __global__ void compute_stacey_acoustic_kernel(realw* potential_dot_acoustic,
                                                int num_abs_boundary_faces,
                                                realw* b_potential_dot_acoustic,
                                                realw* b_potential_dot_dot_acoustic,
-                                               realw* b_absorb_potential
-                                               ) {
+                                               realw* b_absorb_potential,
+                                               int gravity) {
 
   int igll = threadIdx.x;
   int iface = blockIdx.x + gridDim.x*blockIdx.y;
@@ -63,7 +63,7 @@ __global__ void compute_stacey_acoustic_kernel(realw* potential_dot_acoustic,
   int i,j,k,iglob,ispec;
   realw rhol,kappal,cpl;
   realw jacobianw;
-
+  realw vel;
 
   // don't compute points outside NGLLSQUARE==NGLL2==25
   // way 2: no further check needed since blocksize = 25
@@ -88,18 +88,29 @@ __global__ void compute_stacey_acoustic_kernel(realw* potential_dot_acoustic,
 
       cpl = sqrt( kappal / rhol );
 
+      // velocity
+      if( gravity ){
+        // daniel: TODO - check stacey here...
+        // uses a potential definition of: s = grad(chi)
+        vel = potential_dot_acoustic[iglob] / rhol ;
+      }else{
+        // uses a potential definition of: s = 1/rho grad(chi)
+        vel = potential_dot_acoustic[iglob] / rhol;
+      }
+
       // gets associated, weighted jacobian
       jacobianw = abs_boundary_jacobian2Dw[INDEX2(NGLL2,igll,iface)];
 
       // Sommerfeld condition
-      atomicAdd(&potential_dot_dot_acoustic[iglob],-potential_dot_acoustic[iglob]*jacobianw/cpl/rhol);
+      atomicAdd(&potential_dot_dot_acoustic[iglob],-vel*jacobianw/cpl);
 
       // adjoint simulations
       if( SIMULATION_TYPE == 3 ){
         // Sommerfeld condition
         atomicAdd(&b_potential_dot_dot_acoustic[iglob],-b_absorb_potential[INDEX2(NGLL2,igll,iface)]);
       }else if( SIMULATION_TYPE == 1 && SAVE_FORWARD ){
-         b_absorb_potential[INDEX2(NGLL2,igll,iface)] = potential_dot_acoustic[iglob]*jacobianw/cpl/rhol;
+        // saves boundary values
+        b_absorb_potential[INDEX2(NGLL2,igll,iface)] = vel*jacobianw/cpl;
       }
     }
 //  }
@@ -164,7 +175,8 @@ TRACE("compute_stacey_acoustic_cuda");
                                                    mp->d_num_abs_boundary_faces,
                                                    mp->d_b_potential_dot_acoustic,
                                                    mp->d_b_potential_dot_dot_acoustic,
-                                                   mp->d_b_absorb_potential);
+                                                   mp->d_b_absorb_potential,
+                                                   mp->gravity);
 
   //  adjoint simulations: stores absorbed wavefield part
   if (SIMULATION_TYPE == 1 && SAVE_FORWARD && mp->d_num_abs_boundary_faces > 0 ){

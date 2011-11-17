@@ -68,24 +68,23 @@
   ! local variables
   integer :: nb_colors
 
-  ! coloring algorithm
+  ! coloring algorithm w/ Droux
   call get_color_faster(ibool, is_on_a_slice_edge, ispec_is_d, &
                         myrank, nspec, nglob, &
                         color, nb_colors_outer_elements, nb_colors_inner_elements, &
                         nspec_outer,nspec_inner,nspec_domain)
 
-  !debug
-  !if(myrank == 0) then
-  !  print*, 'rank :',myrank,' - colors:'
-  !  print*, '   number of colors for inner elements = ',nb_colors_inner_elements
-  !  print*, '   number of colors for outer elements = ',nb_colors_outer_elements
-  !  print*, '   total number of colors (sum of both) = ', nb_colors_inner_elements + nb_colors_outer_elements
-  !  print*, 'rank :',myrank,' - elements:'
-  !  print*, '   number of elements for outer elements  = ',nspec_outer
-  !  print*, '   number of elements for inner elements  = ',nspec_inner
-  !  print*, '   total number of elements for domain elements  = ',nspec_domain
-  !endif
-  !if(myrank == 0) print*, '  generating the final colors'
+  !debug output
+  if(myrank == 0) then
+    write(IMAIN,*) '     colors:'
+    write(IMAIN,*) '     number of colors for inner elements = ',nb_colors_inner_elements
+    write(IMAIN,*) '     number of colors for outer elements = ',nb_colors_outer_elements
+    write(IMAIN,*) '     total number of colors (sum of both) = ', nb_colors_inner_elements + nb_colors_outer_elements
+    write(IMAIN,*) '     elements:'
+    write(IMAIN,*) '     number of elements for outer elements  = ',nspec_outer
+    write(IMAIN,*) '     number of elements for inner elements  = ',nspec_inner
+    write(IMAIN,*) '     total number of elements for domain elements  = ',nspec_domain
+  endif
 
   ! total number of colors used
   nb_colors = nb_colors_inner_elements+nb_colors_outer_elements
@@ -96,8 +95,6 @@
                      nspec,nb_colors,nb_colors_outer_elements, &
                      ispec_is_d,nspec_domain)
 
-  !debug
-  !if(myrank == 0) print*, '  done with mesh coloring and inner/outer element splitting'
 
   end subroutine get_perm_color_faster
 
@@ -130,10 +127,24 @@
   integer :: icolor, nb_already_colored
   integer :: iglob1,iglob2,iglob3,iglob4,iglob5,iglob6,iglob7,iglob8
   logical :: conflict_found_need_new_color
+  !! DK DK Nov 2011 added this
+  ! Droux
+  logical, dimension(:), allocatable :: icolor_conflict_found
+  integer, dimension(:), allocatable :: nb_elems_in_this_color
+  logical :: try_Droux_coloring
+  integer :: ispec2,ncolors,icolormin,icolormax,icolor_chosen,nb_elems_in_color_chosen
+  integer :: nb_tries_of_Droux_1993,last_ispec_studied
+  ! valence
+  integer, dimension(:), allocatable :: count_ibool
+  integer :: maxval_count_ibool_outer,maxval_count_ibool_inner
 
   ! user output
   if( myrank == 0 ) then
-    write(IMAIN,*) '     fast coloring mesh algorithm'
+    if( USE_DROUX_OPTIMIZATION ) then
+      write(IMAIN,*) '     fast coloring mesh algorithm w/ Droux optimization'
+    else
+      write(IMAIN,*) '     fast coloring mesh algorithm'
+    endif
   endif
 
   ! counts number of elements for inner, outer and total domain
@@ -167,16 +178,24 @@
   !  print *
   !endif
 
-  ! first set color of all elements to 0
+  ! Droux optimization
+  try_Droux_coloring = USE_DROUX_OPTIMIZATION
+  nb_tries_of_Droux_1993 = 1
+
+  ! entry point for fail-safe mechanism when Droux 1993 fails
+  999 continue
+
+  ! first set color of all elements to 0,
+  ! to use it as a flag to detect elements not yet colored
   color(:) = 0
   icolor = 0
   nb_already_colored = 0
 
   ! colors outer elements
   do while( nb_already_colored < nspec_outer )
-    icolor = icolor + 1
 
     333 continue
+    icolor = icolor + 1
 
     ! debug: user output
     !if(myrank == 0) then
@@ -232,7 +251,6 @@
     !endif
 
     if(conflict_found_need_new_color) then
-      icolor = icolor + 1
       if( icolor >= MAX_NUMBER_OF_COLORS ) stop 'error MAX_NUMBER_OF_COLORS too small'
       goto 333
     endif
@@ -242,9 +260,10 @@
 
   ! colors inner elements
   do while(nb_already_colored < nspec_domain)
-    icolor = icolor + 1
 
     334 continue
+    icolor = icolor + 1
+
     !if(myrank == 0) print *,'analyzing color ',icolor,' for all the elements of the mesh'
 
     ! debug: user output
@@ -300,7 +319,6 @@
     !endif
 
     if(conflict_found_need_new_color) then
-      icolor = icolor + 1
       if( icolor >= MAX_NUMBER_OF_COLORS ) stop 'error MAX_NUMBER_OF_COLORS too small'
       goto 334
     endif
@@ -308,12 +326,234 @@
 
   nb_colors_inner_elements = icolor - nb_colors_outer_elements
 
-  ! debug
-  !if(myrank == 0) then
-  !  print *
-  !  print *,'  created a total of ',maxval(color),' colors in this domain' ! 'for all the domain elements of the mesh'
-  !  print *
-  !endif
+!!!!!!!!!! DK DK Nov 2011 added this to create more balanced colors according to JJ Droux (1993)
+
+  ! Droux optimization: might not find an optimial solution.
+  ! we will probably have to try a few times with increasing colors
+  if(try_Droux_coloring) then
+
+    ! debug outupt
+    if( myrank == 0 ) then
+      write(IMAIN,*) '     fast algorithm: number of outer element colors = ',nb_colors_outer_elements
+      write(IMAIN,*) '     fast algorithm: number of inner element colors = ',nb_colors_inner_elements,' total:', &
+        nb_colors_outer_elements + nb_colors_inner_elements
+      write(IMAIN,*) '     fast algorithm: number of total colors = ',nb_colors_outer_elements + nb_colors_inner_elements
+    endif
+
+    !! DK DK Nov 2011: give a lower bound for the number of colors needed
+    allocate( count_ibool(nglob))
+
+    ! valence numbers of the mesh
+    maxval_count_ibool_outer = 0
+    maxval_count_ibool_inner = 0
+
+    ! valence for outer elements
+    count_ibool(:) = 0
+    do ispec = 1,nspec
+      ! domain elements only
+      if(ispec_is_d(ispec)) then
+        ! outer elements
+        if (is_on_a_slice_edge(ispec)) then
+          ! the eight corners of the current element
+          iglob1=ibool(1,1,1,ispec)
+          iglob2=ibool(NGLLX,1,1,ispec)
+          iglob3=ibool(NGLLX,NGLLY,1,ispec)
+          iglob4=ibool(1,NGLLY,1,ispec)
+          iglob5=ibool(1,1,NGLLZ,ispec)
+          iglob6=ibool(NGLLX,1,NGLLZ,ispec)
+          iglob7=ibool(NGLLX,NGLLY,NGLLZ,ispec)
+          iglob8=ibool(1,NGLLY,NGLLZ,ispec)
+
+          count_ibool(iglob1) = count_ibool(iglob1) + 1
+          count_ibool(iglob2) = count_ibool(iglob2) + 1
+          count_ibool(iglob3) = count_ibool(iglob3) + 1
+          count_ibool(iglob4) = count_ibool(iglob4) + 1
+          count_ibool(iglob5) = count_ibool(iglob5) + 1
+          count_ibool(iglob6) = count_ibool(iglob6) + 1
+          count_ibool(iglob7) = count_ibool(iglob7) + 1
+          count_ibool(iglob8) = count_ibool(iglob8) + 1
+        endif
+      endif
+    enddo
+    maxval_count_ibool_outer = maxval(count_ibool)
+
+    ! valence for inner elements
+    count_ibool(:) = 0
+    do ispec = 1,nspec
+      ! domain elements only
+      if(ispec_is_d(ispec)) then
+        ! inner elements
+        if (.not. is_on_a_slice_edge(ispec)) then
+          ! the eight corners of the current element
+          iglob1=ibool(1,1,1,ispec)
+          iglob2=ibool(NGLLX,1,1,ispec)
+          iglob3=ibool(NGLLX,NGLLY,1,ispec)
+          iglob4=ibool(1,NGLLY,1,ispec)
+          iglob5=ibool(1,1,NGLLZ,ispec)
+          iglob6=ibool(NGLLX,1,NGLLZ,ispec)
+          iglob7=ibool(NGLLX,NGLLY,NGLLZ,ispec)
+          iglob8=ibool(1,NGLLY,NGLLZ,ispec)
+
+          count_ibool(iglob1) = count_ibool(iglob1) + 1
+          count_ibool(iglob2) = count_ibool(iglob2) + 1
+          count_ibool(iglob3) = count_ibool(iglob3) + 1
+          count_ibool(iglob4) = count_ibool(iglob4) + 1
+          count_ibool(iglob5) = count_ibool(iglob5) + 1
+          count_ibool(iglob6) = count_ibool(iglob6) + 1
+          count_ibool(iglob7) = count_ibool(iglob7) + 1
+          count_ibool(iglob8) = count_ibool(iglob8) + 1
+        endif
+      endif
+    enddo
+    maxval_count_ibool_inner = maxval(count_ibool)
+
+    ! debug outupt
+    if( myrank == 0 ) then
+      write(IMAIN,*) '     maximum valence (i.e. minimum possible nb of colors) for outer = ',maxval_count_ibool_outer
+      write(IMAIN,*) '     maximum valence (i.e. minimum possible nb of colors) for inner = ',maxval_count_ibool_inner
+    endif
+
+    deallocate(count_ibool)
+
+    ! initial guess of number of colors needed
+    if( maxval_count_ibool_inner > 0 .and. maxval_count_ibool_inner < nb_colors_inner_elements ) then
+      ! uses maximum valence to estimate number of colors for Droux
+      nb_colors_inner_elements = maxval_count_ibool_inner
+    endif
+
+    !! DK DK Nov 2011: give a lower bound for the number of colors needed
+
+    !! DK DK do it for inner elements only for now
+    nb_already_colored = nspec_outer
+
+    765 continue
+
+    ! initial guess of number of colors needed
+    ncolors = nb_colors_outer_elements + nb_colors_inner_elements
+
+    ! debug output
+    if( myrank == 0 ) then
+      write(IMAIN,*) '     Droux optimization: try = ',nb_tries_of_Droux_1993,'colors = ',ncolors
+    endif
+
+    icolormin = nb_colors_outer_elements + 1
+    icolormax = ncolors
+
+    allocate(nb_elems_in_this_color(ncolors))
+    allocate(icolor_conflict_found(ncolors))
+
+    nb_elems_in_this_color(:) = 0
+    mask_ibool(:) = .false.
+    last_ispec_studied = -1
+
+    do ispec = 1,nspec
+      ! domain elements only
+      if(ispec_is_d(ispec)) then
+
+        ! only inner elements
+        if (is_on_a_slice_edge(ispec)) cycle
+
+        ! unmark the eight corners of the previously marked element
+        if(last_ispec_studied > 0) then
+          mask_ibool(ibool(1,1,1,last_ispec_studied)) = .false.
+          mask_ibool(ibool(NGLLX,1,1,last_ispec_studied)) = .false.
+          mask_ibool(ibool(NGLLX,NGLLY,1,last_ispec_studied)) = .false.
+          mask_ibool(ibool(1,NGLLY,1,last_ispec_studied)) = .false.
+          mask_ibool(ibool(1,1,NGLLZ,last_ispec_studied)) = .false.
+          mask_ibool(ibool(NGLLX,1,NGLLZ,last_ispec_studied)) = .false.
+          mask_ibool(ibool(NGLLX,NGLLY,NGLLZ,last_ispec_studied)) = .false.
+          mask_ibool(ibool(1,NGLLY,NGLLZ,last_ispec_studied)) = .false.
+        endif
+        icolor_conflict_found(icolormin:icolormax) = .false.
+
+        ! mark the eight corners of the current element
+        mask_ibool(ibool(1,1,1,ispec)) = .true.
+        mask_ibool(ibool(NGLLX,1,1,ispec)) = .true.
+        mask_ibool(ibool(NGLLX,NGLLY,1,ispec)) = .true.
+        mask_ibool(ibool(1,NGLLY,1,ispec)) = .true.
+        mask_ibool(ibool(1,1,NGLLZ,ispec)) = .true.
+        mask_ibool(ibool(NGLLX,1,NGLLZ,ispec)) = .true.
+        mask_ibool(ibool(NGLLX,NGLLY,NGLLZ,ispec)) = .true.
+        mask_ibool(ibool(1,NGLLY,NGLLZ,ispec)) = .true.
+        last_ispec_studied = ispec
+
+        if(ispec > 1) then
+          do ispec2 = 1,ispec - 1
+            ! domain elements only
+            if(ispec_is_d(ispec)) then
+
+              ! only inner elements
+              if (is_on_a_slice_edge(ispec2)) cycle
+
+              ! if conflict already found previously with this color, no need to test again
+              if (icolor_conflict_found(color(ispec2))) cycle
+
+              ! test the eight corners of the current element for a common point with element under study
+              if (mask_ibool(ibool(1,1,1,ispec2)) .or. &
+                  mask_ibool(ibool(NGLLX,1,1,ispec2)) .or. &
+                  mask_ibool(ibool(NGLLX,NGLLY,1,ispec2)) .or. &
+                  mask_ibool(ibool(1,NGLLY,1,ispec2)) .or. &
+                  mask_ibool(ibool(1,1,NGLLZ,ispec2)) .or. &
+                  mask_ibool(ibool(NGLLX,1,NGLLZ,ispec2)) .or. &
+                  mask_ibool(ibool(NGLLX,NGLLY,NGLLZ,ispec2)) .or. &
+                  mask_ibool(ibool(1,NGLLY,NGLLZ,ispec2))) &
+                icolor_conflict_found(color(ispec2)) = .true.
+            endif ! domain elements
+          enddo
+        endif
+
+        ! check if the Droux 1993 algorithm found a solution
+        if (all(icolor_conflict_found(icolormin:icolormax))) then
+          ! user output
+          !if(myrank == 0) write(IMAIN,*) '     Droux 1993 algorithm did not find any solution for ncolors = ',ncolors
+
+          ! try with one more color
+          if(nb_tries_of_Droux_1993 < MAX_NB_TRIES_OF_DROUX_1993) then
+            nb_colors_inner_elements = nb_colors_inner_elements + 1
+            deallocate(nb_elems_in_this_color)
+            deallocate(icolor_conflict_found)
+            nb_tries_of_Droux_1993 = nb_tries_of_Droux_1993 + 1
+            goto 765
+          else
+            ! fail-safe mechanism: if Droux 1993 still fails after all the tries with one more color,
+            ! then go back to my original simple and fast coloring algorithm
+            try_Droux_coloring = .false.
+            if(myrank == 0) write(IMAIN,*) '     giving up on Droux 1993 algorithm, calling fail-safe mechanism'
+            goto 999
+          endif
+        endif
+
+        ! loop on all the colors to determine the color with the smallest number
+        ! of elements and for which there is no conflict
+        nb_elems_in_color_chosen = 2147000000 ! start with extremely large unrealistic value
+        do icolor = icolormin,icolormax
+          if (.not. icolor_conflict_found(icolor) .and. nb_elems_in_this_color(icolor) < nb_elems_in_color_chosen) then
+            icolor_chosen = icolor
+            nb_elems_in_color_chosen = nb_elems_in_this_color(icolor)
+          endif
+        enddo
+
+        ! store the color finally chosen
+        color(ispec) = icolor_chosen
+        nb_elems_in_this_color(icolor_chosen) = nb_elems_in_this_color(icolor_chosen) + 1
+
+      endif ! domain elements
+    enddo
+
+    ! debug output
+    if(myrank == 0) then
+      write(IMAIN,*) '     created a total of ',maxval(color),' colors in this domain' ! 'for all the domain elements of the mesh'
+      if( nb_colors_outer_elements > 0 ) &
+        write(IMAIN,*) '     typical nb of elements per color for outer elements should be ', &
+          nspec_outer / nb_colors_outer_elements
+      if( nb_colors_inner_elements > 0 ) &
+        write(IMAIN,*) '     typical nb of elements per color for inner elements should be ', &
+          nspec_inner / nb_colors_inner_elements
+    endif
+
+  endif ! of if(try_Droux_coloring)
+
+!!!!!!!!!! DK DK Nov 2011 added this again to create more balanced colors according to JJ Droux (1993)
 
   !!!!!!!! DK DK now check that all the color sets are independent
   do icolor = 1,maxval(color)
@@ -352,24 +592,25 @@
       endif
     enddo
 
-    !debug
+    !debug output
     !if(myrank == 0) print *,'  color ',icolor,' has disjoint elements only and is therefore OK'
     !if(myrank == 0) print *,'  color ',icolor,' contains ',count(color == icolor),' elements'
   enddo
 
-  ! debug
-  !if(myrank == 0) then
-  !  print *,'  the ',maxval(color),' color sets are OK'
-  !  print *
-  !endif
+  ! debug output
+  if(myrank == 0) then
+    !print*, '     the ',maxval(color),' color sets are OK'
+  endif
 
   deallocate(mask_ibool)
 
   end subroutine get_color_faster
 
+
 !
 !-------------------------------------------------------------------------------------------------
 !
+
 
   subroutine get_final_perm(color,perm,first_elem_number_in_this_color, &
                             nspec,nb_colors,nb_colors_outer_elements, &

@@ -49,6 +49,7 @@ __constant__ realw d_wgllwgll_xy[NGLL2];
 __constant__ realw d_wgllwgll_xz[NGLL2];
 __constant__ realw d_wgllwgll_yz[NGLL2];
 
+__constant__ realw d_wgll_cube[NGLL3]; // needed only for gravity case
 
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -56,7 +57,7 @@ __constant__ realw d_wgllwgll_yz[NGLL2];
 // prepares a device array with with all inter-element edge-nodes -- this
 // is followed by a memcpy and MPI operations
 __global__ void prepare_boundary_accel_on_device(realw* d_accel, realw* d_send_accel_buffer,
-                                                 int num_interfaces_ext_mesh, 
+                                                 int num_interfaces_ext_mesh,
                                                  int max_nibool_interfaces_ext_mesh,
                                                  int* d_nibool_interfaces_ext_mesh,
                                                  int* d_ibool_interfaces_ext_mesh) {
@@ -395,16 +396,101 @@ __device__ void compute_element_att_memory(int tx,int working_element,int NSPEC,
   return;
 }
 
+/* ----------------------------------------------------------------------------------------------- */
+
+// pre-computes gravity term
+
+__device__ void compute_element_gravity(int tx,int working_element,
+                                        int* d_ibool,
+                                        realw* d_minus_g,
+                                        realw* d_minus_deriv_gravity,
+                                        realw* d_rhostore,
+                                        realw* wgll_cube,
+                                        reald jacobianl,
+                                        reald* s_dummyx_loc,
+                                        reald* s_dummyy_loc,
+                                        reald* s_dummyz_loc,
+                                        reald* sigma_xx,
+                                        reald* sigma_yy,
+                                        reald* sigma_xz,
+                                        reald* sigma_yz,
+                                        reald* rho_s_H1,
+                                        reald* rho_s_H2,
+                                        reald* rho_s_H3){
+
+  int iglob;
+  reald minus_g,minus_dg;
+  reald rhol;
+  reald gzl; // gxl,gyl,
+  reald sx_l,sy_l,sz_l;
+  reald Hxxl,Hyyl,Hzzl; //,Hxyl,Hxzl,Hyzl;
+  reald factor;
+
+  // compute non-symmetric terms for gravity
+
+  // get g, rho and dg/dr=dg
+  iglob = d_ibool[working_element*NGLL3 + tx]-1;
+
+  minus_g = d_minus_g[iglob];
+  minus_dg = d_minus_deriv_gravity[iglob];
+
+  rhol = d_rhostore[working_element*NGLL3_PADDED + tx];
+
+  // Cartesian components of the gravitational acceleration
+  //gxl = 0.f;
+  //gyl = 0.f;
+  gzl = minus_g;
+
+  // Cartesian components of gradient of gravitational acceleration
+  // H = grad g
+  // assumes g only acts in negative z-direction
+  Hxxl = 0.f;
+  Hyyl = 0.f;
+  Hzzl = minus_dg;
+  //Hxyl = 0.f;
+  //Hxzl = 0.f;
+  //Hyzl = 0.f;
+
+  // get displacement and multiply by density to compute G tensor
+  // G = rho [ sg - (s * g) I  ]
+  sx_l = rhol * s_dummyx_loc[tx]; // d_displ[iglob*3];
+  sy_l = rhol * s_dummyy_loc[tx]; // d_displ[iglob*3 + 1];
+  sz_l = rhol * s_dummyz_loc[tx]; // d_displ[iglob*3 + 2];
+
+  // compute G tensor from s . g and add to sigma (not symmetric)
+  //sigma_xx += sy_l*gyl + sz_l*gzl;
+  *sigma_xx += sz_l*gzl;
+  //sigma_yy += sx_l*gxl + sz_l*gzl;
+  *sigma_yy += sz_l*gzl;
+  //sigma_zz += sx_l*gxl + sy_l*gyl;
+
+  //sigma_xy -= sx_l*gyl;
+  //sigma_yx -= sy_l*gxl;
+
+  *sigma_xz -= sx_l*gzl;
+  //sigma_zx -= sz_l*gxl;
+
+  *sigma_yz -= sy_l*gzl;
+  //sigma_zy -= sz_l*gyl;
+
+  // precompute vector
+  factor = jacobianl * wgll_cube[tx];
+
+  //rho_s_H1 = fac1 * (sx_l * Hxxl + sy_l * Hxyl + sz_l * Hxzl);
+  //rho_s_H2 = fac1 * (sx_l * Hxyl + sy_l * Hyyl + sz_l * Hyzl);
+  //rho_s_H3 = fac1 * (sx_l * Hxzl + sy_l * Hyzl + sz_l * Hzzl);
+  // only non-zero z-direction
+  *rho_s_H1 = factor * sx_l * Hxxl ; // 0.f;
+  *rho_s_H2 = factor * sy_l * Hyyl ; // 0.f;
+  *rho_s_H3 = factor * sz_l * Hzzl ;
+
+}
 
 /* ----------------------------------------------------------------------------------------------- */
 
 // double precision temporary variables leads to 10% performance
 // decrease in Kernel_2_impl (not very much..)
 //typedef realw reald;
-
-// doesn't seem to change the performance.
-// #define MANUALLY_UNROLLED_LOOPS
-
 
 __global__ void Kernel_2_impl(int nb_blocks_to_compute,
                               int NGLOB,
@@ -448,7 +534,12 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
                               realw* d_c46store,
                               realw* d_c55store,
                               realw* d_c56store,
-                              realw* d_c66store){
+                              realw* d_c66store,
+                              int gravity,
+                              realw* d_minus_g,
+                              realw* d_minus_deriv_gravity,
+                              realw* d_rhostore,
+                              realw* wgll_cube){
 
   /* int bx = blockIdx.y*blockDim.x+blockIdx.x; //possible bug in original code*/
   int bx = blockIdx.y*gridDim.x+blockIdx.x;
@@ -477,6 +568,11 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
   reald sigma_xx,sigma_yy,sigma_zz,sigma_xy,sigma_xz,sigma_yz;
   reald epsilondev_xx_loc,epsilondev_yy_loc,epsilondev_xy_loc,epsilondev_xz_loc,epsilondev_yz_loc;
   reald c11,c12,c13,c14,c15,c16,c22,c23,c24,c25,c26,c33,c34,c35,c36,c44,c45,c46,c55,c56,c66;
+  reald sum_terms1,sum_terms2,sum_terms3;
+
+  // gravity variables
+  reald sigma_yx,sigma_zx,sigma_zy;
+  reald rho_s_H1,rho_s_H2,rho_s_H3;
 
 #ifndef MANUALLY_UNROLLED_LOOPS
     int l;
@@ -658,6 +754,7 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
       duzdyl = xiyl*tempz1l + etayl*tempz2l + gammayl*tempz3l;
       duzdzl = xizl*tempz1l + etazl*tempz2l + gammazl*tempz3l;
 
+      // precompute some sums to save CPU time
       duxdxl_plus_duydyl = duxdxl + duydyl;
       duxdxl_plus_duzdzl = duxdxl + duzdzl;
       duydyl_plus_duzdzl = duydyl + duzdzl;
@@ -753,7 +850,7 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
       }
 
       if(ATTENUATION){
-        // subtract memory variables if attenuation
+        // subtracts memory variables if attenuation
         compute_element_att_stress(tx,working_element,NSPEC,
                                    R_xx,R_yy,R_xy,R_xz,R_yz,
                                    &sigma_xx,&sigma_yy,&sigma_zz,&sigma_xy,&sigma_xz,&sigma_yz);
@@ -761,17 +858,31 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
 
       jacobianl = 1.0f / (xixl*(etayl*gammazl-etazl*gammayl)-xiyl*(etaxl*gammazl-etazl*gammaxl)+xizl*(etaxl*gammayl-etayl*gammaxl));
 
-// form the dot product with the test vector
-      s_tempx1[tx] = jacobianl * (sigma_xx*xixl + sigma_xy*xiyl + sigma_xz*xizl);
-      s_tempy1[tx] = jacobianl * (sigma_xy*xixl + sigma_yy*xiyl + sigma_yz*xizl);
+      // define symmetric components (needed for non-symmetric dot product and sigma for gravity)
+      sigma_yx = sigma_xy;
+      sigma_zx = sigma_xz;
+      sigma_zy = sigma_yz;
+
+      if( gravity ){
+        //  computes non-symmetric terms for gravity
+        compute_element_gravity(tx,working_element,d_ibool,d_minus_g,d_minus_deriv_gravity,
+                                d_rhostore,wgll_cube,jacobianl,
+                                s_dummyx_loc,s_dummyy_loc,s_dummyz_loc,
+                                &sigma_xx,&sigma_yy,&sigma_xz,&sigma_yz,
+                                &rho_s_H1,&rho_s_H2,&rho_s_H3);
+      }
+
+      // form dot product with test vector, non-symmetric form
+      s_tempx1[tx] = jacobianl * (sigma_xx*xixl + sigma_yx*xiyl + sigma_zx*xizl);
+      s_tempy1[tx] = jacobianl * (sigma_xy*xixl + sigma_yy*xiyl + sigma_zy*xizl);
       s_tempz1[tx] = jacobianl * (sigma_xz*xixl + sigma_yz*xiyl + sigma_zz*xizl);
 
-      s_tempx2[tx] = jacobianl * (sigma_xx*etaxl + sigma_xy*etayl + sigma_xz*etazl);
-      s_tempy2[tx] = jacobianl * (sigma_xy*etaxl + sigma_yy*etayl + sigma_yz*etazl);
+      s_tempx2[tx] = jacobianl * (sigma_xx*etaxl + sigma_yx*etayl + sigma_zx*etazl);
+      s_tempy2[tx] = jacobianl * (sigma_xy*etaxl + sigma_yy*etayl + sigma_zy*etazl);
       s_tempz2[tx] = jacobianl * (sigma_xz*etaxl + sigma_yz*etayl + sigma_zz*etazl);
 
-      s_tempx3[tx] = jacobianl * (sigma_xx*gammaxl + sigma_xy*gammayl + sigma_xz*gammazl);
-      s_tempy3[tx] = jacobianl * (sigma_xy*gammaxl + sigma_yy*gammayl + sigma_yz*gammazl);
+      s_tempx3[tx] = jacobianl * (sigma_xx*gammaxl + sigma_yx*gammayl + sigma_zx*gammazl);
+      s_tempy3[tx] = jacobianl * (sigma_xy*gammaxl + sigma_yy*gammayl + sigma_zy*gammazl);
       s_tempz3[tx] = jacobianl * (sigma_xz*gammaxl + sigma_yz*gammayl + sigma_zz*gammazl);
 
     }
@@ -880,34 +991,50 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
       fac2 = d_wgllwgll_xz[K*NGLLX+I];
       fac3 = d_wgllwgll_xy[J*NGLLX+I];
 
+      sum_terms1 = - (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l);
+      sum_terms2 = - (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l);
+      sum_terms3 = - (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
+
+      // adds gravity term
+      if( gravity ){
+        sum_terms1 += rho_s_H1;
+        sum_terms2 += rho_s_H2;
+        sum_terms3 += rho_s_H3;
+      }
+
 #ifdef USE_TEXTURES
-      d_accel[iglob] = tex1Dfetch(tex_accel, iglob) - (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l);
-      d_accel[iglob + NGLOB] = tex1Dfetch(tex_accel, iglob + NGLOB) - (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l);
-      d_accel[iglob + 2*NGLOB] = tex1Dfetch(tex_accel, iglob + 2*NGLOB) - (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
+      d_accel[iglob] = tex1Dfetch(tex_accel, iglob) + sum_terms1);
+      d_accel[iglob + NGLOB] = tex1Dfetch(tex_accel, iglob + NGLOB) + sum_terms2);
+      d_accel[iglob + 2*NGLOB] = tex1Dfetch(tex_accel, iglob + 2*NGLOB) + sum_terms3);
 #else
   /* OLD/To be implemented version that uses coloring to get around race condition. About 1.6x faster */
 
 
 #ifdef USE_MESH_COLORING_GPU
       // no atomic operation needed, colors don't share global points between elements
-      d_accel[iglob*3] -= (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l);
-      d_accel[iglob*3 + 1] -= (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l);
-      d_accel[iglob*3 + 2] -= (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
+      d_accel[iglob*3]     += sum_terms1;
+      d_accel[iglob*3 + 1] += sum_terms2;
+      d_accel[iglob*3 + 2] += sum_terms3;
 #else
       //mesh coloring
       if( use_mesh_coloring_gpu ){
 
        // no atomic operation needed, colors don't share global points between elements
-        d_accel[iglob*3] -= (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l);
-        d_accel[iglob*3 + 1] -= (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l);
-        d_accel[iglob*3 + 2] -= (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l);
-
+        d_accel[iglob*3]     += sum_terms1;
+        d_accel[iglob*3 + 1] += sum_terms2;
+        d_accel[iglob*3 + 2] += sum_terms3;
 
       }else{
 
-        atomicAdd(&d_accel[iglob*3],-(fac1*tempx1l + fac2*tempx2l + fac3*tempx3l));
-        atomicAdd(&d_accel[iglob*3+1],-(fac1*tempy1l + fac2*tempy2l + fac3*tempy3l));
-        atomicAdd(&d_accel[iglob*3+2],-(fac1*tempz1l + fac2*tempz2l + fac3*tempz3l));
+        // for testing purposes only: w/out atomic updates
+        //d_accel[iglob*3] -= (0.00000001f*tempx1l + 0.00000001f*tempx2l + 0.00000001f*tempx3l);
+        //d_accel[iglob*3 + 1] -= (0.00000001f*tempy1l + 0.00000001f*tempy2l + 0.00000001f*tempy3l);
+        //d_accel[iglob*3 + 2] -= (0.00000001f*tempz1l + 0.00000001f*tempz2l + 0.00000001f*tempz3l);
+
+        atomicAdd(&d_accel[iglob*3], sum_terms1);
+        atomicAdd(&d_accel[iglob*3+1], sum_terms2);
+        atomicAdd(&d_accel[iglob*3+2], sum_terms3);
+
       }
 #endif
 
@@ -1005,7 +1132,8 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
               realw* d_c46store,
               realw* d_c55store,
               realw* d_c56store,
-              realw* d_c66store){
+              realw* d_c66store,
+              realw* d_rhostore){
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("before kernel Kernel 2");
@@ -1079,8 +1207,12 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
                                   d_c46store,
                                   d_c55store,
                                   d_c56store,
-                                  d_c66store
-                                  );
+                                  d_c66store,
+                                  mp->gravity,
+                                  mp->d_minus_g,
+                                  mp->d_minus_deriv_gravity,
+                                  d_rhostore,
+                                  mp->d_wgll_cube);
 
 
   if(SIMULATION_TYPE == 3) {
@@ -1130,8 +1262,12 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
                                      d_c46store,
                                      d_c55store,
                                      d_c56store,
-                                     d_c66store
-                                     );
+                                     d_c66store,
+                                     mp->gravity,
+                                     mp->d_minus_g,
+                                     mp->d_minus_deriv_gravity,
+                                     d_rhostore,
+                                     mp->d_wgll_cube);
   }
 
   // cudaEventRecord( stop, 0 );
@@ -1281,7 +1417,8 @@ void FC_FUNC_(compute_forces_elastic_cuda,
                mp->d_c46store + color_offset,
                mp->d_c55store + color_offset,
                mp->d_c56store + color_offset,
-               mp->d_c66store + color_offset);
+               mp->d_c66store + color_offset,
+               mp->d_rhostore + color_offset);
 
       // for padded and aligned arrays
       color_offset += nb_blocks_to_compute * NGLL3_PADDED;
@@ -1354,7 +1491,8 @@ void FC_FUNC_(compute_forces_elastic_cuda,
              mp->d_c46store,
              mp->d_c55store,
              mp->d_c56store,
-             mp->d_c66store);
+             mp->d_c66store,
+             mp->d_rhostore);
   }
 }
 
@@ -1537,41 +1675,41 @@ __global__ void elastic_ocean_load_cuda_kernel(realw* accel,
   int iface = blockIdx.x + gridDim.x*blockIdx.y;
   realw nx,ny,nz;
   realw force_normal_comp,additional_term;
-  
+
   // for all faces on free surface
   if( iface < num_free_surface_faces ){
-    
+
     int ispec = free_surface_ispec[iface]-1;
-    
+
     // gets global point index
     int i = free_surface_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)] - 1; // (1,igll,iface)
     int j = free_surface_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)] - 1;
     int k = free_surface_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)] - 1;
-    
+
     int iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)] - 1;
-    
+
     //if(igll == 0 ) printf("igll %d %d %d %d\n",igll,i,j,k,iglob);
-    
+
     // only update this global point once
-    
+
     // daniel: TODO - there might be better ways to implement a mutex like below,
     //            and find a workaround to not use the temporary update array.
     //            atomicExch: returns the old value, i.e. 0 indicates that we still have to do this point
-    
+
     if( atomicExch(&updated_dof_ocean_load[iglob],1) == 0){
-      
+
       // get normal
       nx = free_surface_normal[INDEX3(NDIM,NGLL2,0,igll,iface)]; //(1,igll,iface)
       ny = free_surface_normal[INDEX3(NDIM,NGLL2,1,igll,iface)];
       nz = free_surface_normal[INDEX3(NDIM,NGLL2,2,igll,iface)];
-      
+
       // make updated component of right-hand side
       // we divide by rmass() which is 1 / M
       // we use the total force which includes the Coriolis term above
       force_normal_comp = ( accel[iglob*3]*nx + accel[iglob*3+1]*ny + accel[iglob*3+2]*nz ) / rmass[iglob];
-      
+
       additional_term = (rmass_ocean_load[iglob] - rmass[iglob]) * force_normal_comp;
-      
+
       // probably wouldn't need atomicAdd anymore, but just to be sure...
       atomicAdd(&accel[iglob*3], + additional_term * nx);
       atomicAdd(&accel[iglob*3+1], + additional_term * ny);
@@ -1586,36 +1724,36 @@ extern "C"
 void FC_FUNC_(elastic_ocean_load_cuda,
               ELASTIC_OCEAN_LOAD_CUDA)(long* Mesh_pointer_f,
                                        int* SIMULATION_TYPE) {
-  
+
   TRACE("elastic_ocean_load_cuda");
-  
+
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
-  
+
   // checks if anything to do
   if( mp->num_free_surface_faces == 0 ) return;
-  
+
   // block sizes: exact blocksize to match NGLLSQUARE
   int blocksize = NGLL2;
-  
+
   int num_blocks_x = mp->num_free_surface_faces;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
     num_blocks_x = ceil(num_blocks_x/2.0);
     num_blocks_y = num_blocks_y*2;
   }
-  
+
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
-  
-  
+
+
   // initializes temporary array to zero
   print_CUDA_error_if_any(cudaMemset(mp->d_updated_dof_ocean_load,0,
                                      sizeof(int)*mp->NGLOB_AB),88501);
-  
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("before kernel elastic_ocean_load_cuda");
 #endif
-  
+
   elastic_ocean_load_cuda_kernel<<<grid,threads>>>(mp->d_accel,
                                                    mp->d_rmass,
                                                    mp->d_rmass_ocean_load,
@@ -1630,7 +1768,7 @@ void FC_FUNC_(elastic_ocean_load_cuda,
     // re-initializes array
     print_CUDA_error_if_any(cudaMemset(mp->d_updated_dof_ocean_load,0,
                                        sizeof(int)*mp->NGLOB_AB),88502);
-    
+
     elastic_ocean_load_cuda_kernel<<<grid,threads>>>(mp->d_b_accel,
                                                      mp->d_rmass,
                                                      mp->d_rmass_ocean_load,
@@ -1640,10 +1778,10 @@ void FC_FUNC_(elastic_ocean_load_cuda,
                                                      mp->d_free_surface_normal,
                                                      mp->d_ibool,
                                                      mp->d_updated_dof_ocean_load);
-    
+
   }
-  
-  
+
+
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("elastic_ocean_load_cuda");
 #endif
@@ -1824,6 +1962,23 @@ void setConst_wgllwgll_yz(realw* array,Mesh* mp)
   err = cudaGetSymbolAddress((void**)&(mp->d_wgllwgll_yz),"d_wgllwgll_yz");
   if(err != cudaSuccess) {
     fprintf(stderr, "Error with d_wgllwgll_yz: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }
+
+}
+
+void setConst_wgll_cube(realw* array,Mesh* mp)
+{
+  cudaError_t err = cudaMemcpyToSymbol(d_wgll_cube, array, NGLL3*sizeof(realw));
+  if (err != cudaSuccess)
+  {
+    fprintf(stderr, "Error in setConst_wgll_cube: %s\n", cudaGetErrorString(err));
+    exit(1);
+  }
+  //mp->d_wgll_cube = d_wgll_cube;
+  err = cudaGetSymbolAddress((void**)&(mp->d_wgll_cube),"d_wgll_cube");
+  if(err != cudaSuccess) {
+    fprintf(stderr, "Error with d_wgll_cube: %s\n", cudaGetErrorString(err));
     exit(1);
   }
 

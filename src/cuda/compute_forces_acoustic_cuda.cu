@@ -256,7 +256,11 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,
                                        realw* hprime_xx, realw* hprime_yy, realw* hprime_zz,
                                        realw* hprimewgll_xx, realw* hprimewgll_yy, realw* hprimewgll_zz,
                                        realw* wgllwgll_xy,realw* wgllwgll_xz,realw* wgllwgll_yz,
-                                       realw* d_rhostore){
+                                       realw* d_rhostore,
+                                       int gravity,
+                                       realw* minus_g,
+                                       realw* d_kappastore,
+                                       realw* wgll_cube){
 
   int bx = blockIdx.y*gridDim.x+blockIdx.x;
   int tx = threadIdx.x;
@@ -268,64 +272,68 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,
   int J = ((tx-K*NGLL2)/NGLLX);
   int I = (tx-K*NGLL2-J*NGLLX);
 
-  int active,offset,offset1,offset2,offset3;
+  int active,offset;
   int iglob = 0;
   int working_element;
   reald temp1l,temp2l,temp3l;
   reald xixl,xiyl,xizl,etaxl,etayl,etazl,gammaxl,gammayl,gammazl,jacobianl;
   reald dpotentialdxl,dpotentialdyl,dpotentialdzl;
-  reald fac1,fac2,fac3,rho_invl;
+  reald fac1,fac2,fac3;
+  reald rho_invl,kappa_invl;
+  reald sum_terms;
+  reald gravity_term;
 
 #ifndef MANUALLY_UNROLLED_LOOPS
-    int l;
-    realw hp1,hp2,hp3;
+  int l;
+  int offset1,offset2,offset3;
+  realw hp1,hp2,hp3;
 #endif
 
-    __shared__ reald s_dummy_loc[NGLL3];
+  __shared__ reald s_dummy_loc[NGLL3];
 
-    __shared__ reald s_temp1[NGLL3];
-    __shared__ reald s_temp2[NGLL3];
-    __shared__ reald s_temp3[NGLL3];
+  __shared__ reald s_temp1[NGLL3];
+  __shared__ reald s_temp2[NGLL3];
+  __shared__ reald s_temp3[NGLL3];
 
 // use only NGLL^3 = 125 active threads, plus 3 inactive/ghost threads,
 // because we used memory padding from NGLL^3 = 125 to 128 to get coalescent memory accesses
-    active = (tx < NGLL3 && bx < nb_blocks_to_compute) ? 1:0;
+  active = (tx < NGLL3 && bx < nb_blocks_to_compute) ? 1:0;
 
 // copy from global memory to shared memory
 // each thread writes one of the NGLL^3 = 125 data points
-    if (active) {
+  if (active) {
 
 #ifdef USE_MESH_COLORING_GPU
-      working_element = bx;
+    working_element = bx;
 #else
-      //mesh coloring
-      if( use_mesh_coloring_gpu ){
-        working_element = bx;
-      }else{
-        // iphase-1 and working_element-1 for Fortran->C array conventions
-        working_element = d_phase_ispec_inner_acoustic[bx + num_phase_ispec_acoustic*(d_iphase-1)]-1;
-      }
+    //mesh coloring
+    if( use_mesh_coloring_gpu ){
+      working_element = bx;
+    }else{
+      // iphase-1 and working_element-1 for Fortran->C array conventions
+      working_element = d_phase_ispec_inner_acoustic[bx + num_phase_ispec_acoustic*(d_iphase-1)]-1;
+    }
 #endif
 
-      // iglob = d_ibool[working_element*NGLL3_ALIGN + tx]-1;
-      iglob = d_ibool[working_element*NGLL3 + tx]-1;
+    // iglob = d_ibool[working_element*NGLL3_ALIGN + tx]-1;
+    iglob = d_ibool[working_element*NGLL3 + tx]-1;
 
 #ifdef USE_TEXTURES
-      s_dummy_loc[tx] = tex1Dfetch(tex_potential_acoustic, iglob);
+    s_dummy_loc[tx] = tex1Dfetch(tex_potential_acoustic, iglob);
 #else
-  // changing iglob indexing to match fortran row changes fast style
-      s_dummy_loc[tx] = d_potential_acoustic[iglob];
+    // changing iglob indexing to match fortran row changes fast style
+    s_dummy_loc[tx] = d_potential_acoustic[iglob];
 #endif
-    }
+  }
 
 // synchronize all the threads (one thread for each of the NGLL grid points of the
 // current spectral element) because we need the whole element to be ready in order
 // to be able to compute the matrix products along cut planes of the 3D element below
-    __syncthreads();
+  __syncthreads();
 
 #ifndef MAKE_KERNEL2_BECOME_STUPID_FOR_TESTS
 
-    if (active) {
+  if (active) {
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
 //      if(iglob == 0 )printf("kernel 2: iglob %i  hprime_xx %f %f %f \n",iglob,hprime_xx[0],hprime_xx[1],hprime_xx[2]);
@@ -334,161 +342,177 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,
 
 #ifndef MANUALLY_UNROLLED_LOOPS
 
-        temp1l = 0.f;
-        temp2l = 0.f;
-        temp3l = 0.f;
+    temp1l = 0.f;
+    temp2l = 0.f;
+    temp3l = 0.f;
 
+    for (l=0;l<NGLLX;l++) {
+        hp1 = hprime_xx[l*NGLLX+I];
+        offset1 = K*NGLL2+J*NGLLX+l;
+        temp1l += s_dummy_loc[offset1]*hp1;
 
-        for (l=0;l<NGLLX;l++) {
-            hp1 = hprime_xx[l*NGLLX+I];
-            offset1 = K*NGLL2+J*NGLLX+l;
-            temp1l += s_dummy_loc[offset1]*hp1;
+        //no more assumes that hprime_xx = hprime_yy = hprime_zz
+        hp2 = hprime_yy[l*NGLLX+J];
+        offset2 = K*NGLL2+l*NGLLX+I;
+        temp2l += s_dummy_loc[offset2]*hp2;
 
-            //no more assumes that hprime_xx = hprime_yy = hprime_zz
-            hp2 = hprime_yy[l*NGLLX+J];
-            offset2 = K*NGLL2+l*NGLLX+I;
-            temp2l += s_dummy_loc[offset2]*hp2;
-
-            hp3 = hprime_zz[l*NGLLX+K];
-            offset3 = l*NGLL2+J*NGLLX+I;
-            temp3l += s_dummy_loc[offset3]*hp3;
-        }
+        hp3 = hprime_zz[l*NGLLX+K];
+        offset3 = l*NGLL2+J*NGLLX+I;
+        temp3l += s_dummy_loc[offset3]*hp3;
+    }
 #else
 
-        temp1l = s_dummy_loc[K*NGLL2+J*NGLLX]*hprime_xx[I]
-                + s_dummy_loc[K*NGLL2+J*NGLLX+1]*hprime_xx[NGLLX+I]
-                + s_dummy_loc[K*NGLL2+J*NGLLX+2]*hprime_xx[2*NGLLX+I]
-                + s_dummy_loc[K*NGLL2+J*NGLLX+3]*hprime_xx[3*NGLLX+I]
-                + s_dummy_loc[K*NGLL2+J*NGLLX+4]*hprime_xx[4*NGLLX+I];
+    temp1l = s_dummy_loc[K*NGLL2+J*NGLLX]*hprime_xx[I]
+            + s_dummy_loc[K*NGLL2+J*NGLLX+1]*hprime_xx[NGLLX+I]
+            + s_dummy_loc[K*NGLL2+J*NGLLX+2]*hprime_xx[2*NGLLX+I]
+            + s_dummy_loc[K*NGLL2+J*NGLLX+3]*hprime_xx[3*NGLLX+I]
+            + s_dummy_loc[K*NGLL2+J*NGLLX+4]*hprime_xx[4*NGLLX+I];
 
-        temp2l = s_dummy_loc[K*NGLL2+I]*hprime_yy[J]
-                + s_dummy_loc[K*NGLL2+NGLLX+I]*hprime_yy[NGLLX+J]
-                + s_dummy_loc[K*NGLL2+2*NGLLX+I]*hprime_yy[2*NGLLX+J]
-                + s_dummy_loc[K*NGLL2+3*NGLLX+I]*hprime_yy[3*NGLLX+J]
-                + s_dummy_loc[K*NGLL2+4*NGLLX+I]*hprime_yy[4*NGLLX+J];
+    temp2l = s_dummy_loc[K*NGLL2+I]*hprime_yy[J]
+            + s_dummy_loc[K*NGLL2+NGLLX+I]*hprime_yy[NGLLX+J]
+            + s_dummy_loc[K*NGLL2+2*NGLLX+I]*hprime_yy[2*NGLLX+J]
+            + s_dummy_loc[K*NGLL2+3*NGLLX+I]*hprime_yy[3*NGLLX+J]
+            + s_dummy_loc[K*NGLL2+4*NGLLX+I]*hprime_yy[4*NGLLX+J];
 
-        temp3l = s_dummy_loc[J*NGLLX+I]*hprime_zz[K]
-                + s_dummy_loc[NGLL2+J*NGLLX+I]*hprime_zz[NGLLX+K]
-                + s_dummy_loc[2*NGLL2+J*NGLLX+I]*hprime_zz[2*NGLLX+K]
-                + s_dummy_loc[3*NGLL2+J*NGLLX+I]*hprime_zz[3*NGLLX+K]
-                + s_dummy_loc[4*NGLL2+J*NGLLX+I]*hprime_zz[4*NGLLX+K];
+    temp3l = s_dummy_loc[J*NGLLX+I]*hprime_zz[K]
+            + s_dummy_loc[NGLL2+J*NGLLX+I]*hprime_zz[NGLLX+K]
+            + s_dummy_loc[2*NGLL2+J*NGLLX+I]*hprime_zz[2*NGLLX+K]
+            + s_dummy_loc[3*NGLL2+J*NGLLX+I]*hprime_zz[3*NGLLX+K]
+            + s_dummy_loc[4*NGLL2+J*NGLLX+I]*hprime_zz[4*NGLLX+K];
 
 #endif
 
-        // compute derivatives of ux, uy and uz with respect to x, y and z
-        offset = working_element*NGLL3_ALIGN + tx;
+    // compute derivatives of ux, uy and uz with respect to x, y and z
+    offset = working_element*NGLL3_ALIGN + tx;
 
-        xixl = d_xix[offset];
-        xiyl = d_xiy[offset];
-        xizl = d_xiz[offset];
-        etaxl = d_etax[offset];
-        etayl = d_etay[offset];
-        etazl = d_etaz[offset];
-        gammaxl = d_gammax[offset];
-        gammayl = d_gammay[offset];
-        gammazl = d_gammaz[offset];
+    xixl = d_xix[offset];
+    xiyl = d_xiy[offset];
+    xizl = d_xiz[offset];
+    etaxl = d_etax[offset];
+    etayl = d_etay[offset];
+    etazl = d_etaz[offset];
+    gammaxl = d_gammax[offset];
+    gammayl = d_gammay[offset];
+    gammazl = d_gammaz[offset];
 
-        jacobianl = 1.f / (xixl*(etayl*gammazl-etazl*gammayl)
-                          -xiyl*(etaxl*gammazl-etazl*gammaxl)
-                          +xizl*(etaxl*gammayl-etayl*gammaxl));
+    jacobianl = 1.f / (xixl*(etayl*gammazl-etazl*gammayl)
+                      -xiyl*(etaxl*gammazl-etazl*gammaxl)
+                      +xizl*(etaxl*gammayl-etayl*gammaxl));
 
-        // derivatives of potential
-        dpotentialdxl = xixl*temp1l + etaxl*temp2l + gammaxl*temp3l;
-        dpotentialdyl = xiyl*temp1l + etayl*temp2l + gammayl*temp3l;
-        dpotentialdzl = xizl*temp1l + etazl*temp2l + gammazl*temp3l;
+    // derivatives of potential
+    dpotentialdxl = xixl*temp1l + etaxl*temp2l + gammaxl*temp3l;
+    dpotentialdyl = xiyl*temp1l + etayl*temp2l + gammayl*temp3l;
+    dpotentialdzl = xizl*temp1l + etazl*temp2l + gammazl*temp3l;
 
-        // density (reciproc)
-        rho_invl = 1.f / d_rhostore[offset];
+    // pre-computes gravity sum term
+    if( gravity ){
+      // uses potential definition: s = grad(chi)
 
-        // form the dot product with the test vector
-        s_temp1[tx] = jacobianl * rho_invl * (dpotentialdxl*xixl + dpotentialdyl*xiyl + dpotentialdzl*xizl);
-        s_temp2[tx] = jacobianl * rho_invl * (dpotentialdxl*etaxl + dpotentialdyl*etayl + dpotentialdzl*etazl);
-        s_temp3[tx] = jacobianl * rho_invl * (dpotentialdxl*gammaxl + dpotentialdyl*gammayl + dpotentialdzl*gammazl);
+      // gravity term: 1/kappa grad(chi) * g
+      // assumes that g only acts in (negative) z-direction
+      kappa_invl = 1.f / d_kappastore[working_element*NGLL3 + tx];
+
+      iglob = d_ibool[working_element*NGLL3 + tx]-1;
+      gravity_term = minus_g[iglob] * kappa_invl * jacobianl * wgll_cube[tx] * dpotentialdzl;
     }
+
+    // density (reciproc)
+    rho_invl = 1.f / d_rhostore[offset];
+
+    // form the dot product with the test vector
+    s_temp1[tx] = jacobianl * rho_invl * (dpotentialdxl*xixl + dpotentialdyl*xiyl + dpotentialdzl*xizl);
+    s_temp2[tx] = jacobianl * rho_invl * (dpotentialdxl*etaxl + dpotentialdyl*etayl + dpotentialdzl*etazl);
+    s_temp3[tx] = jacobianl * rho_invl * (dpotentialdxl*gammaxl + dpotentialdyl*gammayl + dpotentialdzl*gammazl);
+  }
 
 // synchronize all the threads (one thread for each of the NGLL grid points of the
 // current spectral element) because we need the whole element to be ready in order
 // to be able to compute the matrix products along cut planes of the 3D element below
-    __syncthreads();
+  __syncthreads();
 
-    if (active) {
+  if (active) {
 
 #ifndef MANUALLY_UNROLLED_LOOPS
 
-        temp1l = 0.f;
-        temp2l = 0.f;
-        temp3l = 0.f;
+    temp1l = 0.f;
+    temp2l = 0.f;
+    temp3l = 0.f;
 
-        for (l=0;l<NGLLX;l++) {
-            fac1 = hprimewgll_xx[I*NGLLX+l];
-            offset1 = K*NGLL2+J*NGLLX+l;
-            temp1l += s_temp1[offset1]*fac1;
+    for (l=0;l<NGLLX;l++) {
+        fac1 = hprimewgll_xx[I*NGLLX+l];
+        offset1 = K*NGLL2+J*NGLLX+l;
+        temp1l += s_temp1[offset1]*fac1;
 
-            //no more assumes hprimewgll_xx = hprimewgll_yy = hprimewgll_zz
-            fac2 = hprimewgll_yy[J*NGLLX+l];
-            offset2 = K*NGLL2+l*NGLLX+I;
-            temp2l += s_temp2[offset2]*fac2;
+        //no more assumes hprimewgll_xx = hprimewgll_yy = hprimewgll_zz
+        fac2 = hprimewgll_yy[J*NGLLX+l];
+        offset2 = K*NGLL2+l*NGLLX+I;
+        temp2l += s_temp2[offset2]*fac2;
 
-            fac3 = hprimewgll_zz[K*NGLLX+l];
-            offset3 = l*NGLL2+J*NGLLX+I;
-            temp3l += s_temp3[offset3]*fac3;
-        }
+        fac3 = hprimewgll_zz[K*NGLLX+l];
+        offset3 = l*NGLL2+J*NGLLX+I;
+        temp3l += s_temp3[offset3]*fac3;
+    }
 #else
 
-        temp1l = s_temp1[K*NGLL2+J*NGLLX]*hprimewgll_xx[I*NGLLX]
-                + s_temp1[K*NGLL2+J*NGLLX+1]*hprimewgll_xx[I*NGLLX+1]
-                + s_temp1[K*NGLL2+J*NGLLX+2]*hprimewgll_xx[I*NGLLX+2]
-                + s_temp1[K*NGLL2+J*NGLLX+3]*hprimewgll_xx[I*NGLLX+3]
-                + s_temp1[K*NGLL2+J*NGLLX+4]*hprimewgll_xx[I*NGLLX+4];
+    temp1l = s_temp1[K*NGLL2+J*NGLLX]*hprimewgll_xx[I*NGLLX]
+            + s_temp1[K*NGLL2+J*NGLLX+1]*hprimewgll_xx[I*NGLLX+1]
+            + s_temp1[K*NGLL2+J*NGLLX+2]*hprimewgll_xx[I*NGLLX+2]
+            + s_temp1[K*NGLL2+J*NGLLX+3]*hprimewgll_xx[I*NGLLX+3]
+            + s_temp1[K*NGLL2+J*NGLLX+4]*hprimewgll_xx[I*NGLLX+4];
 
 
-        temp2l = s_temp2[K*NGLL2+I]*hprimewgll_yy[J*NGLLX]
-                + s_temp2[K*NGLL2+NGLLX+I]*hprimewgll_yy[J*NGLLX+1]
-                + s_temp2[K*NGLL2+2*NGLLX+I]*hprimewgll_yy[J*NGLLX+2]
-                + s_temp2[K*NGLL2+3*NGLLX+I]*hprimewgll_yy[J*NGLLX+3]
-                + s_temp2[K*NGLL2+4*NGLLX+I]*hprimewgll_yy[J*NGLLX+4];
+    temp2l = s_temp2[K*NGLL2+I]*hprimewgll_yy[J*NGLLX]
+            + s_temp2[K*NGLL2+NGLLX+I]*hprimewgll_yy[J*NGLLX+1]
+            + s_temp2[K*NGLL2+2*NGLLX+I]*hprimewgll_yy[J*NGLLX+2]
+            + s_temp2[K*NGLL2+3*NGLLX+I]*hprimewgll_yy[J*NGLLX+3]
+            + s_temp2[K*NGLL2+4*NGLLX+I]*hprimewgll_yy[J*NGLLX+4];
 
 
-        temp3l = s_temp3[J*NGLLX+I]*hprimewgll_zz[K*NGLLX]
-                + s_temp3[NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+1]
-                + s_temp3[2*NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+2]
-                + s_temp3[3*NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+3]
-                + s_temp3[4*NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+4];
+    temp3l = s_temp3[J*NGLLX+I]*hprimewgll_zz[K*NGLLX]
+            + s_temp3[NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+1]
+            + s_temp3[2*NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+2]
+            + s_temp3[3*NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+3]
+            + s_temp3[4*NGLL2+J*NGLLX+I]*hprimewgll_zz[K*NGLLX+4];
 
 
 #endif
 
-        fac1 = wgllwgll_yz[K*NGLLX+J];
-        fac2 = wgllwgll_xz[K*NGLLX+I];
-        fac3 = wgllwgll_xy[J*NGLLX+I];
+    fac1 = wgllwgll_yz[K*NGLLX+J];
+    fac2 = wgllwgll_xz[K*NGLLX+I];
+    fac3 = wgllwgll_xy[J*NGLLX+I];
+
+    sum_terms = -(fac1*temp1l + fac2*temp2l + fac3*temp3l);
+    if( gravity ) sum_terms += gravity_term;
+
+    iglob = d_ibool[working_element*NGLL3 + tx]-1;
 
 #ifdef USE_TEXTURES
-        d_potential_dot_dot_acoustic[iglob] = tex1Dfetch(tex_potential_dot_dot_acoustic, iglob)
-                                              - (fac1*temp1l + fac2*temp2l + fac3*temp3l);
+    d_potential_dot_dot_acoustic[iglob] = tex1Dfetch(tex_potential_dot_dot_acoustic, iglob)
+                                            + sum_terms;
 #else
 
 #ifdef USE_MESH_COLORING_GPU
-      // no atomic operation needed, colors don't share global points between elements
-      d_potential_dot_dot_acoustic[iglob] -= (fac1*temp1l + fac2*temp2l + fac3*temp3l);
+    // no atomic operation needed, colors don't share global points between elements
+    d_potential_dot_dot_acoustic[iglob] += sum_terms;
 #else
-      //mesh coloring
-      if( use_mesh_coloring_gpu ){
+    //mesh coloring
+    if( use_mesh_coloring_gpu ){
 
-        // no atomic operation needed, colors don't share global points between elements
-        d_potential_dot_dot_acoustic[iglob] -= (fac1*temp1l + fac2*temp2l + fac3*temp3l);
+      // no atomic operation needed, colors don't share global points between elements
+      d_potential_dot_dot_acoustic[iglob] += sum_terms;
 
-      }else{
+    }else{
 
-        atomicAdd(&d_potential_dot_dot_acoustic[iglob],-(fac1*temp1l + fac2*temp2l + fac3*temp3l));
+      atomicAdd(&d_potential_dot_dot_acoustic[iglob],sum_terms);
 
-      }
-#endif
-
-#endif
     }
+#endif
+
+#endif
+  }
 
 #else  // of #ifndef MAKE_KERNEL2_BECOME_STUPID_FOR_TESTS
-        d_potential_dot_dot_acoustic[iglob] = 123.123f;
+  d_potential_dot_dot_acoustic[iglob] = 123.123f;
 #endif // of #ifndef MAKE_KERNEL2_BECOME_STUPID_FOR_TESTS
 }
 
@@ -507,7 +531,8 @@ void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
                        realw* d_gammax,
                        realw* d_gammay,
                        realw* d_gammaz,
-                       realw* d_rhostore)
+                       realw* d_rhostore,
+                       realw* d_kappastore)
 {
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
@@ -550,7 +575,11 @@ void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
                                                         mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz,
                                                         mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz,
                                                         mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
-                                                        d_rhostore);
+                                                        d_rhostore,
+                                                        mp->gravity,
+                                                        mp->d_minus_g,
+                                                        d_kappastore,
+                                                        mp->d_wgll_cube);
 
   if(SIMULATION_TYPE == 3) {
     Kernel_2_acoustic_impl<<< grid_2, threads_2, 0, 0 >>>(nb_blocks_to_compute,
@@ -567,7 +596,11 @@ void Kernel_2_acoustic(int nb_blocks_to_compute, Mesh* mp, int d_iphase,
                                                           mp->d_hprime_xx, mp->d_hprime_yy, mp->d_hprime_zz,
                                                           mp->d_hprimewgll_xx, mp->d_hprimewgll_yy, mp->d_hprimewgll_zz,
                                                           mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
-                                                          d_rhostore);
+                                                          d_rhostore,
+                                                          mp->gravity,
+                                                          mp->d_minus_g,
+                                                          d_kappastore,
+                                                          mp->d_wgll_cube);
   }
 
   // cudaEventRecord( stop, 0 );
@@ -660,7 +693,8 @@ void FC_FUNC_(compute_forces_acoustic_cuda,
                          mp->d_gammax + color_offset,
                          mp->d_gammay + color_offset,
                          mp->d_gammaz + color_offset,
-                         mp->d_rhostore + color_offset);
+                         mp->d_rhostore + color_offset,
+                         mp->d_kappastore + color_offset_nonpadded);
 
       // for padded and aligned arrays
       color_offset += nb_blocks_to_compute * NGLL3_PADDED;
@@ -683,7 +717,8 @@ void FC_FUNC_(compute_forces_acoustic_cuda,
                       mp->d_gammax,
                       mp->d_gammay,
                       mp->d_gammaz,
-                      mp->d_rhostore);
+                      mp->d_rhostore,
+                      mp->d_kappastore);
 
   }
 }

@@ -189,6 +189,7 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/save_adjoint_kernels.o \
 	$O/specfem3D.o \
 	$O/assemble_MPI_vector.o \
+	$O/make_gravity.o \
 	$O/noise_tomography.o 
 
 

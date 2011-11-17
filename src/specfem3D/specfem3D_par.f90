@@ -159,7 +159,8 @@ module specfem_par
   double precision :: DT
 
   logical :: ATTENUATION,USE_OLSEN_ATTENUATION, &
-            OCEANS,TOPOGRAPHY,ABSORBING_CONDITIONS,ANISOTROPY
+            OCEANS,TOPOGRAPHY,ABSORBING_CONDITIONS,ANISOTROPY, &
+            GRAVITY
 
   logical :: SAVE_FORWARD,SAVE_MESH_FILES,PRINT_SOURCE_TIME_FUNCTION
 
@@ -206,6 +207,10 @@ module specfem_par
 !!$  logical, dimension(:), allocatable :: ispec_is_regolith
 !!$  real(kind=CUSTOM_REAL) :: weight, jacobianl
 !!!! NL NL REGOLITH
+
+  ! gravity
+  real(kind=CUSTOM_REAL), dimension(:),allocatable :: minus_deriv_gravity,minus_g
+  real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ) :: wgll_cube
 
 
 ! ADJOINT parameters

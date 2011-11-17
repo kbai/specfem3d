@@ -216,15 +216,16 @@
 ! that completes an orthonormal.
   logical, parameter :: EXT_MESH_RECV_NORMAL = .false.
 
-! shakemaps and movies can not be generated during the same run. Mutually exclusive.
-  logical, parameter :: EXTERNAL_MESH_MOVIE_SURFACE = .false.
-  logical, parameter :: EXTERNAL_MESH_CREATE_SHAKEMAP = .false.
 
 !!-----------------------------------------------------------
 !!
 !! image outputs
 !!
 !!-----------------------------------------------------------
+
+! shakemaps and movies can not be generated during the same run. Mutually exclusive.
+  logical, parameter :: EXTERNAL_MESH_MOVIE_SURFACE = .false.
+  logical, parameter :: EXTERNAL_MESH_CREATE_SHAKEMAP = .false.
 
 ! plots VTK cross-section planes instead of model surface
 ! (EXPERIMENTAL feature)
@@ -256,6 +257,11 @@
 ! add mesh coloring for the GPU + MPI implementation
   logical, parameter :: USE_MESH_COLORING_GPU = .false.
   integer, parameter :: MAX_NUMBER_OF_COLORS = 10000
+
+! enhanced coloring using Droux algorithm
+! try several times with one more color before giving up
+  logical, parameter :: USE_DROUX_OPTIMIZATION = .false.
+  integer, parameter :: MAX_NB_TRIES_OF_DROUX_1993 = 15
 
 !------------------------------------------------------
 !----------- do not modify anything below -------------
@@ -358,12 +364,44 @@
 ! flag for projection from latitude/longitude to UTM, and back
   integer, parameter :: ILONGLAT2UTM = 0, IUTM2LONGLAT = 1
 
+!!-----------------------------------------------------------
+!!
+!! OCEANS load approximation
+!!
+!!-----------------------------------------------------------
 ! minimum thickness in meters to include the effect of the oceans
 ! to avoid taking into account spurious oscillations in topography model
   double precision, parameter :: MINIMUM_THICKNESS_3D_OCEANS = 10.d0
 ! density of sea water
   real(kind=CUSTOM_REAL), parameter :: RHO_OCEANS = 1020.0
 
+!!-----------------------------------------------------------
+!!
+!! GRAVITY
+!!
+!!-----------------------------------------------------------
+! gravitational constant
+  double precision, parameter :: GRAV = 6.6723d-11
+! number of layers in PREM
+  integer, parameter :: NR = 640
+! for lookup table for gravity every 100 m in radial direction of Earth model
+  integer, parameter :: NRAD_GRAVITY = 70000
+! R_EARTH is the radius of the bottom of the oceans (radius of Earth in m)
+  double precision, parameter :: R_EARTH = 6371000.d0
+! same radius in km
+  double precision, parameter :: R_EARTH_KM = R_EARTH / 1000.d0
+! radius of the Earth for gravity calculation
+  double precision, parameter :: R_EARTH_GRAVITY = 6371000.d0
+! radius of the ocean floor for gravity calculation
+  double precision, parameter :: ROCEAN_GRAVITY = 6368000.d0
+! average density in the full Earth to normalize equation
+  double precision, parameter :: RHOAV = 5514.3d0
+
+!!-----------------------------------------------------------
+!!
+!! DOMAINS
+!!
+!!-----------------------------------------------------------
 ! material domain ids
   integer, parameter :: IDOMAIN_ACOUSTIC    = 1
   integer, parameter :: IDOMAIN_ELASTIC     = 2

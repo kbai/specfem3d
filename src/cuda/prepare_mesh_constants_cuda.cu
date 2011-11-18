@@ -92,7 +92,8 @@ void exit_on_cuda_error(char* kernel_name) {
     {
       fprintf(stderr,"Error after %s: %s\n", kernel_name, cudaGetErrorString(err));
       pause_for_debugger(0);
-      exit(1);
+      free(kernel_name);
+      exit(EXIT_FAILURE);
     }
 }
 
@@ -105,6 +106,7 @@ void exit_on_error(char* info)
 #ifdef USE_MPI
   MPI_Abort(MPI_COMM_WORLD,1);
 #endif
+  free(info);
   exit(EXIT_FAILURE);
   return;
 }
@@ -119,8 +121,8 @@ void print_CUDA_error_if_any(cudaError_t err, int num)
     fflush(stdout);
 #ifdef USE_MPI
     MPI_Abort(MPI_COMM_WORLD,1);
-#endif
-    exit(0);
+#endif    
+    exit(EXIT_FAILURE);
   }
   return;
 }
@@ -135,7 +137,7 @@ void get_free_memory(double* free_db, double* used_db, double* total_db) {
   cudaError_t cuda_status = cudaMemGetInfo( &free_byte, &total_byte ) ;
   if ( cudaSuccess != cuda_status ){
     printf("Error: cudaMemGetInfo fails, %s \n", cudaGetErrorString(cuda_status) );
-    exit(1);
+    exit(EXIT_FAILURE);
   }
 
   *free_db = (double)free_byte ;
@@ -156,7 +158,7 @@ void output_free_memory(char* info_str) {
 
   get_free_memory(&free_db,&used_db,&total_db);
 
-  sprintf(filename,"../in_out_files/OUTPUT_FILES/gpu_mem_usage_proc_%06d.txt",myrank);
+  sprintf(filename,"../in_out_files/OUTPUT_FILES/gpu_device_mem_usage_proc_%06d.txt",myrank);
   fp = fopen(filename,"a+");
   fprintf(fp,"%d: @%s GPU memory usage: used = %f MB, free = %f MB, total = %f MB\n", myrank, info_str,
    used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
@@ -757,6 +759,9 @@ TRACE("prepare_constants_device");
   // number of elements per domain
   mp->nspec_acoustic = *nspec_acoustic;
   mp->nspec_elastic = *nspec_elastic;
+
+  // gravity flag initialization
+  mp->gravity = 0;
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("prepare_constants_device");

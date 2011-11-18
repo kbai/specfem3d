@@ -434,8 +434,6 @@ __device__ void compute_element_gravity(int tx,int working_element,
   minus_g = d_minus_g[iglob];
   minus_dg = d_minus_deriv_gravity[iglob];
 
-  rhol = d_rhostore[working_element*NGLL3_PADDED + tx];
-
   // Cartesian components of the gravitational acceleration
   //gxl = 0.f;
   //gyl = 0.f;
@@ -450,6 +448,8 @@ __device__ void compute_element_gravity(int tx,int working_element,
   //Hxyl = 0.f;
   //Hxzl = 0.f;
   //Hyzl = 0.f;
+
+  rhol = d_rhostore[working_element*NGLL3_PADDED + tx];
 
   // get displacement and multiply by density to compute G tensor
   // G = rho [ sg - (s * g) I  ]

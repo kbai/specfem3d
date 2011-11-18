@@ -166,15 +166,15 @@
   call get_value_string(CMTSOLUTION, 'solver.CMTSOLUTION',&
        IN_DATA_FILES_PATH(1:len_trim(IN_DATA_FILES_PATH))//'CMTSOLUTION')
 
-  open(unit=1,file=CMTSOLUTION,iostat=ios,status='old',action='read')
+  open(unit=21,file=trim(CMTSOLUTION),iostat=ios,status='old',action='read')
   if(ios /= 0) stop 'error opening CMTSOLUTION file'
 
   icounter = 0
   do while(ios == 0)
-    read(1,"(a)",iostat=ios) dummystring
+    read(21,"(a)",iostat=ios) dummystring
     if(ios == 0) icounter = icounter + 1
   enddo
-  close(1)
+  close(21)
 
   if(mod(icounter,NLINES_PER_CMTSOLUTION_SOURCE) /= 0) &
     stop 'total number of lines in CMTSOLUTION file should be a multiple of NLINES_PER_CMTSOLUTION_SOURCE'
@@ -183,27 +183,27 @@
   if(NSOURCES < 1) stop 'need at least one source in CMTSOLUTION file'
 
   ! compute the minimum value of hdur in CMTSOLUTION file
-  open(unit=1,file=CMTSOLUTION,status='old',action='read')
+  open(unit=21,file=trim(CMTSOLUTION),status='old',action='read')
   minval_hdur = HUGEVAL
   do isource = 1,NSOURCES
 
     ! skip other information
     do idummy = 1,3
-      read(1,"(a)") dummystring
+      read(21,"(a)") dummystring
     enddo
 
     ! read half duration and compute minimum
-    read(1,"(a)") dummystring
+    read(21,"(a)") dummystring
     read(dummystring(15:len_trim(dummystring)),*) hdur
     minval_hdur = min(minval_hdur,hdur)
 
     ! skip other information
     do idummy = 1,9
-      read(1,"(a)") dummystring
+      read(21,"(a)") dummystring
     enddo
 
   enddo
-  close(1)
+  close(21)
 
 ! one cannot use a Heaviside source for the movies
   if((MOVIE_SURFACE .or. MOVIE_VOLUME) .and. sqrt(minval_hdur**2 + HDUR_MOVIE**2) < TINYVAL) &

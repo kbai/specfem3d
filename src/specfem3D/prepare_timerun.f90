@@ -477,19 +477,21 @@
                         RICB,RCMB,RTOPDDOUBLEPRIME, &
                         R600,R670,R220,R771,R400,R80,RMOHO,RMIDDLE_CRUST,ROCEAN)
 
-      ! re-dimensionalize
-      radius = radius * R_EARTH ! in m
-      vp = vp * R_EARTH*dsqrt(PI*GRAV*RHOAV)  ! in m / s
-      rho = rho  * RHOAV  ! in kg / m^3
-      g = g * R_EARTH*(PI*GRAV*RHOAV) ! in m / s^2 ( should be around 10 m/s^2 )
-
       dg = 4.0d0*rho - 2.0d0*g/radius
 
+      ! re-dimensionalize
+      g = g * R_EARTH*(PI*GRAV*RHOAV) ! in m / s^2 ( should be around 10 m/s^2 )
+      dg = dg * R_EARTH*(PI*GRAV*RHOAV) / R_EARTH ! gradient d/dz g , in 1/s^2
+
       minus_deriv_gravity(iglob) = - dg
-      minus_g(iglob) = - g ! in negative z-direction - g ! / vp**2
+      minus_g(iglob) = - g ! in negative z-direction
 
       ! debug
       !if( iglob == 1 .or. iglob == 1000 .or. iglob == 10000 ) then
+      !  ! re-dimensionalize
+      !  radius = radius * R_EARTH ! in m
+      !  vp = vp * R_EARTH*dsqrt(PI*GRAV*RHOAV)  ! in m / s
+      !  rho = rho  * RHOAV  ! in kg / m^3
       !  print*,'gravity: radius=',radius,'g=',g,'depth=',radius-R_EARTH
       !  print*,'vp=',vp,'rho=',rho,'kappa=',(vp**2) * rho
       !  print*,'minus_g..=',minus_g(iglob)
@@ -981,10 +983,12 @@
   endif ! NOISE_TOMOGRAPHY
 
   ! prepares gravity arrays
-  call prepare_fields_gravity_device(Mesh_pointer,GRAVITY, &
+  if( GRAVITY ) then
+    call prepare_fields_gravity_device(Mesh_pointer,GRAVITY, &
                                     minus_deriv_gravity,minus_g,wgll_cube,&
                                     ACOUSTIC_SIMULATION,rhostore)
-
+  endif
+  
   ! sends initial data to device
 
   ! puts acoustic initial fields onto GPU

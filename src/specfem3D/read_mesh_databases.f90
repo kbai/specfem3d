@@ -186,6 +186,20 @@
     read(27) rho_vp
     read(27) rho_vs
 
+    ! checks if rhostore is available for gravity
+    if( GRAVITY ) then
+      if( .not. ACOUSTIC_SIMULATION ) then
+        ! rho array needed for gravity
+        allocate(rhostore(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
+        if( ier /= 0 ) stop 'error allocating array rhostore'
+        ! extract rho information from mu = rho * vs * vs and rho_vs = rho * vs
+        where( mustore > TINYVAL ) 
+          rhostore = (rho_vs*rho_vs) / mustore
+        elsewhere
+          rhostore(:,:,:,:) = 0.0_CUSTOM_REAL
+        endwhere
+      endif
+    endif
   else
     ! no elastic attenuation & anisotropy
     ATTENUATION = .false.

@@ -196,7 +196,7 @@
         where( mustore > TINYVAL ) 
           rhostore = (rho_vs*rho_vs) / mustore
         elsewhere
-          rhostore(:,:,:,:) = 0.0_CUSTOM_REAL
+          rhostore = 0.0_CUSTOM_REAL
         endwhere
       endif
     endif

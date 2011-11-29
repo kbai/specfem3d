@@ -92,7 +92,7 @@ void exit_on_cuda_error(char* kernel_name) {
     {
       fprintf(stderr,"Error after %s: %s\n", kernel_name, cudaGetErrorString(err));
       pause_for_debugger(0);
-      free(kernel_name);
+      //free(kernel_name);
       exit(EXIT_FAILURE);
     }
 }
@@ -106,7 +106,7 @@ void exit_on_error(char* info)
 #ifdef USE_MPI
   MPI_Abort(MPI_COMM_WORLD,1);
 #endif
-  free(info);
+  //free(info);
   exit(EXIT_FAILURE);
   return;
 }
@@ -467,9 +467,19 @@ void FC_FUNC_(prepare_cuda_device,
   if (device_count == 0) exit_on_error("CUDA runtime error: there is no device supporting CUDA\n");
   *ncuda_devices = device_count;
 
-  // Sets the active device
+
+  // Sets the active device  
   if(device_count > 1) {
     // generalized for more GPUs per node
+    // note: without previous context release, cudaSetDevice will complain with the cuda error
+    //         "setting the device when a process is active is not allowed"
+    // releases previous contexts  
+    cudaThreadExit();
+    
+    //printf("rank %d: cuda device count = %d sets device = %d \n",myrank,device_count,myrank % device_count);
+    //MPI_Barrier(MPI_COMM_WORLD);
+    
+    // sets active device
     cudaSetDevice( myrank % device_count );
     exit_on_cuda_error("cudaSetDevice");
   }

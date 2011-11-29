@@ -118,6 +118,7 @@
   real(kind=CUSTOM_REAL),dimension(:,:),allocatable :: dist_pixel_image,dist_pixel_recv
   real(kind=CUSTOM_REAL):: pixel_midpoint_x,pixel_midpoint_z,x_loc,z_loc,xtmp,ztmp
   real(kind=CUSTOM_REAL):: ratio
+  real(kind=CUSTOM_REAL):: distance_x1,distance_x2,distance_z1,distance_z2
   integer:: npgeo,npgeo_glob
   integer:: i,j,k,iproc,iglob,ispec,ier
   ! data from mesh
@@ -263,11 +264,20 @@
     NZ_IMAGE_color = NZ_IMAGE_color * zoom_factor
     zoom = .true.
   endif
-
+  
   ! create all the pixels
-  size_pixel_horizontal = (xmax_color_image - xmin_color_image) / dble(NX_IMAGE_color)
-  size_pixel_vertical = (zmax_color_image - zmin_color_image) / dble(NZ_IMAGE_color)
-
+  if( NX_IMAGE_color /= 0 ) then
+    size_pixel_horizontal = (xmax_color_image - xmin_color_image) / dble(NX_IMAGE_color)
+  else
+    size_pixel_horizontal = 0.0
+  endif
+  
+  if( NZ_IMAGE_color /= 0 ) then
+    size_pixel_vertical = (zmax_color_image - zmin_color_image) / dble(NZ_IMAGE_color)
+  else
+    size_pixel_vertical = 0.0
+  endif
+  
   if (myrank == 0) then
     write(IMAIN,*) '  image points: ',npgeo_glob
     write(IMAIN,*) '  xmin/xmax: ',xmin_color_image,'/',xmax_color_image
@@ -287,6 +297,19 @@
   iglob_image_color(:,:) = -1
   ispec_image_color(:,:) = 0
   dist_pixel_image(:,:) = HUGEVAL
+
+  if( zoom ) then
+    distance_x1 = zoom_factor*size_pixel_horizontal
+    distance_x2 = (zoom_factor+1)*size_pixel_horizontal
+    distance_z1 = zoom_factor*size_pixel_vertical
+    distance_z2 = (zoom_factor+1)*size_pixel_vertical
+  else
+    distance_x1 = 0.0
+    distance_x2 = 2.0*size_pixel_horizontal
+    distance_z1 = 0.0
+    distance_z2 = 2.0*size_pixel_vertical
+  endif
+  
   do j=1,NZ_IMAGE_color
     do i=1,NX_IMAGE_color
       ! calculates midpoint of pixel
@@ -309,15 +332,8 @@
         z_loc = zcoord(iglob)
 
         ! checks if inside pixel range for larger numbers of points, minimizing computation time
-        if( zoom ) then
-          if( x_loc < xtmp-zoom_factor*size_pixel_horizontal .or. &
-             x_loc > xtmp + (zoom_factor+1)*size_pixel_horizontal ) cycle
-          if( z_loc < ztmp-zoom_factor*size_pixel_vertical .or. &
-             z_loc > ztmp + (zoom_factor+1)*size_pixel_vertical ) cycle
-        else
-          if( x_loc < xtmp .or. x_loc > xtmp + size_pixel_horizontal ) cycle
-          if( z_loc < ztmp .or. z_loc > ztmp + size_pixel_vertical ) cycle
-        endif
+        if( x_loc < xtmp - distance_x1 .or. x_loc > xtmp + distance_x2 ) cycle
+        if( z_loc < ztmp - distance_z1 .or. z_loc > ztmp + distance_z2 ) cycle
 
         ! stores closest iglob
         x_loc = pixel_midpoint_x - x_loc

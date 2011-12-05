@@ -20,3 +20,6 @@ Change the following settings (for NOISE simulations):
 
 Settings for Eiger
 ./configure --with-cuda FC=mpif90 MPIFC=mpif90 CUDA_LIB=-L/apps/eiger/Cuda-4.0/cuda/lib64 MPI_INC=-I/apps/eiger/mvapich2/1.5.1p1/mvapich2-gnu/include
+
+Settings for todi.cscs.ch
+./configure --with-cuda FC=ftn MPIFC=ftn CUDA_LIB=-L$CUDA_HOME/lib64 MPI_INC=-I$MPICH_DIR/include

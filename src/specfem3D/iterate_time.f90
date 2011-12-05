@@ -125,13 +125,39 @@
 !
   enddo   ! end of main time loop
 
+  call it_print_elapsed_time()
+  
   ! Transfer fields from GPU card to host for further analysis
   if(GPU_MODE) call it_transfer_from_GPU()
 
   end subroutine iterate_time
 
 
-!=====================================================================
+  !=====================================================================
+  
+  subroutine it_print_elapsed_time()
+    use specfem_par
+    use specfem_par_elastic
+    use specfem_par_acoustic
+    implicit none
+
+    double precision :: tCPU,t_remain,t_total
+    integer :: ihours,iminutes,iseconds,int_tCPU, &
+         ihours_remain,iminutes_remain,iseconds_remain,int_t_remain, &
+         ihours_total,iminutes_total,iseconds_total,int_t_total
+    
+    if(myrank == 0) then
+       ! elapsed time since beginning of the simulation
+       tCPU = wtime() - time_start
+       int_tCPU = int(tCPU)
+       ihours = int_tCPU / 3600
+       iminutes = (int_tCPU - 3600*ihours) / 60
+       iseconds = int_tCPU - 3600*ihours - 60*iminutes
+       write(IMAIN,*) 'Time-Loop Complete. Timing info:'
+       write(IMAIN,*) 'Total elapsed time in seconds = ',tCPU
+       write(IMAIN,"(' Total elapsed time in hh:mm:ss = ',i4,' h ',i2.2,' m ',i2.2,' s')") ihours,iminutes,iseconds
+    endif
+  end subroutine it_print_elapsed_time
 
   subroutine it_check_stability()
 
@@ -703,7 +729,7 @@
                               SIMULATION_TYPE,SAVE_FORWARD, &
                               ACOUSTIC_SIMULATION,ELASTIC_SIMULATION, &
                               ABSORBING_CONDITIONS,NOISE_TOMOGRAPHY,COMPUTE_AND_STORE_STRAIN, &
-                              ATTENUATION,OCEANS, &
+                              ATTENUATION,ANISOTROPY,OCEANS, &
                               APPROXIMATE_HESS_KL)
 
   end subroutine it_transfer_from_GPU

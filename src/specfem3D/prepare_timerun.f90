@@ -794,7 +794,8 @@
 
     ! checks if free surface is defined
     if( num_free_surface_faces == 0 ) then
-      stop 'error: noise simulations need a free surface'
+       write(*,*) myrank, " doesn't have a free_surface_face"
+       ! stop 'error: noise simulations need a free surface'
     endif
 
     ! allocates arrays

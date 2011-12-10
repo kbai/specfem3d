@@ -23,12 +23,16 @@ Settings for Eiger
 
 Settings for todi.cscs.ch
 export GNU_FCFLAGS="-Ofast -mfpmath=sse -funroll-loops"
+export GNU_CHECK="-O3"
+export DEBUG_FLAGS="-g -fbacktrace"
 export ICC_FCFLAGS="-O3 -fp-model fast=2 -x SSE4.2 -ftz -funroll-loops -unroll5"
 export ICC_FCFLAGS="-O3 -fp-model fast=2 -funroll-loops -unroll5 -msse3 -ftree-vectorize"
 export ICC_CHECK="-O2"
 export CRAY_FCFLAGS="-eF -em -rm -O3,fp3"
 export CRAY_CHECK="-eF -em -rm"
-./configure --with-cuda CC=cc FC=ftn MPIFC=ftn MPICC=cc FLAGS_CHECK="`echo $ICC_CHECK`" FLAGS_NO_CHECK='`echo $ICC_FCFLAGS`' CUDA_LIB=-L$CUDA_HOME/lib64 MPI_INC=-I$MPICH_DIR/include
+./configure --with-cuda CC=cc FC=ftn MPIFC=ftn MPICC=cc FLAGS_CHECK="`echo $CRAY_CHECK`" FLAGS_NO_CHECK='`echo $CRAY_FCFLAGS`' CUDA_LIB=-L$CUDA_HOME/lib64 MPI_INC=-I$MPICH_DIR/include
+./configure --with-cuda CC=cc FC=ftn MPIFC=ftn MPICC=cc FLAGS_CHECK="`echo $GNU_CHECK`" FLAGS_NO_CHECK='`echo $GNU_FCFLAGS`' CUDA_LIB=-L$CUDA_HOME/lib64 MPI_INC=-I$MPICH_DIR/include
+
 
 suggested compiler options:
 intel: -O3 -fp-model fast=2 -x SSE4.2 -ftz -funroll-loops -unroll5

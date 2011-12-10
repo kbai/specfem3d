@@ -1,7 +1,7 @@
 #include "config.h"
 #include <stdio.h>
 
-typedef realw realw;
+typedef float realw;
 
 /* from check_fields_cuda.cu */
 void FC_FUNC_(check_max_norm_displ_gpu,
@@ -324,7 +324,7 @@ void FC_FUNC_(show_free_device_memory,
 void FC_FUNC_(get_free_device_memory,
               get_FREE_DEVICE_MEMORY)(realw* free, realw* used, realw* total ){}
 
-extern "C"
+
 void FC_FUNC_(prepare_cuda_device,
               PREPARE_CUDA_DEVICE)(int* myrank_f,int* ncuda_devices){}
 

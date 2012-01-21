@@ -149,15 +149,18 @@
           gammaz(NGLLX,NGLLY,NGLLZ,NSPEC_AB), &
           jacobian(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
   if( ier /= 0 ) stop 'error allocating arrays for databases'
+  
   ! mesh node locations
   allocate(xstore(NGLOB_AB), &
           ystore(NGLOB_AB), &
           zstore(NGLOB_AB),stat=ier)
-  if( ier /= 0 ) stop 'error allocating arrays for mesh nodes'
+  if( ier /= 0 ) stop 'error allocating arrays for mesh nodes'  
+  
   ! material properties
   allocate(kappastore(NGLLX,NGLLY,NGLLZ,NSPEC_AB), &
           mustore(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
   if( ier /= 0 ) stop 'error allocating arrays for material properties'
+
   ! material flags
   allocate(ispec_is_acoustic(NSPEC_AB), &
           ispec_is_elastic(NSPEC_AB), &

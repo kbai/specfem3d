@@ -70,7 +70,7 @@
       call it_check_stability()
     endif
 
-    ! update displacement using Newark time scheme
+    ! update displacement using Newmark time scheme
     call it_update_displacement_scheme()
 
     ! acoustic solver
@@ -84,7 +84,7 @@
     if( POROELASTIC_SIMULATION ) stop 'poroelastic simulation not implemented yet'
 
     ! restores last time snapshot saved for backward/reconstruction of wavefields
-    ! note: this must be read in after the Newark time scheme
+    ! note: this must be read in after the Newmark time scheme
     ! note 2: GPU b_field transfers are included
     if( SIMULATION_TYPE == 3 .and. it == 1 ) then
      call it_read_foward_arrays()
@@ -136,7 +136,7 @@
   end subroutine iterate_time
 
 
-  !=====================================================================
+!=====================================================================
   
   subroutine it_print_elapsed_time()
     use specfem_par
@@ -161,6 +161,8 @@
        write(IMAIN,"(' Total elapsed time in hh:mm:ss = ',i4,' h ',i2.2,' m ',i2.2,' s')") ihours,iminutes,iseconds
     endif
   end subroutine it_print_elapsed_time
+
+!=====================================================================
 
   subroutine it_check_stability()
 
@@ -265,7 +267,7 @@
     iseconds = int_tCPU - 3600*ihours - 60*iminutes
     write(IMAIN,*) 'Elapsed time in seconds = ',tCPU
     write(IMAIN,"(' Elapsed time in hh:mm:ss = ',i4,' h ',i2.2,' m ',i2.2,' s')") ihours,iminutes,iseconds
-    write(IMAIN,*) 'Mean elapsed time per time step in seconds = ',tCPU/dble(it)
+    write(IMAIN,*) 'Mean elapsed time per time step in seconds = ',sngl(tCPU/dble(it))
     if( ELASTIC_SIMULATION ) then
       write(IMAIN,*) 'Max norm displacement vector U in all slices (m) = ',Usolidnorm_all
     else
@@ -285,7 +287,7 @@
     iseconds_remain = int_t_remain - 3600*ihours_remain - 60*iminutes_remain
     write(IMAIN,*) 'Time steps done = ',it,' out of ',NSTEP
     write(IMAIN,*) 'Time steps remaining = ',NSTEP - it
-    write(IMAIN,*) 'Estimated remaining time in seconds = ',t_remain
+    write(IMAIN,*) 'Estimated remaining time in seconds = ',sngl(t_remain)
     write(IMAIN,"(' Estimated remaining time in hh:mm:ss = ',i4,' h ',i2.2,' m ',i2.2,' s')") &
              ihours_remain,iminutes_remain,iseconds_remain
 
@@ -295,7 +297,7 @@
     ihours_total = int_t_total / 3600
     iminutes_total = (int_t_total - 3600*ihours_total) / 60
     iseconds_total = int_t_total - 3600*ihours_total - 60*iminutes_total
-    write(IMAIN,*) 'Estimated total run time in seconds = ',t_total
+    write(IMAIN,*) 'Estimated total run time in seconds = ',sngl(t_total)
     write(IMAIN,"(' Estimated total run time in hh:mm:ss = ',i4,' h ',i2.2,' m ',i2.2,' s')") &
              ihours_total,iminutes_total,iseconds_total
     write(IMAIN,*) 'We have done ',sngl(100.d0*dble(it)/dble(NSTEP)),'% of that'
@@ -342,7 +344,7 @@
 
   subroutine it_update_displacement_scheme()
 
-! explicit Newark time scheme with acoustic & elastic domains:
+! explicit Newmark time scheme with acoustic & elastic domains:
 ! (see e.g. Hughes, 1987; Chaljub et al., 2003)
 !
 ! chi(t+delta_t) = chi(t) + delta_t chi_dot(t) + 1/2 delta_t**2 chi_dot_dot(t)
@@ -555,7 +557,7 @@
 ! note backward/reconstructed wavefields:
 !       storing wavefield displ() at time step it, corresponds to time (it-1)*DT - t0 (see routine write_seismograms_to_file )
 !       reconstucted wavefield b_displ() at it corresponds to time (NSTEP-it-1)*DT - t0
-!       we read in the reconstructed wavefield at the end of the time iteration loop, i.e. after the Newark scheme,
+!       we read in the reconstructed wavefield at the end of the time iteration loop, i.e. after the Newmark scheme,
 !       thus, indexing is NSTEP-it (rather than something like NSTEP-(it-1) )
     if (SIMULATION_TYPE == 3 .and. mod(NSTEP-it,NSTEP_Q_SAVE) == 0) then
       ! reads files content

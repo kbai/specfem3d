@@ -315,7 +315,8 @@ __device__ void compute_gradient_kernel(int ijk,
   gammazl = d_gammaz[offset];
 
   if( gravity ){
-    rho_invl = 1.0f;
+    // daniel: TODO - check gravity case here
+    rho_invl = 1.0f / rhol;
   }else{
     rho_invl = 1.0f / rhol;
   }

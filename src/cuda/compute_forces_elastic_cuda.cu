@@ -479,11 +479,17 @@ __device__ void compute_element_gravity(int tx,int working_element,
   //rho_s_H1 = fac1 * (sx_l * Hxxl + sy_l * Hxyl + sz_l * Hxzl);
   //rho_s_H2 = fac1 * (sx_l * Hxyl + sy_l * Hyyl + sz_l * Hyzl);
   //rho_s_H3 = fac1 * (sx_l * Hxzl + sy_l * Hyzl + sz_l * Hzzl);
+
   // only non-zero z-direction
   *rho_s_H1 = factor * sx_l * Hxxl ; // 0.f;
   *rho_s_H2 = factor * sy_l * Hyyl ; // 0.f;
   *rho_s_H3 = factor * sz_l * Hzzl ;
 
+  // debug
+  //*rho_s_H1 = 0.f;
+  //*rho_s_H2 = 0.f;
+  //*rho_s_H3 = 0.f ;  
+    
 }
 
 /* ----------------------------------------------------------------------------------------------- */

@@ -69,14 +69,14 @@ __global__ void compute_coupling_acoustic_el_kernel(realw* displ,
     //  if(igll<NGLL2) {
 
     // "-1" from index values to convert from Fortran-> C indexing
-    ispec = coupling_ac_el_ispec[iface]-1;
+    ispec = coupling_ac_el_ispec[iface] - 1;
 
     if(ispec_is_inner[ispec] == phase_is_inner ) {
 
       i = coupling_ac_el_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)] - 1;
       j = coupling_ac_el_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)] - 1;
       k = coupling_ac_el_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)] - 1;
-      iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)]-  1;
+      iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)] - 1;
 
       // elastic displacement on global point
       displ_x = displ[iglob*3] ; // (1,iglob)
@@ -97,7 +97,7 @@ __global__ void compute_coupling_acoustic_el_kernel(realw* displ,
 
       // continuity of pressure and normal displacement on global point
 
-      // note: newark time scheme together with definition of scalar potential:
+      // note: Newmark time scheme together with definition of scalar potential:
       //          pressure = - chi_dot_dot
       //          requires that this coupling term uses the updated displacement at time step [t+delta_t],
       //          which is done at the very beginning of the time loop
@@ -212,14 +212,14 @@ __global__ void compute_coupling_elastic_ac_kernel(realw* potential_dot_dot_acou
     //  if(igll<NGLL2) {
 
     // "-1" from index values to convert from Fortran-> C indexing
-    ispec = coupling_ac_el_ispec[iface]-1;
+    ispec = coupling_ac_el_ispec[iface] - 1;
 
     if(ispec_is_inner[ispec] == phase_is_inner ) {
 
       i = coupling_ac_el_ijk[INDEX3(NDIM,NGLL2,0,igll,iface)] - 1;
       j = coupling_ac_el_ijk[INDEX3(NDIM,NGLL2,1,igll,iface)] - 1;
       k = coupling_ac_el_ijk[INDEX3(NDIM,NGLL2,2,igll,iface)] - 1;
-      iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)]-  1;
+      iglob = ibool[INDEX4(5,5,5,i,j,k,ispec)] - 1;
 
       // gets associated normal on GLL point
       // note: normal points away from acoustic element
@@ -238,18 +238,28 @@ __global__ void compute_coupling_elastic_ac_kernel(realw* potential_dot_dot_acou
         // note: uses potential chi such that displacement s = grad(chi),
         //         pressure becomes: p = - kappa ( div( s ) ) = rho ( - dot_dot_chi + g * s )
         //  g only acting in negative z-direction
-        // daniel: TODO - check coupling would be displ * nz  correct?
+        
+        // daniel: TODO - check gravity and coupling would be displ * nz  correct?
         pressure = rhol*( - potential_dot_dot_acoustic[iglob]
                          + minus_g[iglob] * displ[iglob*3+2] );
 
+        //daniel: TODO - check gravity and coupling  
+        //pressure = - potential_dot_dot_acoustic[iglob] ;          
+        //if( iface == 128 && igll == 5 ){
+        //  printf("coupling acoustic: %f %f \n",potential_dot_dot_acoustic[iglob],
+        //             minus_g[iglob] * displ[iglob*3+2]);
+        //}
+
       }else{
         // no gravity: uses potential chi such that displacement s = 1/rho grad(chi)
+        //                  pressure p = - kappa ( div( s ) ) then becomes: p = - dot_dot_chi 
+        //                  ( multiplied with factor 1/kappa due to setup of equation of motion )
         pressure = - potential_dot_dot_acoustic[iglob];
       }
 
       // continuity of displacement and pressure on global point
       //
-      // note: newark time scheme together with definition of scalar potential:
+      // note: Newmark time scheme together with definition of scalar potential:
       //          pressure = - chi_dot_dot
       //          requires that this coupling term uses the *UPDATED* pressure (chi_dot_dot), i.e.
       //          pressure at time step [t + delta_t]

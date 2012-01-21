@@ -29,7 +29,11 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
+
+#ifdef WITH_MPI
 #include <mpi.h>
+#endif
+
 #include <sys/types.h>
 #include <unistd.h>
 
@@ -56,7 +60,11 @@ void FC_FUNC_(fortranprint,FORTRANPRINT)(int* id) {
 TRACE("fortranprint");
 
   int procid;
+#ifdef WITH_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
+#else
+  procid = 0;
+#endif  
   printf("%d: sends msg_id %d\n",procid,*id);
 }
 
@@ -67,7 +75,11 @@ void FC_FUNC_(fortranprintf,FORTRANPRINTF)(realw* val) {
 TRACE("fortranprintf");
 
   int procid;
+#ifdef WITH_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
+#else
+  procid = 0;
+#endif
   printf("%d: sends val %e\n",procid,*val);
 }
 
@@ -78,7 +90,11 @@ void FC_FUNC_(fortranprintd,FORTRANPRINTD)(double* val) {
 TRACE("fortranprintd");
 
   int procid;
+#ifdef WITH_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
+#else
+  procid = 0;
+#endif
   printf("%d: sends val %e\n",procid,*val);
 }
 

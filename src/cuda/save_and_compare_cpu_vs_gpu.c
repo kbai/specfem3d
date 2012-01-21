@@ -30,14 +30,22 @@
 #include <stdlib.h>
 #include <math.h>
 #include <errno.h>
+
+#ifdef WITH_MPI
 #include <mpi.h>
+#endif
+
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
 void save_to_max_surface_file_(float* maxval) {
   int rank;
   char filename[BUFSIZ];
   FILE* fp;
+#ifdef WITH_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&rank);
+#else
+  rank = 0;
+#endif
   sprintf(filename,"maxval_surface_proc_%03d.dat",rank);
   fp = fopen(filename,"a+");
   fprintf(fp,"%e\n",*maxval);
@@ -80,7 +88,11 @@ void get_max_from_surface_file_(int* nodes_per_iterationf,int* NSTEP) {
   int nodes_per_iteration = *nodes_per_iterationf;
   char filename[BUFSIZ];
   int procid;
+#ifdef WITH_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
+#else
+  procid = 0;
+#endif
   sprintf(filename,"/scratch/eiger/rietmann/SPECFEM3D_AIGLE/in_out_files/DATABASES_MPI/proc%06d_surface_movie",procid);
 
   FILE* fp; int it;

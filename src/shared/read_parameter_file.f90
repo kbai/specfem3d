@@ -223,7 +223,8 @@
   implicit none
   include "constants.h"
 
-  logical GPU_MODE,GRAVITY
+  logical :: GPU_MODE
+  logical :: GRAVITY
 
   ! initializes flags
   GPU_MODE = .false.

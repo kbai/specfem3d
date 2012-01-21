@@ -29,7 +29,10 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
+
+#ifdef WITH_MPI
 #include <mpi.h>
+#endif
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -71,7 +74,11 @@ void FC_FUNC_(check_max_norm_vector,
 TRACE("check_max_norm_vector");
 
   int procid;
+#ifdef WITH_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
+#else
+  procid = 0;
+#endif
   realw maxnorm=0;
   int maxloc;
   for(int i=0;i<*size;i++) {
@@ -226,7 +233,11 @@ TRACE("check_error_vectors");
 
   printf("rel error = %f, maxerr = %e @ %d\n",diff2/sum,maxerr,maxerrorloc);
   int myrank;
+#ifdef WITH_MPI
   MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+#else
+  myrank = 0;
+#endif
   if(myrank == 0) {
     for(int i=maxerrorloc;i>maxerrorloc-5;i--) {
       printf("[%d]: %e vs. %e\n",i,vector1[i],vector2[i]);
@@ -253,7 +264,11 @@ TRACE("get_max_accel");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer);
   int procid;
+#ifdef WITH_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
+#else
+  procid = 0;
+#endif
   int size = *sizef;
   int it = *itf;
   realw* accel_cpy = (realw*)malloc(size*sizeof(realw));

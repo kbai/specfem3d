@@ -457,7 +457,8 @@ subroutine create_regions_mesh_ext(ibool, &
   call check_mesh_resolution(myrank,nspec,nglob,ibool,&
                             xstore_dummy,ystore_dummy,zstore_dummy, &
                             kappastore,mustore,rho_vp,rho_vs, &
-                            -1.0d0, model_speed_max,min_resolved_period )
+                            -1.0d0, model_speed_max,min_resolved_period, &
+                            LOCAL_PATH,SAVE_MESH_FILES )
 
 ! saves binary mesh files for attenuation
   if( ATTENUATION ) then

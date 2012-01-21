@@ -386,7 +386,7 @@ subroutine compute_forces_acoustic()
                         num_PML_ispec,PML_ispec,&
                         chi1_dot_dot,chi2_t_dot_dot,chi3_dot_dot,chi4_dot_dot)
 
-    ! Newark time scheme corrector terms
+    ! Newmark time scheme corrector terms
     call PML_acoustic_time_corrector(NSPEC_AB,ispec_is_acoustic,deltatover2,&
                         num_PML_ispec,PML_ispec,PML_damping_d,&
                         chi1_dot,chi2_t_dot,chi3_dot,chi4_dot,&
@@ -395,7 +395,7 @@ subroutine compute_forces_acoustic()
 
 
 ! update velocity
-! note: Newark finite-difference time scheme with acoustic domains:
+! note: Newmark finite-difference time scheme with acoustic domains:
 ! (see e.g. Hughes, 1987; Chaljub et al., 2003)
 !
 ! chi(t+delta_t) = chi(t) + delta_t chi_dot(t) + 1/2 delta_t**2 chi_dot_dot(t)

@@ -38,7 +38,16 @@
 !
 
   double precision function wtime()
-  wtime = 0.d0
+
+  implicit none
+  real :: ct
+    
+  ! note: for simplicity, we take cpu_time which returns the elapsed CPU time in seconds
+  !          (instead of wall clock time for parallel MPI function)
+  call cpu_time(ct)
+  
+  wtime = ct  
+
   end function wtime
 
 !
@@ -659,6 +668,39 @@
 !
 !----
 !
+
+  subroutine send_dp(sendbuf, sendcount, dest, sendtag)
+
+  implicit none
+
+  integer dest,sendtag
+  integer sendcount
+  double precision,dimension(sendcount):: sendbuf
+
+  stop 'send_dp not implemented for serial code'
+
+  end subroutine send_dp
+
+!
+!----
+!
+
+  subroutine recv_dp(recvbuf, recvcount, dest, recvtag)
+
+  implicit none
+
+  integer dest,recvtag
+  integer recvcount
+  double precision,dimension(recvcount):: recvbuf
+
+  stop 'recv_dp not implemented for serial code'
+
+  end subroutine recv_dp
+
+!
+!----
+!
+
 
   subroutine sendv_cr(sendbuf, sendcount, dest, sendtag)
 

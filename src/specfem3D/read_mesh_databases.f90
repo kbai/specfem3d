@@ -102,6 +102,7 @@
   ! elastic
   ! number of elastic elements in this partition
   nspec_elastic = count(ispec_is_elastic(:))
+
   ! elastic simulation
   call any_all_l( ANY(ispec_is_elastic), ELASTIC_SIMULATION )
   if( ELASTIC_SIMULATION ) then
@@ -169,8 +170,9 @@
     if( ier /= 0 ) stop 'error allocating array one_minus_sum_beta etc.'
 
     ! reads mass matrices
-    read(27) rmass
-
+    read(27,iostat=ier) rmass
+    if( ier /= 0 ) stop 'error reading in array rmass'
+    
     if( OCEANS ) then
       ! ocean mass matrix
       allocate(rmass_ocean_load(NGLOB_AB),stat=ier)
@@ -183,21 +185,32 @@
     endif
 
     !pll material parameters for stacey conditions
-    read(27) rho_vp
-    read(27) rho_vs
-
+    read(27,iostat=ier) rho_vp
+    if( ier /= 0 ) stop 'error reading in array rho_vp'
+    read(27,iostat=ier) rho_vs
+    if( ier /= 0 ) stop 'error reading in array rho_vs'
+    
     ! checks if rhostore is available for gravity
     if( GRAVITY ) then
+    
       if( .not. ACOUSTIC_SIMULATION ) then
         ! rho array needed for gravity
         allocate(rhostore(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
         if( ier /= 0 ) stop 'error allocating array rhostore'
+        
         ! extract rho information from mu = rho * vs * vs and rho_vs = rho * vs
+        rhostore = 0.0_CUSTOM_REAL
         where( mustore > TINYVAL ) 
           rhostore = (rho_vs*rho_vs) / mustore
-        elsewhere
-          rhostore = 0.0_CUSTOM_REAL
         endwhere
+
+        ! note: the construct below leads to a segmentation fault (ifort v11.1). not sure why...
+        !          (where statement - standard fortran 95)
+        !where( mustore > TINYVAL ) 
+        !  rhostore = (rho_vs*rho_vs) / mustore
+        !elsewhere
+        !  rhostore = 0.0_CUSTOM_REAL
+        !endwhere
       endif
     endif
   else
@@ -419,7 +432,8 @@
     call check_mesh_resolution(myrank,NSPEC_AB,NGLOB_AB, &
                               ibool,xstore,ystore,zstore, &
                               kappastore,mustore,rho_vp,rho_vs, &
-                              DT,model_speed_max,min_resolved_period )
+                              DT,model_speed_max,min_resolved_period, &
+                              LOCAL_PATH,SAVE_MESH_FILES )
   else if( ACOUSTIC_SIMULATION ) then
     allocate(rho_vp(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
     if( ier /= 0 ) stop 'error allocating array rho_vp'
@@ -430,7 +444,8 @@
     call check_mesh_resolution(myrank,NSPEC_AB,NGLOB_AB, &
                                 ibool,xstore,ystore,zstore, &
                                 kappastore,mustore,rho_vp,rho_vs, &
-                                DT,model_speed_max,min_resolved_period )
+                                DT,model_speed_max,min_resolved_period, &
+                                LOCAL_PATH,SAVE_MESH_FILES )
     deallocate(rho_vp,rho_vs)
   endif
 

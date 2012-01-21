@@ -31,7 +31,7 @@
 ! start non-blocking MPI calls and overlap them with the calculation of the inner elements
 ! (which works fine because there are always far more inner elements than outer elements)
 
-! daniel: modified routines to use element domain flags given in ispec_is_d, thus
+! note:    these are modified routines to use element domain flags given in ispec_is_d, thus
 !             coloring only acoustic or elastic (or..) elements in one run, then repeat run for other domains.
 !             also, the permutation re-starts at 1 for outer and for inner elements,
 !             making it usable for the phase_ispec_inner_** arrays for acoustic and elastic elements.

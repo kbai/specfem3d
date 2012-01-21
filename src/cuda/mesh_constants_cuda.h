@@ -26,7 +26,7 @@
  !=====================================================================
  */
 
-/* daniel: trivia
+/* trivia
 
 - for most working arrays we use now "realw" instead of "float" type declarations to make it easier to switch
   between a real or double precision simulation
@@ -123,8 +123,9 @@ typedef float reald;
 //#define MANUALLY_UNROLLED_LOOPS
 
 // cuda kernel block size for updating displacements/potential (newmark time scheme)
-#define BLOCKSIZE_KERNEL1 128
-#define BLOCKSIZE_KERNEL3 128
+// current hardware: 128 is slightly faster than 256 ( ~ 4%)
+#define BLOCKSIZE_KERNEL1 128 
+#define BLOCKSIZE_KERNEL3 128 
 #define BLOCKSIZE_TRANSFER 256
 
 /* ----------------------------------------------------------------------------------------------- */

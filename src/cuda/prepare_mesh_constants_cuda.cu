@@ -29,7 +29,10 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
+
+#ifdef WITH_MPI
 #include <mpi.h>
+#endif
 
 #include <sys/time.h>
 #include <sys/resource.h>
@@ -67,7 +70,11 @@ TRACE("pause_for_debug");
 void pause_for_debugger(int pause) {
   if(pause) {
     int myrank;
+#ifdef WITH_MPI
     MPI_Comm_rank(MPI_COMM_WORLD, &myrank);
+#else
+    myrank = 0;
+#endif
     printf("I'm rank %d\n",myrank);
     int i = 0;
     char hostname[256];
@@ -103,7 +110,7 @@ void exit_on_error(char* info)
 {
   printf("\nERROR: %s\n",info);
   fflush(stdout);
-#ifdef USE_MPI
+#ifdef WITH_MPI
   MPI_Abort(MPI_COMM_WORLD,1);
 #endif
   //free(info);
@@ -119,7 +126,7 @@ void print_CUDA_error_if_any(cudaError_t err, int num)
   {
     printf("\nCUDA error !!!!! <%s> !!!!! \nat CUDA call error code: # %d\n",cudaGetErrorString(err),num);
     fflush(stdout);
-#ifdef USE_MPI
+#ifdef WITH_MPI
     MPI_Abort(MPI_COMM_WORLD,1);
 #endif    
     exit(EXIT_FAILURE);
@@ -149,9 +156,8 @@ void get_free_memory(double* free_db, double* used_db, double* total_db) {
 /* ----------------------------------------------------------------------------------------------- */
 
 // Saves GPU memory usage to file
-void output_free_memory(char* info_str) {
-  int myrank;
-  MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+void output_free_memory(int myrank,char* info_str) {
+
   FILE* fp;
   char filename[BUFSIZ];
   double free_db,used_db,total_db;
@@ -170,21 +176,26 @@ void output_free_memory(char* info_str) {
 // Fortran-callable version of above method
 extern "C"
 void FC_FUNC_(output_free_device_memory,
-              OUTPUT_FREE_DEVICE_MEMORY)(int* id) {
+              OUTPUT_FREE_DEVICE_MEMORY)(int* myrank) {
 TRACE("output_free_device_memory");
 
   char info[6];
-  sprintf(info,"f %d:",*id);
-  output_free_memory(info);
+  sprintf(info,"f %d:",*myrank);
+  output_free_memory(*myrank,info);
 }
 
 /* ----------------------------------------------------------------------------------------------- */
 
+/*
 void show_free_memory(char* info_str) {
 
   // show memory usage of GPU
   int myrank;
+#ifdef WITH_MPI  
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
+#else
+  myrank = 0;
+#endif
   double free_db,used_db,total_db;
 
   get_free_memory(&free_db,&used_db,&total_db);
@@ -194,15 +205,16 @@ void show_free_memory(char* info_str) {
 
 }
 
+ extern "C"
+ void FC_FUNC_(show_free_device_memory,
+ SHOW_FREE_DEVICE_MEMORY)() {
+ TRACE("show_free_device_memory");
+ 
+ show_free_memory("from fortran");
+ }
+ */
+
 /* ----------------------------------------------------------------------------------------------- */
-
-extern "C"
-void FC_FUNC_(show_free_device_memory,
-              SHOW_FREE_DEVICE_MEMORY)() {
-TRACE("show_free_device_memory");
-
-  show_free_memory("from fortran");
-}
 
 
 extern "C"
@@ -430,7 +442,7 @@ void FC_FUNC_(prepare_cuda_device,
   int myrank = *myrank_f;
 
   // cuda initialization (needs -lcuda library)
-  // daniel: note, cuInit initializes the driver API.
+  // note:   cuInit initializes the driver API.
   //             it is needed for any following CUDA driver API function call (format cuFUNCTION(..) )
   //             however, for the CUDA runtime API functions (format cudaFUNCTION(..) )
   //             the initialization is implicit, thus cuInit() here would not be needed...
@@ -457,7 +469,7 @@ void FC_FUNC_(prepare_cuda_device,
     exit_on_error("CUDA Compute capability major number should be at least 1.3\n");
   }
 
-  //daniel: from here on we use the runtime API  ...
+  // note: from here on we use the runtime API  ...
   // Gets number of GPU devices
   int device_count = 0;
   cudaGetDeviceCount(&device_count);
@@ -681,9 +693,6 @@ TRACE("prepare_constants_device");
   print_CUDA_error_if_any(cudaMemcpy(mp->d_ispec_is_inner, h_ispec_is_inner,
                                      mp->NSPEC_AB*sizeof(int),cudaMemcpyHostToDevice),1206);
 
-  // daniel: check
-  //check_ispec_is(Mesh_pointer,0);
-
   // absorbing boundaries
   mp->d_num_abs_boundary_faces = *h_num_abs_boundary_faces;
   if( *ABSORBING_CONDITIONS && mp->d_num_abs_boundary_faces > 0 ){
@@ -692,10 +701,6 @@ TRACE("prepare_constants_device");
     print_CUDA_error_if_any(cudaMemcpy(mp->d_abs_boundary_ispec, h_abs_boundary_ispec,
                                        (mp->d_num_abs_boundary_faces)*sizeof(int),
                                        cudaMemcpyHostToDevice),1102);
-
-    // daniel: check
-    //check_array_ispec(Mesh_pointer,1);
-
 
     print_CUDA_error_if_any(cudaMalloc((void**) &(mp->d_abs_boundary_ijk),
                                        3*NGLL2*(mp->d_num_abs_boundary_faces)*sizeof(int)),1103);
@@ -1065,18 +1070,12 @@ TRACE("prepare_fields_elastic_device");
   print_CUDA_error_if_any(cudaMemcpy(mp->d_ispec_is_elastic,ispec_is_elastic,
                                      mp->NSPEC_AB*sizeof(int),cudaMemcpyHostToDevice),4012);
 
-  // daniel: check
-  //check_ispec_is(Mesh_pointer_f,1);
-
   // phase elements
   mp->num_phase_ispec_elastic = *num_phase_ispec_elastic;
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_phase_ispec_inner_elastic),
                                      mp->num_phase_ispec_elastic*2*sizeof(int)),4008);
   print_CUDA_error_if_any(cudaMemcpy(mp->d_phase_ispec_inner_elastic,phase_ispec_inner_elastic,
                                      mp->num_phase_ispec_elastic*2*sizeof(int),cudaMemcpyHostToDevice),4011);
-
-  //daniel: check
-  //check_phase_ispec(Mesh_pointer_f,1);
 
   // for seismograms
   if( mp->nrec_local > 0 ){

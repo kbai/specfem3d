@@ -90,7 +90,7 @@ __global__ void compute_stacey_acoustic_kernel(realw* potential_dot_acoustic,
 
       // velocity
       if( gravity ){
-        // daniel: TODO - check stacey here...
+        // daniel: TODO - check gravity and stacey condition here...
         // uses a potential definition of: s = grad(chi)
         vel = potential_dot_acoustic[iglob] / rhol ;
       }else{

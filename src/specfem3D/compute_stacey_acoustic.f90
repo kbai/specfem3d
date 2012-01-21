@@ -84,7 +84,7 @@
   if (SIMULATION_TYPE == 3 .and. num_abs_boundary_faces > 0)  then
     ! reads in absorbing boundary array when first phase is running
     if( phase_is_inner .eqv. .false. ) then
-      ! note: the index NSTEP-it+1 is valid if b_displ is read in after the Newark scheme
+      ! note: the index NSTEP-it+1 is valid if b_displ is read in after the Newmark scheme
       ! uses fortran routine
       !read(IOABS_AC,rec=NSTEP-it+1) reclen1,b_absorb_potential,reclen2
       !if (reclen1 /= b_reclen_potential .or. reclen1 /= reclen2) &

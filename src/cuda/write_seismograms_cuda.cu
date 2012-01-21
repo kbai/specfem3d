@@ -29,7 +29,7 @@
 #include <stdio.h>
 #include <cuda.h>
 #include <cublas.h>
-#include <mpi.h>
+
 #include <sys/types.h>
 #include <unistd.h>
 

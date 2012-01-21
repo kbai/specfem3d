@@ -308,7 +308,7 @@ subroutine compute_forces_elastic()
   endif
 
 ! updates velocities
-! Newark finite-difference time scheme with elastic domains:
+! Newmark finite-difference time scheme with elastic domains:
 ! (see e.g. Hughes, 1987; Chaljub et al., 2003)
 !
 ! u(t+delta_t) = u(t) + delta_t  v(t) + 1/2  delta_t**2 a(t)

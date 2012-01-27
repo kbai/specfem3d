@@ -460,7 +460,7 @@ subroutine compute_forces_elastic_Dev_sim1(iphase)
 
   integer,intent(in) :: iphase
   logical OPENMP_MODE
-  OPENMP_MODE = .true.
+  OPENMP_MODE = .false.
 
   ! write(*,*) "num_elem_colors_elastic(1)=",num_elem_colors_elastic(1)
   

@@ -164,6 +164,7 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/compute_forces_elastic.o \
 	$O/compute_forces_elastic_Dev.o \
 	$O/compute_forces_elastic_noDev.o \
+	$O/compute_forces_elastic_Dev_openmp.o \
 	$O/compute_add_sources_acoustic.o \
 	$O/compute_add_sources_elastic.o \
 	$O/compute_coupling_acoustic_el.o \

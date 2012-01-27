@@ -35,7 +35,15 @@
   implicit none
   real(kind=CUSTOM_REAL):: minl,maxl,min_all,max_all
   integer :: ier,inum
-
+  integer NUM_THREADS
+  integer OMP_GET_MAX_THREADS
+  
+  NUM_THREADS = OMP_GET_MAX_THREADS()
+  if( myrank == 0 ) then
+    write(IMAIN,*) 'Using:',NUM_THREADS, ' OpenMP threads' 
+  endif
+  
+  
 ! start reading the databasesa
 
 ! info about external mesh simulation
@@ -114,6 +122,30 @@
     allocate(accel(NDIM,NGLOB_AB),stat=ier)
     if( ier /= 0 ) stop 'error allocating array accel'
 
+    ! allocate cfe_Dev_openmp local arrays for OpenMP version
+    allocate(dummyx_loc(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(dummyy_loc(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(dummyz_loc(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempx1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempx2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempx3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempy1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempy2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempy3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempz1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempz2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempz3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempx1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempx2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempx3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempy1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempy2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempy3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempz1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempz2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempz3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+
+    
     allocate(rmass(NGLOB_AB),stat=ier)
     if( ier /= 0 ) stop 'error allocating array rmass'
     allocate(rho_vp(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)

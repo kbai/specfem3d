@@ -283,6 +283,12 @@ module specfem_par_elastic
 ! displacement, velocity, acceleration
   real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: displ,veloc,accel
 
+! variables needed for OpenMP version
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:),allocatable :: &
+       dummyx_loc,dummyy_loc,dummyz_loc,newtempx1,newtempx2,newtempx3,&
+       newtempy1,newtempy2,newtempy3,newtempz1,newtempz2,newtempz3,&
+       tempx1,tempx2,tempx3,tempy1,tempy2,tempy3,tempz1,tempz2,tempz3
+  
 ! mass matrix
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: rmass
 

@@ -91,7 +91,8 @@
     hgammar(:) = hgammar_store(irec_local,:)
 
     ! forward simulations
-    if (SIMULATION_TYPE == 1)  then
+    select case( SIMULATION_TYPE )
+    case( 1 )
 
       ! receiver's spectral element
       ispec = ispec_selected_rec(irec)
@@ -132,7 +133,7 @@
       endif ! acoustic
 
     !adjoint simulations
-    else if (SIMULATION_TYPE == 2) then
+    case( 2 )
 
       ! adjoint source is placed at receiver
       ispec = ispec_selected_source(irec)
@@ -208,7 +209,7 @@
       endif ! acoustic
 
     !adjoint simulations
-    else if (SIMULATION_TYPE == 3) then
+    case( 3 )
 
       ispec = ispec_selected_rec(irec)
 
@@ -247,7 +248,7 @@
                         dxd,dyd,dzd,vxd,vyd,vzd,axd,ayd,azd)
       endif ! acoustic
 
-    endif ! SIMULATION_TYPE
+    end select ! SIMULATION_TYPE
 
 ! store North, East and Vertical components
 ! distinguish between single and double precision for reals
@@ -269,12 +270,9 @@
 ! write the current or final seismograms
   if((mod(it,NTSTEP_BETWEEN_OUTPUT_SEISMOS) == 0 .or. it == NSTEP) .and. (.not.SU_FORMAT)) then
     if (SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then
-      call write_seismograms_to_file(myrank,seismograms_d,number_receiver_global,station_name, &
-            network_name,nrec,nrec_local,it,DT,NSTEP,t0,LOCAL_PATH,1,SIMULATION_TYPE)
-      call write_seismograms_to_file(myrank,seismograms_v,number_receiver_global,station_name, &
-            network_name,nrec,nrec_local,it,DT,NSTEP,t0,LOCAL_PATH,2,SIMULATION_TYPE)
-      call write_seismograms_to_file(myrank,seismograms_a,number_receiver_global,station_name, &
-            network_name,nrec,nrec_local,it,DT,NSTEP,t0,LOCAL_PATH,3,SIMULATION_TYPE)
+      call write_seismograms_to_file(seismograms_d,1)
+      call write_seismograms_to_file(seismograms_v,2)
+      call write_seismograms_to_file(seismograms_a,3)
     else
       call write_adj_seismograms_to_file(myrank,seismograms_d,number_receiver_global, &
             nrec_local,it,DT,NSTEP,t0,LOCAL_PATH,1)
@@ -294,27 +292,18 @@
 
 ! write seismograms to text files
 
-  subroutine write_seismograms_to_file(myrank,seismograms,number_receiver_global, &
-               station_name,network_name,nrec,nrec_local, &
-               it,DT,NSTEP,t0,LOCAL_PATH,istore,SIMULATION_TYPE)
+  subroutine write_seismograms_to_file(seismograms,istore)
+
+  use constants
+  use specfem_par,only: &
+          myrank,number_receiver_global,station_name,network_name, &
+          nrec,nrec_local,islice_selected_rec, &
+          it,DT,NSTEP,t0,LOCAL_PATH,SIMULATION_TYPE
 
   implicit none
 
-  include "constants.h"
-
-  integer :: NSTEP,it
-  integer :: nrec,nrec_local
-  integer :: myrank,istore
-  integer :: SIMULATION_TYPE
-
-  integer, dimension(nrec_local) :: number_receiver_global
+  integer :: istore
   real(kind=CUSTOM_REAL), dimension(NDIM,nrec_local,NSTEP) :: seismograms
-
-  double precision t0,DT
-
-  character(len=256) LOCAL_PATH
-  character(len=MAX_LENGTH_STATION_NAME), dimension(nrec) :: station_name
-  character(len=MAX_LENGTH_NETWORK_NAME), dimension(nrec) :: network_name
 
   ! local parameters
   integer irec,irec_local
@@ -327,6 +316,7 @@
   integer :: nrec_local_received,NPROCTOT,total_seismos,receiver,sender
   integer :: iproc,ier
   integer,dimension(1) :: tmp_nrec_local_received,tmp_irec,tmp_nrec_local
+  integer,dimension(:),allocatable:: islice_num_rec_local
 
   ! saves displacement, velocity or acceleration
   if(istore == 1) then
@@ -374,7 +364,21 @@
 
       ! loop on all the slices
       call world_size(NPROCTOT)
+
+      ! counts number of local receivers for each slice
+      allocate(islice_num_rec_local(0:NPROCTOT-1),stat=ier)
+      if( ier /= 0 ) call exit_mpi(myrank,'error allocating islice_num_rec_local')
+      islice_num_rec_local(:) = 0
+      do irec = 1,nrec
+        iproc = islice_selected_rec(irec)
+        islice_num_rec_local(iproc) = islice_num_rec_local(iproc) + 1
+      enddo
+
+      ! loops on all the slices
       do iproc = 0,NPROCTOT-1
+
+        ! communicate only with processes which contain local receivers
+        if( islice_num_rec_local(iproc) == 0 ) cycle
 
         ! receive except from proc 0, which is me and therefore I already have this value
         sender = iproc
@@ -415,6 +419,7 @@
           enddo ! nrec_local_received
         endif ! if(nrec_local_received > 0 )
       enddo ! NPROCTOT-1
+      deallocate(islice_num_rec_local)
 
       write(IMAIN,*) 'Component: .sem'//component
       write(IMAIN,*) '  total number of receivers saved is ',total_seismos,' out of ',nrec

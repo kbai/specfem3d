@@ -91,7 +91,7 @@
     endif
 
     ! write the seismograms with time shift (GPU_MODE transfer included)
-    if (nrec_local > 0) then
+    if (nrec_local > 0 .or. ( WRITE_SEISMOGRAMS_BY_MASTER .and. myrank == 0 ) ) then
       call write_seismograms()
     endif
 
@@ -109,18 +109,16 @@
     if( MOVIE_SIMULATION ) then
       call write_movie_output()
     endif
-    
+
     ! first step of noise tomography, i.e., save a surface movie at every time step
-    if ( NOISE_TOMOGRAPHY == 1) then       
-       if( num_free_surface_faces == 0) then
-       else
-          call noise_save_surface_movie(displ, &
-               ibool, &
-               noise_surface_movie,it, &
-               NSPEC_AB,NGLOB_AB, &
-               num_free_surface_faces,free_surface_ispec,free_surface_ijk,&
-               Mesh_pointer,GPU_MODE)
-       endif
+    if ( NOISE_TOMOGRAPHY == 1) then
+      if( num_free_surface_faces > 0) then
+        call noise_save_surface_movie(displ,ibool, &
+                            noise_surface_movie,it, &
+                            NSPEC_AB,NGLOB_AB, &
+                            num_free_surface_faces,free_surface_ispec,free_surface_ijk, &
+                            Mesh_pointer,GPU_MODE)
+      endif
     endif
 
 !
@@ -129,7 +127,7 @@
   enddo   ! end of main time loop
 
   call it_print_elapsed_time()
-  
+
   ! Transfer fields from GPU card to host for further analysis
   if(GPU_MODE) call it_transfer_from_GPU()
 
@@ -137,18 +135,17 @@
 
 
 !=====================================================================
-  
+
   subroutine it_print_elapsed_time()
     use specfem_par
     use specfem_par_elastic
     use specfem_par_acoustic
     implicit none
 
-    double precision :: tCPU,t_remain,t_total
-    integer :: ihours,iminutes,iseconds,int_tCPU, &
-         ihours_remain,iminutes_remain,iseconds_remain,int_t_remain, &
-         ihours_total,iminutes_total,iseconds_total,int_t_total
-    
+    ! local parameters
+    double precision :: tCPU
+    integer :: ihours,iminutes,iseconds,int_tCPU
+
     if(myrank == 0) then
        ! elapsed time since beginning of the simulation
        tCPU = wtime() - time_start
@@ -385,6 +382,7 @@
   if( ACOUSTIC_SIMULATION ) then
 
     if(.NOT. GPU_MODE) then
+      ! on CPU
       potential_acoustic(:) = potential_acoustic(:) &
                             + deltat * potential_dot_acoustic(:) &
                             + deltatsqover2 * potential_dot_dot_acoustic(:)

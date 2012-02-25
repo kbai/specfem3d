@@ -115,11 +115,10 @@ __global__ void compute_coupling_acoustic_el_kernel(realw* displ,
 
 extern "C"
 void FC_FUNC_(compute_coupling_ac_el_cuda,
-              COMPUTE_COUPLING_AC_EL_CUDA)(
-                                            long* Mesh_pointer_f,
-                                            int* phase_is_innerf,
-                                            int* num_coupling_ac_el_facesf,
-                                            int* SIMULATION_TYPEf) {
+              COMPUTE_COUPLING_AC_EL_CUDA)(long* Mesh_pointer_f,
+                                           int* phase_is_innerf,
+                                           int* num_coupling_ac_el_facesf,
+                                           int* SIMULATION_TYPEf) {
   TRACE("compute_coupling_ac_el_cuda");
   //double start_time = get_time();
 
@@ -238,13 +237,13 @@ __global__ void compute_coupling_elastic_ac_kernel(realw* potential_dot_dot_acou
         // note: uses potential chi such that displacement s = grad(chi),
         //         pressure becomes: p = - kappa ( div( s ) ) = rho ( - dot_dot_chi + g * s )
         //  g only acting in negative z-direction
-        
+
         // daniel: TODO - check gravity and coupling would be displ * nz  correct?
         pressure = rhol*( - potential_dot_dot_acoustic[iglob]
                          + minus_g[iglob] * displ[iglob*3+2] );
 
-        //daniel: TODO - check gravity and coupling  
-        //pressure = - potential_dot_dot_acoustic[iglob] ;          
+        //daniel: TODO - check gravity and coupling
+        //pressure = - potential_dot_dot_acoustic[iglob] ;
         //if( iface == 128 && igll == 5 ){
         //  printf("coupling acoustic: %f %f \n",potential_dot_dot_acoustic[iglob],
         //             minus_g[iglob] * displ[iglob*3+2]);
@@ -252,7 +251,7 @@ __global__ void compute_coupling_elastic_ac_kernel(realw* potential_dot_dot_acou
 
       }else{
         // no gravity: uses potential chi such that displacement s = 1/rho grad(chi)
-        //                  pressure p = - kappa ( div( s ) ) then becomes: p = - dot_dot_chi 
+        //                  pressure p = - kappa ( div( s ) ) then becomes: p = - dot_dot_chi
         //                  ( multiplied with factor 1/kappa due to setup of equation of motion )
         pressure = - potential_dot_dot_acoustic[iglob];
       }
@@ -278,11 +277,10 @@ __global__ void compute_coupling_elastic_ac_kernel(realw* potential_dot_dot_acou
 
 extern "C"
 void FC_FUNC_(compute_coupling_el_ac_cuda,
-              COMPUTE_COUPLING_EL_AC_CUDA)(
-                                                 long* Mesh_pointer_f,
-                                                 int* phase_is_innerf,
-                                                 int* num_coupling_ac_el_facesf,
-                                                 int* SIMULATION_TYPEf) {
+              COMPUTE_COUPLING_EL_AC_CUDA)(long* Mesh_pointer_f,
+                                           int* phase_is_innerf,
+                                           int* num_coupling_ac_el_facesf,
+                                           int* SIMULATION_TYPEf) {
   TRACE("compute_coupling_el_ac_cuda");
   //double start_time = get_time();
 

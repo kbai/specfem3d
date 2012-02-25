@@ -412,25 +412,25 @@ __global__ void Kernel_2_acoustic_impl(int nb_blocks_to_compute,
       // assumes that g only acts in (negative) z-direction
       kappa_invl = 1.f / d_kappastore[working_element*NGLL3 + tx];
       iglob = d_ibool[working_element*NGLL3 + tx]-1;
-      
+
       // daniel: TODO - check gravity
 //      if( kappa_invl <= 0.0f ){
 //        printf("kappa error: %f %f\n",kappa_invl,d_kappastore[working_element*NGLL3 + tx]);
 //        printf("kappa error: thread %d %d \n",tx,working_element);
-//        asm("trap;");      
+//        asm("trap;");
 //      }
 //      if( iglob <= 0 ){
 //        printf("iglob error: %d %d %d \n",iglob,tx,working_element);
-//        asm("trap;");                
-//      }      
-      
+//        asm("trap;");
+//      }
+
       gravity_term = minus_g[iglob] * kappa_invl * jacobianl * wgll_cube[tx] * dpotentialdzl;
 
       // daniel: TODO - check gravity
       //gravity_term = 0.f;
       //if( iglob == 5 ){
       //  printf("iglob infos: %f %f %f %f %f \n",minus_g[iglob],kappa_invl,jacobianl,wgll_cube[tx],dpotentialdzl);
-      //}      
+      //}
     }
 
     // density (reciproc)

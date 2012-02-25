@@ -488,8 +488,8 @@ __device__ void compute_element_gravity(int tx,int working_element,
   // debug
   //*rho_s_H1 = 0.f;
   //*rho_s_H2 = 0.f;
-  //*rho_s_H3 = 0.f ;  
-    
+  //*rho_s_H3 = 0.f ;
+
 }
 
 /* ----------------------------------------------------------------------------------------------- */

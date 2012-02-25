@@ -180,7 +180,7 @@ TRACE("transfer_b_displ_from_device");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container
 
-  print_CUDA_error_if_any(cudaMemcpy(displ,mp->d_displ,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),40056);
+  print_CUDA_error_if_any(cudaMemcpy(displ,mp->d_b_displ,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),40056);
 
 }
 
@@ -448,12 +448,12 @@ TRACE("transfer_b_fields_ac_to_device");
 /* ----------------------------------------------------------------------------------------------- */
 
 extern "C"
-void FC_FUNC_(transfer_fields_ac_from_device,TRANSFER_FIELDS_AC_FROM_DEVICE)(
-                                                                                         int* size,
-                                                                                         realw* potential_acoustic,
-                                                                                         realw* potential_dot_acoustic,
-                                                                                         realw* potential_dot_dot_acoustic,
-                                                                                         long* Mesh_pointer_f) {
+void FC_FUNC_(transfer_fields_ac_from_device,
+              TRANSFER_FIELDS_AC_FROM_DEVICE)(int* size,
+                                              realw* potential_acoustic,
+                                              realw* potential_dot_acoustic,
+                                              realw* potential_dot_dot_acoustic,
+                                              long* Mesh_pointer_f) {
 TRACE("transfer_fields_ac_from_device");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f); //get mesh pointer out of fortran integer container

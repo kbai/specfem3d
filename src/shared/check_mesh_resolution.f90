@@ -61,7 +61,7 @@
   integer :: NSPEC_AB_global_min,NSPEC_AB_global_max,NSPEC_AB_global_sum
   integer :: NGLOB_AB_global_min,NGLOB_AB_global_max,NGLOB_AB_global_sum
   integer :: ispec,sizeprocs
-  
+
   !********************************************************************************
 
   ! empirical choice for distorted elements to estimate time step and period resolved:
@@ -81,7 +81,7 @@
   real(kind=CUSTOM_REAL),dimension(:),allocatable :: tmp1,tmp2
   integer:: ier
   character(len=256) :: filename,prname
-  
+
   ! initializations
   if( DT <= 0.0d0) then
     DT_PRESENT = .false.
@@ -116,7 +116,7 @@
     tmp1(:) = 0.0
     tmp2(:) = 0.0
   endif
-  
+
   ! checks courant number & minimum resolved period for each grid cell
   do ispec=1,NSPEC_AB
 
@@ -155,8 +155,8 @@
       ! debug: for vtk output
       if( SAVE_MESH_FILES ) tmp1(ispec) = cmax
     endif
-    
-    
+
+
     ! suggested timestep
     dt_suggested = COURANT_SUGGESTED * distance_min / max( vpmax,vsmax )
     dt_suggested_glob = min( dt_suggested_glob, dt_suggested)
@@ -334,7 +334,7 @@
 
   ! debug: for vtk output
   if( SAVE_MESH_FILES ) then
-    call create_name_database(prname,myrank,LOCAL_PATH) 
+    call create_name_database(prname,myrank,LOCAL_PATH)
     ! courant number
     if( DT_PRESENT ) then
       filename = trim(prname)//'res_courant_number'
@@ -348,7 +348,7 @@
                           xstore,ystore,zstore,ibool, &
                           tmp2,filename)
     deallocate(tmp1,tmp2)
-  endif  
+  endif
 
   end subroutine check_mesh_resolution
 

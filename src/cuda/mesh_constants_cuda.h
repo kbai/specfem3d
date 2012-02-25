@@ -124,8 +124,8 @@ typedef float reald;
 
 // cuda kernel block size for updating displacements/potential (newmark time scheme)
 // current hardware: 128 is slightly faster than 256 ( ~ 4%)
-#define BLOCKSIZE_KERNEL1 128 
-#define BLOCKSIZE_KERNEL3 128 
+#define BLOCKSIZE_KERNEL1 128
+#define BLOCKSIZE_KERNEL3 128
 #define BLOCKSIZE_TRANSFER 256
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -240,7 +240,6 @@ typedef struct mesh_ {
   // receivers
   int* d_number_receiver_global;
   int* d_ispec_selected_rec;
-  int* d_islice_selected_rec;
   int nrec_local;
   realw* d_station_seismo_field;
   realw* h_station_seismo_field;

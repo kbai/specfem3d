@@ -218,6 +218,11 @@
   ! prepares GPU arrays
   if(GPU_MODE) call prepare_timerun_GPU()
 
+#ifdef OPENMP_MODE
+  ! prepares arrays for OpenMP
+  call prepare_timerun_OpenMP()
+#endif
+
   end subroutine prepare_timerun
 
 !
@@ -989,7 +994,7 @@
                                     minus_deriv_gravity,minus_g,wgll_cube,&
                                     ACOUSTIC_SIMULATION,rhostore)
   endif
-  
+
   ! sends initial data to device
 
   ! puts acoustic initial fields onto GPU
@@ -1026,3 +1031,76 @@
   endif
 
   end subroutine prepare_timerun_GPU
+
+!
+!-------------------------------------------------------------------------------------------------
+!
+
+! OpenMP version uses "special" compute_forces_elastic_Dev routine
+! we need to set num_elem_colors_elastic arrays
+
+#ifdef OPENMP_MODE
+  subroutine prepare_timerun_OpenMP()
+
+  use specfem_par
+  use specfem_par_elastic
+  implicit none
+
+  ! local parameters
+  integer :: ier
+  integer :: NUM_THREADS
+  integer :: OMP_GET_MAX_THREADS
+
+  ! OpenMP for elastic simulation only supported yet
+  if( ELASTIC_SIMULATION ) then
+
+    NUM_THREADS = OMP_GET_MAX_THREADS()
+    if( myrank == 0 ) then
+      write(IMAIN,*)
+      write(IMAIN,*) 'Using:',NUM_THREADS, ' OpenMP threads'
+      write(IMAIN,*)
+    endif
+
+    ! allocate cfe_Dev_openmp local arrays for OpenMP version
+    allocate(dummyx_loc(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(dummyy_loc(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(dummyz_loc(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempx1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempx2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempx3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempy1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempy2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempy3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempz1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempz2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(newtempz3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempx1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempx2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempx3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempy1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempy2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempy3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempz1(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempz2(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+    allocate(tempz3(NGLLX,NGLLY,NGLLZ,NUM_THREADS))
+
+    ! set num_elem_colors array in case no mesh coloring is used
+    if( .not. USE_MESH_COLORING_GPU ) then
+      ! deallocate dummy array
+      if( allocated(num_elem_colors_elastic) ) deallocate(num_elem_colors_elastic)
+
+      ! loads with corresonding values
+      num_colors_outer_elastic = 1
+      num_colors_inner_elastic = 1
+      allocate(num_elem_colors_elastic(num_colors_outer_elastic + num_colors_inner_elastic),stat=ier)
+      if( ier /= 0 ) stop 'error allocating num_elem_colors_elastic array'
+
+      ! sets to all elements in inner/outer phase
+      num_elem_colors_elastic(1) = nspec_outer_elastic
+      num_elem_colors_elastic(2) = nspec_inner_elastic
+    endif
+
+  endif
+
+  end subroutine prepare_timerun_OpenMP
+#endif

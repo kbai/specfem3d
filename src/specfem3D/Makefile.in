@@ -37,22 +37,30 @@
 #CUDA_LIBS= -L/u/dpeter/install/cuda/lib64 -lcudart -lcublas
 #MPI_INC= -I/usr/local/openmpi/1.4.3/gcc/x86_64/include
 
-# MR added CUDA
+# CUDA
+# with configure: ./configure --with-cuda CUDA_LIB=.. CUDA_INC=.. MPI_INC=..
 
+# default cuda libraries
 @COND_CUDA_TRUE@CUDA_LIBS = -lcuda -lcudart -lcublas
 @COND_CUDA_FALSE@CUDA_LIBS = 
 
-# with configure: ./configure CUDA_LIB=.. CUDA_INC=.. MPI_INC=..
 CUDA_LIB_LOCATION = @CUDA_LIB@
 CUDA_LINK = $(CUDA_LIB_LOCATION) $(CUDA_LIBS)
 CUDA_INC = @CUDA_INC@ -I../../
 MPI_INC = @MPI_INC@
 
 @COND_CUDA_TRUE@NVCC = nvcc
-@COND_CUDA_FALSE@NVCC = g++
+@COND_CUDA_FALSE@NVCC = @CC@
 
 @COND_CUDA_TRUE@NVCC_FLAGS = $(CUDA_INC) $(MPI_INC) $(COND_MPI_CPPFLAGS) -DCUDA -gencode=arch=compute_20,code=sm_20
 @COND_CUDA_FALSE@NVCC_FLAGS = $(MPI_INC) $(COND_MPI_CPPFLAGS)
+
+# OpenMP
+# with configure: ./configure --with-openmp FLAGS_NO_CHECK="-openmp .." OPENMP_LIB=.. 
+@COND_OPENMP_TRUE@OPENMP_LIBS = $(OPENMP_LIB)
+@COND_OPENMP_FALSE@OPENMP_LIBS = 
+@COND_OPENMP_TRUE@COND_OPENMP_FFLAGS = -DOPENMP_MODE
+@COND_OPENMP_FALSE@COND_OPENMP_FFLAGS =
 
 
 FC = @FC@
@@ -76,10 +84,10 @@ L = ../../lib
 # Output files directory
 OUTPUT=../../in_out_files/OUTPUT_FILES
 
-FCCOMPILE_CHECK =@FCENV@ ${FC} ${FCFLAGS} $(FLAGS_CHECK) -I$(SHARED)
-FCCOMPILE_NO_CHECK =@FCENV@ ${FC} ${FCFLAGS} $(FLAGS_NO_CHECK) -I$(SHARED)
-MPIFCCOMPILE_CHECK =@FCENV@ ${MPIFC} ${FCFLAGS} $(FLAGS_CHECK) -I$(SHARED)
-MPIFCCOMPILE_NO_CHECK =@FCENV@ ${MPIFC} ${FCFLAGS} $(FLAGS_NO_CHECK) -I$(SHARED)
+FCCOMPILE_CHECK =@FCENV@ ${FC} ${FCFLAGS} $(FLAGS_CHECK) $(COND_OPENMP_FFLAGS) -I$(SHARED)
+FCCOMPILE_NO_CHECK =@FCENV@ ${FC} ${FCFLAGS} $(FLAGS_NO_CHECK) $(COND_OPENMP_FFLAGS) -I$(SHARED)
+MPIFCCOMPILE_CHECK =@FCENV@ ${MPIFC} ${FCFLAGS} $(FLAGS_CHECK) $(COND_OPENMP_FFLAGS) -I$(SHARED)
+MPIFCCOMPILE_NO_CHECK =@FCENV@ ${MPIFC} ${FCFLAGS} $(FLAGS_NO_CHECK) $(COND_OPENMP_FFLAGS) -I$(SHARED)
 @COND_MPI_TRUE@FCLINK = $(MPIFCCOMPILE_NO_CHECK)
 @COND_MPI_FALSE@FCLINK = $(FCCOMPILE_NO_CHECK)
 
@@ -164,7 +172,6 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/compute_forces_elastic.o \
 	$O/compute_forces_elastic_Dev.o \
 	$O/compute_forces_elastic_noDev.o \
-	$O/compute_forces_elastic_Dev_openmp.o \
 	$O/compute_add_sources_acoustic.o \
 	$O/compute_add_sources_elastic.o \
 	$O/compute_coupling_acoustic_el.o \
@@ -197,6 +204,10 @@ SOLVER_ARRAY_OBJECTS = \
 # objects toggled between the parallel and serial version
 @COND_MPI_TRUE@COND_MPI_OBJECTS = $O/parallel.o
 @COND_MPI_FALSE@COND_MPI_OBJECTS = $O/serial.o
+
+# objects toggled between openmp and non-openmp version
+@COND_OPENMP_TRUE@COND_OPENMP_OBJECTS = $O/compute_forces_elastic_Dev_openmp.openmp.o
+@COND_OPENMP_FALSE@COND_OPENMP_OBJECTS =
 
 LIBSPECFEM = $L/libspecfem.a
 
@@ -231,8 +242,8 @@ specfem3D: xspecfem3D
 
 # rules for the pure Fortran version
 @COND_PYRE_FALSE@# solver also depends on values from mesher
-@COND_PYRE_FALSE@xspecfem3D: $(XSPECFEM_OBJECTS) $(COND_MPI_OBJECTS)
-@COND_PYRE_FALSE@	${FCLINK} -o ${E}/xspecfem3D $(XSPECFEM_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS) $(CUDA_LINK)
+@COND_PYRE_FALSE@xspecfem3D: $(XSPECFEM_OBJECTS) $(COND_MPI_OBJECTS) $(COND_OPENMP_OBJECTS)
+@COND_PYRE_FALSE@	${FCLINK} -o ${E}/xspecfem3D $(XSPECFEM_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS) $(COND_OPENMP_OBJECTS) $(OPENMP_LIBS) $(CUDA_LINK)
 @COND_PYRE_FALSE@
 
 convolve_source_timefunction: xconvolve_source_timefunction
@@ -283,7 +294,19 @@ $L/libspecfem.a: $(libspecfem_a_OBJECTS)
 $O/%.o: %.f90 $(SHARED)constants.h
 	${FCCOMPILE_NO_CHECK} -c -o $@ $<
 
+$O/%.o: %.F90 $(SHARED)constants.h
+	${FCCOMPILE_NO_CHECK} -c -o $@ $<
+
 $O/%.shared.o: ${SHARED}%.f90 $(SHARED)constants.h
+	${FCCOMPILE_NO_CHECK} -c -o $@ $<
+
+$O/%.shared.o: ${SHARED}%.F90 $(SHARED)constants.h
+	${FCCOMPILE_NO_CHECK} -c -o $@ $<
+
+###
+### OpenMP compilation
+###
+$O/%.openmp.o: %.f90 $(SHARED)constants.h
 	${FCCOMPILE_NO_CHECK} -c -o $@ $<
 
 ###

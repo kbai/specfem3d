@@ -41,12 +41,12 @@
 
   implicit none
   real :: ct
-    
+
   ! note: for simplicity, we take cpu_time which returns the elapsed CPU time in seconds
   !          (instead of wall clock time for parallel MPI function)
   call cpu_time(ct)
-  
-  wtime = ct  
+
+  wtime = ct
 
   end function wtime
 

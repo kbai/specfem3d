@@ -264,7 +264,7 @@
 ! try several times with one more color before giving up
   logical, parameter :: USE_DROUX_OPTIMIZATION = .false.
   integer, parameter :: MAX_NB_TRIES_OF_DROUX_1993 = 15
-!  
+!
 ! postprocess the colors to balance them if Droux (1993) algorithm is not used
   logical, parameter :: BALANCE_COLORS_SIMPLE_ALGO = .true.
 

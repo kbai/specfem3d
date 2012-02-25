@@ -153,7 +153,7 @@ subroutine compute_forces_acoustic()
     endif
 
 
-   if(PML) then
+    if(PML) then
       ! transfers potentials to CPU
       if(GPU_MODE) call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
                               potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
@@ -186,9 +186,10 @@ subroutine compute_forces_acoustic()
 
     ! absorbing boundaries
     if(ABSORBING_CONDITIONS) then
-      if( PML .and. PML_USE_SOMMERFELD ) then
-        ! adds a Sommerfeld condition on the domain's absorbing boundaries
-        call PML_acoustic_abs_boundaries(phase_is_inner,NSPEC_AB,NGLOB_AB,&
+      if( PML ) then
+        if( PML_USE_SOMMERFELD ) then
+          ! adds a Sommerfeld condition on the domain's absorbing boundaries
+          call PML_acoustic_abs_boundaries(phase_is_inner,NSPEC_AB,NGLOB_AB,&
                         abs_boundary_jacobian2Dw,abs_boundary_ijk,abs_boundary_ispec, &
                         num_abs_boundary_faces, &
                         kappastore,ibool,ispec_is_inner, &
@@ -197,10 +198,10 @@ subroutine compute_forces_acoustic()
                         num_PML_ispec,PML_ispec,ispec_is_PML_inum,&
                         chi1_dot,chi2_t,chi2_t_dot,chi3_dot,chi4_dot,&
                         chi1_dot_dot,chi3_dot_dot,chi4_dot_dot)
-        ! transfers potentials back to GPU
-        if(GPU_MODE) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
+          ! transfers potentials back to GPU
+          if(GPU_MODE) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
                               potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
-
+        endif
       else
        ! Stacey boundary conditions
         call compute_stacey_acoustic(NSPEC_AB,NGLOB_AB, &

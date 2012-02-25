@@ -26,32 +26,32 @@
 
 ! OpenMP Threaded variant by Max Rietmann and Olaf Schenk
 
-subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
-                                             displ,accel, &
-                                             xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                                             hprime_xx,hprime_xxT, &
-                                             hprimewgll_xx,hprimewgll_xxT, &
-                                             wgllwgll_xy,wgllwgll_xz,wgllwgll_yz, &
-                                             kappastore,mustore,jacobian,ibool, &
-                                             ATTENUATION, &
-                                             one_minus_sum_beta,factor_common,alphaval,betaval,gammaval,&
-                                             NSPEC_ATTENUATION_AB, &
-                                             R_xx,R_yy,R_xy,R_xz,R_yz, &
-                                             epsilondev_xx,epsilondev_yy,epsilondev_xy, &
-                                             epsilondev_xz,epsilondev_yz,epsilon_trace_over_3, &
-                                             ANISOTROPY,NSPEC_ANISO, &
-                                             c11store,c12store,c13store,c14store,c15store,c16store,&
-                                             c22store,c23store,c24store,c25store,c26store,c33store,&
-                                             c34store,c35store,c36store,c44store,c45store,c46store,&
-                                             c55store,c56store,c66store, &
-                                             SIMULATION_TYPE,COMPUTE_AND_STORE_STRAIN,NSPEC_STRAIN_ONLY, &
-                                             NSPEC_BOUN,NSPEC2D_MOHO,NSPEC_ADJOINT, &
-                                             is_moho_top,is_moho_bot, &
-                                             dsdx_top,dsdx_bot, &
-                                             ispec2D_moho_top,ispec2D_moho_bot, &
-                                             num_phase_ispec_elastic,nspec_inner_elastic,nspec_outer_elastic,&
-                                             phase_ispec_inner_elastic,&
-                                             num_colors_outer_elastic,num_colors_inner_elastic)
+  subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
+                             displ,accel, &
+                             xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
+                             hprime_xx,hprime_xxT, &
+                             hprimewgll_xx,hprimewgll_xxT, &
+                             wgllwgll_xy,wgllwgll_xz,wgllwgll_yz, &
+                             kappastore,mustore,jacobian,ibool, &
+                             ATTENUATION, &
+                             one_minus_sum_beta,factor_common,alphaval,betaval,gammaval,&
+                             NSPEC_ATTENUATION_AB, &
+                             R_xx,R_yy,R_xy,R_xz,R_yz, &
+                             epsilondev_xx,epsilondev_yy,epsilondev_xy, &
+                             epsilondev_xz,epsilondev_yz,epsilon_trace_over_3, &
+                             ANISOTROPY,NSPEC_ANISO, &
+                             c11store,c12store,c13store,c14store,c15store,c16store,&
+                             c22store,c23store,c24store,c25store,c26store,c33store,&
+                             c34store,c35store,c36store,c44store,c45store,c46store,&
+                             c55store,c56store,c66store, &
+                             SIMULATION_TYPE,COMPUTE_AND_STORE_STRAIN,NSPEC_STRAIN_ONLY, &
+                             NSPEC_BOUN,NSPEC2D_MOHO,NSPEC_ADJOINT, &
+                             is_moho_top,is_moho_bot, &
+                             dsdx_top,dsdx_bot, &
+                             ispec2D_moho_top,ispec2D_moho_bot, &
+                             num_phase_ispec_elastic,&
+                             phase_ispec_inner_elastic,&
+                             num_colors_outer_elastic,num_colors_inner_elastic)
 
 
 
@@ -63,7 +63,7 @@ subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
 
   ! Trying to pass these variables as subroutine arguments ran into
   ! problems, so we reference them from their module, making them
-  ! accessible from this subroutine 
+  ! accessible from this subroutine
   use specfem_par_elastic, only:dummyx_loc,dummyy_loc,dummyz_loc,newtempx1,newtempx2,newtempx3,&
        newtempy1,newtempy2,newtempy3,newtempz1,newtempz2,newtempz3,&
        tempx1,tempx2,tempx3,tempy1,tempy2,tempy3,tempz1,tempz2,tempz3,num_elem_colors_elastic
@@ -115,7 +115,7 @@ subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
        c55store,c56store,c66store
 
   integer :: iphase
-  integer :: num_phase_ispec_elastic,nspec_inner_elastic,nspec_outer_elastic
+  integer :: num_phase_ispec_elastic
   integer, dimension(num_phase_ispec_elastic,2) :: phase_ispec_inner_elastic
 
   ! adjoint simulations
@@ -151,11 +151,13 @@ subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
 
   integer OMP_get_thread_num
   integer OMP_GET_MAX_THREADS
-  double precision omp_get_wtime
-  double precision start_time
-  double precision end_time
-  double precision accumulate_time_start
-  double precision accumulate_time_stop
+
+  ! timing
+  !double precision omp_get_wtime
+  !double precision start_time
+  !double precision end_time
+  !double precision accumulate_time_start
+  !double precision accumulate_time_stop
 
   ! local anisotropy parameters
   real(kind=CUSTOM_REAL) c11,c12,c13,c14,c15,c16,c22,c23,c24,c25,c26,&
@@ -166,7 +168,7 @@ subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
   integer i,j,k
   integer thread_id
   integer NUM_THREADS
-  integer omp_get_num_threads ! function
+  !integer omp_get_num_threads ! function
 
   ! coloring additions
   ! integer, dimension(:), allocatable :: num_elem_colors_elastic
@@ -174,8 +176,9 @@ subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
   integer num_colors_outer_elastic, num_colors_inner_elastic
   integer icolor
 
-  ! write(*,*) "num_elem_colors_elastic(1)=",num_elem_colors_elastic(1)
+  ! write(*,*) "num_elem_colors_elastic(1) = ",num_elem_colors_elastic(1)
   imodulo_N_SLS = mod(N_SLS,3)
+
   ! NUM_THREADS = 1
   NUM_THREADS = OMP_GET_MAX_THREADS()
 
@@ -188,8 +191,8 @@ subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
      number_of_colors = num_colors_inner_elastic + num_colors_outer_elastic
      istart = num_colors_outer_elastic+1
      ! istart = num_colors_outer_elastic
-
   endif
+
   ! "start" timer
   ! start_time = omp_get_wtime()
 
@@ -201,8 +204,8 @@ subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
   ! order, stopping to synchronize threads after all the elements in a
   ! color are finished.
   estart = 1
- do icolor = istart, number_of_colors
-    
+  do icolor = istart, number_of_colors
+
     !$OMP PARALLEL DEFAULT(SHARED) PRIVATE(&
     !$OMP R_xx_val1,R_yy_val1,R_xx_val2,R_yy_val2,R_xx_val3,R_yy_val3,&
     !$OMP factor_loc,alphaval_loc,betaval_loc,gammaval_loc,&
@@ -647,11 +650,20 @@ subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
 
                 ! Assembly of shared degrees of freedom fixed through mesh coloring
                 !! !$OMP ATOMIC
-                accel(1,iglob) = accel(1,iglob) - (fac1*newtempx1(i,j,k,thread_id) + fac2*newtempx2(i,j,k,thread_id) + fac3*newtempx3(i,j,k,thread_id))
+                accel(1,iglob) = accel(1,iglob) &
+                                  - (fac1*newtempx1(i,j,k,thread_id) &
+                                   + fac2*newtempx2(i,j,k,thread_id) &
+                                   + fac3*newtempx3(i,j,k,thread_id))
                 !! !$OMP ATOMIC
-                accel(2,iglob) = accel(2,iglob) - (fac1*newtempy1(i,j,k,thread_id) + fac2*newtempy2(i,j,k,thread_id) + fac3*newtempy3(i,j,k,thread_id))
+                accel(2,iglob) = accel(2,iglob) &
+                                  - (fac1*newtempy1(i,j,k,thread_id) &
+                                   + fac2*newtempy2(i,j,k,thread_id) &
+                                   + fac3*newtempy3(i,j,k,thread_id))
                 !! !$OMP ATOMIC
-                accel(3,iglob) = accel(3,iglob) - (fac1*newtempz1(i,j,k,thread_id) + fac2*newtempz2(i,j,k,thread_id) + fac3*newtempz3(i,j,k,thread_id))
+                accel(3,iglob) = accel(3,iglob) &
+                                  - (fac1*newtempz1(i,j,k,thread_id) &
+                                   + fac2*newtempz2(i,j,k,thread_id) &
+                                   + fac3*newtempz3(i,j,k,thread_id))
 
                 ! accel(1,iglob) = accel(1,iglob) - &
                 ! (fac1*newtempx1(i,j,k,thread_id) + fac2*newtempx2(i,j,k,thread_id) + fac3*newtempx3(i,j,k,thread_id))
@@ -732,20 +744,19 @@ subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
     ! color.
     estart = estart + num_elements
 
- enddo ! loop over colors
-  
+  enddo ! loop over colors
 
- 
-! "stop" timer
-! end_time = omp_get_wtime()
 
-! write(*,*) "Total Elapsed time: ", (end_time-start_time) , "seconds. (Threads=",NUM_THREADS,")"
-! write(*,*) "Accumulate Elapsed time: ", (accumulate_time_stop-accumulate_time_start) , "seconds"
+  ! "stop" timer
+  ! end_time = omp_get_wtime()
+
+  ! write(*,*) "Total Elapsed time: ", (end_time-start_time) , "seconds. (Threads=",NUM_THREADS,")"
+  ! write(*,*) "Accumulate Elapsed time: ", (accumulate_time_stop-accumulate_time_start) , "seconds"
 
 
   ! These are now allocated at the beginning and never deallocated
   ! because the program just finishes at the end.
-  
+
   ! deallocate(dummyx_loc)
   ! deallocate(dummyy_loc)
   ! deallocate(dummyz_loc)
@@ -767,9 +778,9 @@ subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
   ! deallocate(tempz1)
   ! deallocate(tempz2)
   ! deallocate(tempz3)
-  
-! accel(:,:) = accel_omp(:,:,1)
 
-end subroutine compute_forces_elastic_Dev_openmp
+  ! accel(:,:) = accel_omp(:,:,1)
+
+  end subroutine compute_forces_elastic_Dev_openmp
 
 

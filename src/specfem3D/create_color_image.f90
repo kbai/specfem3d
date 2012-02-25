@@ -264,20 +264,20 @@
     NZ_IMAGE_color = NZ_IMAGE_color * zoom_factor
     zoom = .true.
   endif
-  
+
   ! create all the pixels
   if( NX_IMAGE_color /= 0 ) then
     size_pixel_horizontal = (xmax_color_image - xmin_color_image) / dble(NX_IMAGE_color)
   else
     size_pixel_horizontal = 0.0
   endif
-  
+
   if( NZ_IMAGE_color /= 0 ) then
     size_pixel_vertical = (zmax_color_image - zmin_color_image) / dble(NZ_IMAGE_color)
   else
     size_pixel_vertical = 0.0
   endif
-  
+
   if (myrank == 0) then
     write(IMAIN,*) '  image points: ',npgeo_glob
     write(IMAIN,*) '  xmin/xmax: ',xmin_color_image,'/',xmax_color_image
@@ -309,7 +309,7 @@
     distance_z1 = 0.0
     distance_z2 = 2.0*size_pixel_vertical
   endif
-  
+
   do j=1,NZ_IMAGE_color
     do i=1,NX_IMAGE_color
       ! calculates midpoint of pixel

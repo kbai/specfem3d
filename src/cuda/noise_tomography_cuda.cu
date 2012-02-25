@@ -64,7 +64,7 @@ TRACE("fortranprint");
   MPI_Comm_rank(MPI_COMM_WORLD,&procid);
 #else
   procid = 0;
-#endif  
+#endif
   printf("%d: sends msg_id %d\n",procid,*id);
 }
 

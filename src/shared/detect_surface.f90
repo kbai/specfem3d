@@ -707,7 +707,7 @@
   integer, dimension(:), allocatable :: valence_external_mesh
   integer :: ispec,i,j,k,iglob,ier,count
   real(kind=CUSTOM_REAL),parameter :: TOLERANCE_DISTANCE = 0.9
- 
+
 ! detecting surface points/elements (based on valence check on NGLL points) for external mesh
   allocate(valence_external_mesh(nglob),stat=ier)
   if( ier /= 0 ) stop 'error allocate valence array'
@@ -724,7 +724,7 @@
                   + (zstore(ibool(1,1,1,:)) - zstore(ibool(2,1,1,:)))**2 )
   mindist = sqrt(mindist)
   distance = TOLERANCE_DISTANCE*mindist
-  
+
 ! sets valence value to one corresponding to process rank  for points on cross-sections
   do ispec = 1, nspec
     do k = 1, NGLLZ

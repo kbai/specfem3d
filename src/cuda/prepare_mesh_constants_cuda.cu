@@ -81,8 +81,10 @@ void pause_for_debugger(int pause) {
     gethostname(hostname, sizeof(hostname));
     printf("PID %d on %s:%d ready for attach\n", getpid(), hostname,myrank);
     FILE *file = fopen("/scratch/eiger/rietmann/attach_gdb.txt","w+");
-    fprintf(file,"PID %d on %s:%d ready for attach\n", getpid(), hostname,myrank);
-    fclose(file);
+    if (file != NULL){
+      fprintf(file,"PID %d on %s:%d ready for attach\n", getpid(), hostname,myrank);
+      fclose(file);
+    }
     fflush(stdout);
     while (0 == i)
       sleep(5);
@@ -128,7 +130,7 @@ void print_CUDA_error_if_any(cudaError_t err, int num)
     fflush(stdout);
 #ifdef WITH_MPI
     MPI_Abort(MPI_COMM_WORLD,1);
-#endif    
+#endif
     exit(EXIT_FAILURE);
   }
   return;
@@ -166,9 +168,11 @@ void output_free_memory(int myrank,char* info_str) {
 
   sprintf(filename,"../in_out_files/OUTPUT_FILES/gpu_device_mem_usage_proc_%06d.txt",myrank);
   fp = fopen(filename,"a+");
-  fprintf(fp,"%d: @%s GPU memory usage: used = %f MB, free = %f MB, total = %f MB\n", myrank, info_str,
-   used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
-  fclose(fp);
+  if (fp != NULL){
+    fprintf(fp,"%d: @%s GPU memory usage: used = %f MB, free = %f MB, total = %f MB\n", myrank, info_str,
+            used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
+    fclose(fp);
+  }
 }
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -191,7 +195,7 @@ void show_free_memory(char* info_str) {
 
   // show memory usage of GPU
   int myrank;
-#ifdef WITH_MPI  
+#ifdef WITH_MPI
   MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 #else
   myrank = 0;
@@ -204,15 +208,17 @@ void show_free_memory(char* info_str) {
    used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
 
 }
+*/
 
- extern "C"
- void FC_FUNC_(show_free_device_memory,
- SHOW_FREE_DEVICE_MEMORY)() {
+/*
+extern "C"
+void FC_FUNC_(show_free_device_memory,
+              SHOW_FREE_DEVICE_MEMORY)() {
  TRACE("show_free_device_memory");
- 
+
  show_free_memory("from fortran");
- }
- */
+}
+*/
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -474,23 +480,23 @@ void FC_FUNC_(prepare_cuda_device,
   int device_count = 0;
   cudaGetDeviceCount(&device_count);
   exit_on_cuda_error("CUDA runtime cudaGetDeviceCount: check if driver and runtime libraries work together\nexiting...\n");
-  
+
   // returns device count to fortran
   if (device_count == 0) exit_on_error("CUDA runtime error: there is no device supporting CUDA\n");
   *ncuda_devices = device_count;
 
 
-  // Sets the active device  
+  // Sets the active device
   if(device_count > 1) {
     // generalized for more GPUs per node
     // note: without previous context release, cudaSetDevice will complain with the cuda error
     //         "setting the device when a process is active is not allowed"
-    // releases previous contexts  
+    // releases previous contexts
     cudaThreadExit();
-    
+
     //printf("rank %d: cuda device count = %d sets device = %d \n",myrank,device_count,myrank % device_count);
     //MPI_Barrier(MPI_COMM_WORLD);
-    
+
     // sets active device
     cudaSetDevice( myrank % device_count );
     exit_on_cuda_error("cudaSetDevice");
@@ -515,47 +521,48 @@ void FC_FUNC_(prepare_cuda_device,
   FILE* fp;
   sprintf(filename,"../in_out_files/OUTPUT_FILES/gpu_device_info_proc_%06d.txt",myrank);
   fp = fopen(filename,"a+");
+  if (fp != NULL){
+    // display device properties
+    fprintf(fp,"Device Name = %s\n",deviceProp.name);
+    fprintf(fp,"multiProcessorCount: %d\n",deviceProp.multiProcessorCount);
+    fprintf(fp,"totalGlobalMem (in MB): %f\n",(unsigned long) deviceProp.totalGlobalMem / (1024.f * 1024.f));
+    fprintf(fp,"totalGlobalMem (in GB): %f\n",(unsigned long) deviceProp.totalGlobalMem / (1024.f * 1024.f * 1024.f));
+    fprintf(fp,"sharedMemPerBlock (in bytes): %lu\n",(unsigned long) deviceProp.sharedMemPerBlock);
+    fprintf(fp,"Maximum number of threads per block: %d\n",deviceProp.maxThreadsPerBlock);
+    fprintf(fp,"Maximum size of each dimension of a block: %d x %d x %d\n",
+            deviceProp.maxThreadsDim[0],deviceProp.maxThreadsDim[1],deviceProp.maxThreadsDim[2]);
+    fprintf(fp,"Maximum sizes of each dimension of a grid: %d x %d x %d\n",
+            deviceProp.maxGridSize[0],deviceProp.maxGridSize[1],deviceProp.maxGridSize[2]);
+    fprintf(fp,"Compute capability of the device = %d.%d\n", deviceProp.major, deviceProp.minor);
+    if(deviceProp.canMapHostMemory){
+      fprintf(fp,"canMapHostMemory: TRUE\n");
+    }else{
+      fprintf(fp,"canMapHostMemory: FALSE\n");
+    }
+    if(deviceProp.deviceOverlap){
+      fprintf(fp,"deviceOverlap: TRUE\n");
+    }else{
+      fprintf(fp,"deviceOverlap: FALSE\n");
+    }
 
-  // display device properties
-  fprintf(fp,"Device Name = %s\n",deviceProp.name);
-  fprintf(fp,"multiProcessorCount: %d\n",deviceProp.multiProcessorCount);
-  fprintf(fp,"totalGlobalMem (in MB): %f\n",(unsigned long) deviceProp.totalGlobalMem / (1024.f * 1024.f));
-  fprintf(fp,"totalGlobalMem (in GB): %f\n",(unsigned long) deviceProp.totalGlobalMem / (1024.f * 1024.f * 1024.f));
-  fprintf(fp,"sharedMemPerBlock (in bytes): %lu\n",(unsigned long) deviceProp.sharedMemPerBlock);
-  fprintf(fp,"Maximum number of threads per block: %d\n",deviceProp.maxThreadsPerBlock);
-  fprintf(fp,"Maximum size of each dimension of a block: %d x %d x %d\n",
-          deviceProp.maxThreadsDim[0],deviceProp.maxThreadsDim[1],deviceProp.maxThreadsDim[2]);
-  fprintf(fp,"Maximum sizes of each dimension of a grid: %d x %d x %d\n",
-          deviceProp.maxGridSize[0],deviceProp.maxGridSize[1],deviceProp.maxGridSize[2]);
-  fprintf(fp,"Compute capability of the device = %d.%d\n", deviceProp.major, deviceProp.minor);
-  if(deviceProp.canMapHostMemory){
-    fprintf(fp,"canMapHostMemory: TRUE\n");
-  }else{
-    fprintf(fp,"canMapHostMemory: FALSE\n");
+    // make sure that the device has compute capability >= 1.3
+    //if (deviceProp.major < 1){
+    //  fprintf(stderr,"Compute capability major number should be at least 1, exiting...\n\n");
+    //  exit_on_error("CUDA Compute capability major number should be at least 1");
+    //}
+    //if (deviceProp.major == 1 && deviceProp.minor < 3){
+    //  fprintf(stderr,"Compute capability should be at least 1.3, exiting...\n");
+    //  exit_on_error("CUDA Compute capability major number should be at least 1.3");
+    //}
+
+    // outputs initial memory infos via cudaMemGetInfo()
+    double free_db,used_db,total_db;
+    get_free_memory(&free_db,&used_db,&total_db);
+    fprintf(fp,"%d: GPU memory usage: used = %f MB, free = %f MB, total = %f MB\n", myrank,
+            used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
+
+    fclose(fp);
   }
-  if(deviceProp.deviceOverlap){
-    fprintf(fp,"deviceOverlap: TRUE\n");
-  }else{
-    fprintf(fp,"deviceOverlap: FALSE\n");
-  }
-
-  // make sure that the device has compute capability >= 1.3
-  //if (deviceProp.major < 1){
-  //  fprintf(stderr,"Compute capability major number should be at least 1, exiting...\n\n");
-  //  exit_on_error("CUDA Compute capability major number should be at least 1");
-  //}
-  //if (deviceProp.major == 1 && deviceProp.minor < 3){
-  //  fprintf(stderr,"Compute capability should be at least 1.3, exiting...\n");
-  //  exit_on_error("CUDA Compute capability major number should be at least 1.3");
-  //}
-
-  // outputs initial memory infos via cudaMemGetInfo()
-  double free_db,used_db,total_db;
-  get_free_memory(&free_db,&used_db,&total_db);
-  fprintf(fp,"%d: GPU memory usage: used = %f MB, free = %f MB, total = %f MB\n", myrank,
-          used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
-
-  fclose(fp);
 }
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -1490,13 +1497,6 @@ void FC_FUNC_(prepare_sim2_or_3_const_device,
 
   Mesh* mp = (Mesh*)(*Mesh_pointer_f);
 
-  // allocates arrays for receivers
-  print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_islice_selected_rec,
-                                     *islice_selected_rec_size*sizeof(int)),6001);
-  // copies arrays to GPU device
-  print_CUDA_error_if_any(cudaMemcpy(mp->d_islice_selected_rec,islice_selected_rec,
-                                     *islice_selected_rec_size*sizeof(int),cudaMemcpyHostToDevice),6002);
-
   // adjoint source arrays
   mp->nadj_rec_local = *nadj_rec_local;
   if( mp->nadj_rec_local > 0 ){
@@ -1900,7 +1900,6 @@ TRACE("prepare_cleanup_device");
 
   // purely adjoint & kernel array
   if( *SIMULATION_TYPE == 2 || *SIMULATION_TYPE == 3 ){
-    cudaFree(mp->d_islice_selected_rec);
     if(mp->nadj_rec_local > 0 ){
       cudaFree(mp->d_adj_sourcearrays);
       cudaFree(mp->d_pre_computed_irec);

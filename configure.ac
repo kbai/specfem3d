@@ -54,6 +54,13 @@ AC_ARG_WITH([cuda],
     [want_cuda=no])
 AM_CONDITIONAL([COND_CUDA], [test "$want_cuda" = yes])
 
+AC_ARG_WITH([openmp],
+    [AC_HELP_STRING([--with-openmp],
+        [build OpenMP enabled version @<:@default=no@:>@])],
+    [want_openmp="$withval"],
+    [want_openmp=no])
+AM_CONDITIONAL([COND_OPENMP], [test "$want_openmp" = yes])
+
 
 # Checks for programs.
 
@@ -357,6 +364,7 @@ fi
 if test x"$MPICC" = x; then
     MPICC=mpicc
 fi
+AC_ARG_VAR(OPENMP_LIB,[Location of extra OpenMP libraries])
 
 AC_ARG_VAR(LOCAL_PATH_IS_ALSO_GLOBAL, [files on a local path on each node are also seen as global with same path @<:@default=true@:>@])
 if test x"$LOCAL_PATH_IS_ALSO_GLOBAL" = x; then
@@ -427,9 +435,16 @@ if test "$want_pyre" = yes; then
     CIT_FC_MAIN
 fi
 
+if test "$want_cuda" = yes; then
+    CIT_CUDA_COMPILER
+fi
+
+if test "$want_openmp" = yes; then
+    CIT_FC_OPENMP_MODULE([$FC],[$FLAGS_NO_CHECK])        
+fi
+
 
 # Checks for library functions.
-
 
 AC_CONFIG_FILES([Makefile in_data_files/Par_file in_data_files/CMTSOLUTION in_data_files/STATIONS src/meshfem3D/Makefile src/meshfem3D/constants.h src/meshfem3D/precision.h  src/decompose_mesh_SCOTCH/Makefile src/specfem3D/Makefile src/generate_databases/Makefile src/shared/constants.h src/shared/precision.h src/decompose_mesh_SCOTCH/scotch_5.1.11/src/Makefile.inc src/check_mesh_quality_CUBIT_Abaqus/Makefile])
 AC_OUTPUT

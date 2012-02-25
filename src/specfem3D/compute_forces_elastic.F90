@@ -455,51 +455,49 @@ subroutine compute_forces_elastic_Dev_sim1(iphase)
   use specfem_par_acoustic
   use specfem_par_elastic
   use specfem_par_poroelastic
-  
+
   implicit none
 
   integer,intent(in) :: iphase
-  logical OPENMP_MODE
-  OPENMP_MODE = .false.
 
-  ! write(*,*) "num_elem_colors_elastic(1)=",num_elem_colors_elastic(1)
-  
   select case(NGLLX)
-     
-  case (5)
-     if(OPENMP_MODE) then
-        call compute_forces_elastic_Dev_openmp(iphase, NSPEC_AB,NGLOB_AB,displ,accel, &
-             xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-             hprime_xx,hprime_xxT,hprimewgll_xx,hprimewgll_xxT, &
-             wgllwgll_xy,wgllwgll_xz,wgllwgll_yz, &
-             kappastore,mustore,jacobian,ibool, &
-             ATTENUATION, &
-             one_minus_sum_beta,factor_common, &
-             alphaval,betaval,gammaval, &
-             NSPEC_ATTENUATION_AB, &
-             R_xx,R_yy,R_xy,R_xz,R_yz, &
-             epsilondev_xx,epsilondev_yy,epsilondev_xy, &
-             epsilondev_xz,epsilondev_yz,epsilon_trace_over_3, &
-             ANISOTROPY,NSPEC_ANISO, &
-             c11store,c12store,c13store,c14store,c15store,c16store,&
-             c22store,c23store,c24store,c25store,c26store,c33store,&
-             c34store,c35store,c36store,c44store,c45store,c46store,&
-             c55store,c56store,c66store, &
-             SIMULATION_TYPE, COMPUTE_AND_STORE_STRAIN,NSPEC_STRAIN_ONLY, &
-             NSPEC_BOUN,NSPEC2D_MOHO,NSPEC_ADJOINT,&
-             is_moho_top,is_moho_bot, &
-             dsdx_top,dsdx_bot, &
-             ispec2D_moho_top,ispec2D_moho_bot, &
-             num_phase_ispec_elastic,nspec_inner_elastic,nspec_outer_elastic,&
-             phase_ispec_inner_elastic,&
-             num_colors_outer_elastic,num_colors_inner_elastic,&
-             num_elem_colors_elastic,&
-             dummyx_loc,dummyy_loc,dummyz_loc,newtempx1,newtempx2,newtempx3,&
-             newtempy1,newtempy2,newtempy3,newtempz1,newtempz2,newtempz3,&
-             tempx1,tempx2,tempx3,tempy1,tempy2,tempy3,tempz1,tempz2,tempz3)
-     else
 
-        call compute_forces_elastic_Dev_5p(iphase, NSPEC_AB,NGLOB_AB,displ,accel, &
+  case (5)
+
+!----------------------------------------------------------------------------------------------
+
+! OpenMP routine flag for testing & benchmarking forward runs only
+! configure additional flag, e.g.: FLAGS_NO_CHECK="-O3 -DOPENMP_MODE -openmp"
+
+!----------------------------------------------------------------------------------------------
+#ifdef OPENMP_MODE
+    call compute_forces_elastic_Dev_openmp(iphase, NSPEC_AB,NGLOB_AB,displ,accel, &
+           xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
+           hprime_xx,hprime_xxT,hprimewgll_xx,hprimewgll_xxT, &
+           wgllwgll_xy,wgllwgll_xz,wgllwgll_yz, &
+           kappastore,mustore,jacobian,ibool, &
+           ATTENUATION, &
+           one_minus_sum_beta,factor_common, &
+           alphaval,betaval,gammaval, &
+           NSPEC_ATTENUATION_AB, &
+           R_xx,R_yy,R_xy,R_xz,R_yz, &
+           epsilondev_xx,epsilondev_yy,epsilondev_xy, &
+           epsilondev_xz,epsilondev_yz,epsilon_trace_over_3, &
+           ANISOTROPY,NSPEC_ANISO, &
+           c11store,c12store,c13store,c14store,c15store,c16store,&
+           c22store,c23store,c24store,c25store,c26store,c33store,&
+           c34store,c35store,c36store,c44store,c45store,c46store,&
+           c55store,c56store,c66store, &
+           SIMULATION_TYPE, COMPUTE_AND_STORE_STRAIN,NSPEC_STRAIN_ONLY, &
+           NSPEC_BOUN,NSPEC2D_MOHO,NSPEC_ADJOINT,&
+           is_moho_top,is_moho_bot, &
+           dsdx_top,dsdx_bot, &
+           ispec2D_moho_top,ispec2D_moho_bot, &
+           num_phase_ispec_elastic,&
+           phase_ispec_inner_elastic,&
+           num_colors_outer_elastic,num_colors_inner_elastic)
+#else
+    call compute_forces_elastic_Dev_5p(iphase, NSPEC_AB,NGLOB_AB,displ,accel, &
              xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
              hprime_xx,hprime_xxT,hprimewgll_xx,hprimewgll_xxT, &
              wgllwgll_xy,wgllwgll_xz,wgllwgll_yz, &
@@ -523,7 +521,7 @@ subroutine compute_forces_elastic_Dev_sim1(iphase)
              ispec2D_moho_top,ispec2D_moho_bot, &
              num_phase_ispec_elastic,nspec_inner_elastic,nspec_outer_elastic,&
              phase_ispec_inner_elastic )
-     endif
+#endif
 
   case (6)
     call compute_forces_elastic_Dev_6p(iphase, NSPEC_AB,NGLOB_AB,displ,accel, &

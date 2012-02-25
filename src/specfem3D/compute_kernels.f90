@@ -69,88 +69,82 @@
   integer :: i,j,k,ispec,iglob
   real(kind=CUSTOM_REAL), dimension(5) :: epsilondev_loc,b_epsilondev_loc
 
-  ! updates kernels on GPU
-  if(GPU_MODE) then
+  if( .not. GPU_MODE ) then
+    ! updates kernels on CPU
+    do ispec = 1, NSPEC_AB
+
+      ! elastic domains
+      if( ispec_is_elastic(ispec) ) then
+
+         do k = 1, NGLLZ
+            do j = 1, NGLLY
+               do i = 1, NGLLX
+                  iglob = ibool(i,j,k,ispec)
+
+                  ! isotropic kernels
+                  ! note: takes displacement from backward/reconstructed (forward) field b_displ
+                  !          and acceleration from adjoint field accel (containing adjoint sources)
+                  !
+                  ! note: : time integral summation uses deltat
+                  !
+                  ! compare with Tromp et al. (2005), eq. (14), which takes adjoint displacement
+                  ! and forward acceleration, that is the symmetric form of what is calculated here
+                  ! however, this kernel expression is symmetric with regards
+                  ! to interchange adjoint - forward field
+                  rho_kl(i,j,k,ispec) =  rho_kl(i,j,k,ispec) &
+                       + deltat * dot_product(accel(:,iglob), b_displ(:,iglob))
+
+                  ! kernel for shear modulus, see e.g. Tromp et al. (2005), equation (17)
+                  ! note: multiplication with 2*mu(x) will be done after the time loop
+                  epsilondev_loc(1) = epsilondev_xx(i,j,k,ispec)
+                  epsilondev_loc(2) = epsilondev_yy(i,j,k,ispec)
+                  epsilondev_loc(3) = epsilondev_xy(i,j,k,ispec)
+                  epsilondev_loc(4) = epsilondev_xz(i,j,k,ispec)
+                  epsilondev_loc(5) = epsilondev_yz(i,j,k,ispec)
+
+                  b_epsilondev_loc(1) = b_epsilondev_xx(i,j,k,ispec)
+                  b_epsilondev_loc(2) = b_epsilondev_yy(i,j,k,ispec)
+                  b_epsilondev_loc(3) = b_epsilondev_xy(i,j,k,ispec)
+                  b_epsilondev_loc(4) = b_epsilondev_xz(i,j,k,ispec)
+                  b_epsilondev_loc(5) = b_epsilondev_yz(i,j,k,ispec)
+
+                  mu_kl(i,j,k,ispec) =  mu_kl(i,j,k,ispec) &
+                       + deltat * (epsilondev_loc(1)*b_epsilondev_loc(1) + epsilondev_loc(2)*b_epsilondev_loc(2) &
+                       + (epsilondev_loc(1)+epsilondev_loc(2)) * (b_epsilondev_loc(1)+b_epsilondev_loc(2)) &
+                       + 2 * (epsilondev_loc(3)*b_epsilondev_loc(3) + epsilondev_loc(4)*b_epsilondev_loc(4) + &
+                       epsilondev_loc(5)*b_epsilondev_loc(5)) )
+
+                  ! kernel for bulk modulus, see e.g. Tromp et al. (2005), equation (18)
+                  ! note: multiplication with kappa(x) will be done after the time loop
+                  kappa_kl(i,j,k,ispec) = kappa_kl(i,j,k,ispec) &
+                       + deltat * (9 * epsilon_trace_over_3(i,j,k,ispec) &
+                       * b_epsilon_trace_over_3(i,j,k,ispec))
+
+               enddo
+            enddo
+         enddo
+      endif !ispec_is_elastic
+
+    enddo
+
+  else
+    ! updates kernels on GPU
     call compute_kernels_elastic_cuda(Mesh_pointer,deltat)
-
-    ! for noise simulations --- source strength kernel
-    if (NOISE_TOMOGRAPHY == 3)  &
-      call compute_kernels_strength_noise(NGLLSQUARE*num_free_surface_faces,ibool, &
-                        sigma_kl,displ,deltat,it, &
-                        normal_x_noise,normal_y_noise,normal_z_noise, &
-                        noise_surface_movie, &
-                        NSPEC_AB,NGLOB_AB, &
-                        num_free_surface_faces,free_surface_ispec,free_surface_ijk,&
-                        GPU_MODE,Mesh_pointer)
-
-    ! kernels are done
-    return
   endif
 
-  ! updates kernels on CPU
-  do ispec = 1, NSPEC_AB
-
-    ! elastic domains
-    if( ispec_is_elastic(ispec) ) then
-
-       do k = 1, NGLLZ
-          do j = 1, NGLLY
-             do i = 1, NGLLX
-                iglob = ibool(i,j,k,ispec)
-
-                ! isotropic kernels
-                ! note: takes displacement from backward/reconstructed (forward) field b_displ
-                !          and acceleration from adjoint field accel (containing adjoint sources)
-                !
-                ! note: : time integral summation uses deltat
-                !
-                ! compare with Tromp et al. (2005), eq. (14), which takes adjoint displacement
-                ! and forward acceleration, that is the symmetric form of what is calculated here
-                ! however, this kernel expression is symmetric with regards
-                ! to interchange adjoint - forward field
-                rho_kl(i,j,k,ispec) =  rho_kl(i,j,k,ispec) &
-                     + deltat * dot_product(accel(:,iglob), b_displ(:,iglob))
-
-                ! kernel for shear modulus, see e.g. Tromp et al. (2005), equation (17)
-                ! note: multiplication with 2*mu(x) will be done after the time loop
-                epsilondev_loc(1) = epsilondev_xx(i,j,k,ispec)
-                epsilondev_loc(2) = epsilondev_yy(i,j,k,ispec)
-                epsilondev_loc(3) = epsilondev_xy(i,j,k,ispec)
-                epsilondev_loc(4) = epsilondev_xz(i,j,k,ispec)
-                epsilondev_loc(5) = epsilondev_yz(i,j,k,ispec)
-
-                b_epsilondev_loc(1) = b_epsilondev_xx(i,j,k,ispec)
-                b_epsilondev_loc(2) = b_epsilondev_yy(i,j,k,ispec)
-                b_epsilondev_loc(3) = b_epsilondev_xy(i,j,k,ispec)
-                b_epsilondev_loc(4) = b_epsilondev_xz(i,j,k,ispec)
-                b_epsilondev_loc(5) = b_epsilondev_yz(i,j,k,ispec)
-
-                mu_kl(i,j,k,ispec) =  mu_kl(i,j,k,ispec) &
-                     + deltat * (epsilondev_loc(1)*b_epsilondev_loc(1) + epsilondev_loc(2)*b_epsilondev_loc(2) &
-                     + (epsilondev_loc(1)+epsilondev_loc(2)) * (b_epsilondev_loc(1)+b_epsilondev_loc(2)) &
-                     + 2 * (epsilondev_loc(3)*b_epsilondev_loc(3) + epsilondev_loc(4)*b_epsilondev_loc(4) + &
-                     epsilondev_loc(5)*b_epsilondev_loc(5)) )
-
-                ! kernel for bulk modulus, see e.g. Tromp et al. (2005), equation (18)
-                ! note: multiplication with kappa(x) will be done after the time loop
-                kappa_kl(i,j,k,ispec) = kappa_kl(i,j,k,ispec) &
-                     + deltat * (9 * epsilon_trace_over_3(i,j,k,ispec) &
-                     * b_epsilon_trace_over_3(i,j,k,ispec))
-
-             enddo
-          enddo
-       enddo
-    endif !ispec_is_elastic
-
-  enddo
 
   ! moho kernel
   if( SAVE_MOHO_MESH ) then
-      call compute_boundary_kernel()
+    if( GPU_MODE ) then
+      call transfer_accel_from_device(NDIM*NGLOB_AB,accel,Mesh_pointer)
+      call transfer_b_displ_from_device(NDIM*NGLOB_AB,b_displ,Mesh_pointer)
+    endif
+    ! updates on CPU
+    call compute_boundary_kernel()
   endif
 
   ! for noise simulations --- source strength kernel
-  if (NOISE_TOMOGRAPHY == 3)  &
+  if (NOISE_TOMOGRAPHY == 3) then
     call compute_kernels_strength_noise(NGLLSQUARE*num_free_surface_faces,ibool, &
                         sigma_kl,displ,deltat,it, &
                         normal_x_noise,normal_y_noise,normal_z_noise, &
@@ -158,6 +152,7 @@
                         NSPEC_AB,NGLOB_AB, &
                         num_free_surface_faces,free_surface_ispec,free_surface_ijk,&
                         GPU_MODE,Mesh_pointer)
+  endif
 
   end subroutine compute_kernels_el
 

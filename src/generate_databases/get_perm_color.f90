@@ -129,11 +129,11 @@
   logical :: fail_safe
   ! valence
   integer :: maxval_count_ibool_outer,maxval_count_ibool_inner
-  
+
   ! display absolute minimum possible number of colors, i.e., maximum valence (for information only)
   ! beware: this wastes memory (needs an additional array called "count_ibool")
   logical, parameter :: DISPLAY_MIN_POSSIBLE_COLORS = .false.
-  
+
   ! user output
   if( myrank == 0 ) then
     if( USE_DROUX_OPTIMIZATION ) then
@@ -150,7 +150,7 @@
   nspec_inner = 0
   nspec_domain = 0
   do ispec=1,nspec
-    ! domain elements  
+    ! domain elements
     if(ispec_is_d(ispec)) then
       ! outer/inner elements
       if(is_on_a_slice_edge(ispec)) then
@@ -189,13 +189,13 @@
     ! gets maximum values of valence for inner and outer element points
     call count_mesh_valence(ibool,is_on_a_slice_edge,ispec_is_d, &
                            myrank, nspec, nglob, &
-                           maxval_count_ibool_outer,maxval_count_ibool_inner)    
-  endif 
+                           maxval_count_ibool_outer,maxval_count_ibool_inner)
+  endif
 
   ! allocates mask
   allocate(mask_ibool(nglob),stat=ier)
   if( ier /= 0 ) stop 'error allocating mask_ibool array'
-  
+
   ! entry point for fail-safe mechanism when Droux 1993 fails
   999 continue
 
@@ -338,21 +338,21 @@
 
   nb_colors_inner_elements = icolor - nb_colors_outer_elements
 
-  ! Droux optimization: 
-  ! added this to create more balanced colors according to JJ Droux (1993)  
-  ! note: this might not find an optimial solution.  
+  ! Droux optimization:
+  ! added this to create more balanced colors according to JJ Droux (1993)
+  ! note: this might not find an optimial solution.
   !          we will probably have to try a few times with increasing colors
   if( try_Droux_coloring ) then
     ! initializes fail-safe mechanism
     fail_safe = .false.
-  
+
     ! tries to find a balanced coloring
     call balance_colors_Droux(ibool,is_on_a_slice_edge,ispec_is_d, &
                               myrank, nspec, nglob, &
                               color,nb_colors_outer_elements,nb_colors_inner_elements, &
                               nspec_outer,nspec_inner,maxval_count_ibool_inner, &
                               mask_ibool,fail_safe)
-    
+
     ! in case it fails go back to simple coloring algorithm
     if( fail_safe ) then
       try_Droux_coloring = .false.
@@ -445,7 +445,7 @@
   integer :: ispec
   integer :: iglob1,iglob2,iglob3,iglob4,iglob5,iglob6,iglob7,iglob8
   integer :: ier
-  
+
   ! allocates count array
   allocate(count_ibool(nglob),stat=ier)
   if( ier /= 0 ) stop 'error allocating count_ibool array'
@@ -521,7 +521,7 @@
   endif
 
   deallocate(count_ibool)
-  
+
   end subroutine count_mesh_valence
 
 !
@@ -554,17 +554,17 @@
   integer :: maxval_count_ibool_inner
 
   logical :: fail_safe
-  
+
   ! local parameters
   logical, dimension(:), allocatable :: icolor_conflict_found
   integer, dimension(:), allocatable :: nb_elems_in_this_color
   integer :: ispec,ispec2,icolor,ncolors,icolormin,icolormax,icolor_chosen,nb_elems_in_color_chosen
   integer :: nb_tries_of_Droux_1993,last_ispec_studied
   integer :: ier
-  
+
   ! debug outupt
   if( myrank == 0 ) then
-    write(IMAIN,*) '     balancing colors: Droux algorithm'  
+    write(IMAIN,*) '     balancing colors: Droux algorithm'
     write(IMAIN,*) '       initial number of outer element colors = ',nb_colors_outer_elements
     write(IMAIN,*) '       initial number of inner element colors = ',nb_colors_inner_elements
     write(IMAIN,*) '       initial number of total colors = ',nb_colors_outer_elements + nb_colors_inner_elements
@@ -655,7 +655,7 @@
                 mask_ibool(ibool(NGLLX,NGLLY,NGLLZ,ispec2)) .or. &
                 mask_ibool(ibool(1,NGLLY,NGLLZ,ispec2))) &
               icolor_conflict_found(color(ispec2)) = .true.
-              
+
           endif ! domain elements
         enddo
       endif
@@ -745,7 +745,7 @@
   integer :: last_ispec_studied
   integer :: target_nb_elems_per_color,icolor_target
   integer :: ier
-    
+
   ! debug outupt
   if( myrank == 0 ) then
     write(IMAIN,*) '     balancing colors: simple algorithm'
@@ -770,9 +770,9 @@
   if( nb_colors_outer_elements > 0 ) then
     target_nb_elems_per_color = nspec_outer / nb_colors_outer_elements + 1
   else
-    target_nb_elems_per_color = 1  
+    target_nb_elems_per_color = 1
   endif
-  
+
   ! print *,'nspec_outer,target_nb_elems_per_color = ',nspec_outer,target_nb_elems_per_color
 
   ! count the initial number of elements in each color
@@ -782,7 +782,7 @@
   enddo
 
   ! do not balance the last one, because it will be balanced automatically by the others
-  do icolor = icolormin,icolormax-1 
+  do icolor = icolormin,icolormax-1
 
     ! if color is already balanced, do nothing
     ! (this works because in the initial set the number of elements per color decreases when the color number increases)
@@ -865,7 +865,7 @@
         ! if cannot find any other color to move this element to
         if (all(icolor_conflict_found(icolormin:icolormax))) cycle
 
-        ! loop on all the colors to determine the color with the smallest number of elements 
+        ! loop on all the colors to determine the color with the smallest number of elements
         ! and for which there is no conflict
         nb_elems_in_color_chosen = 2147000000 ! start with extremely large unrealistic value
         do icolor_target = icolormin,icolormax
@@ -878,11 +878,11 @@
 
         ! move the element to that new color
         ! remove element from its current color
-        nb_elems_in_this_color(color(ispec)) = nb_elems_in_this_color(color(ispec)) - 1 
+        nb_elems_in_this_color(color(ispec)) = nb_elems_in_this_color(color(ispec)) - 1
         color(ispec) = icolor_chosen
         ! and add it to the new color
-        nb_elems_in_this_color(icolor_chosen) = nb_elems_in_this_color(icolor_chosen) + 1 
-        
+        nb_elems_in_this_color(icolor_chosen) = nb_elems_in_this_color(icolor_chosen) + 1
+
       endif ! domain elements
     enddo
 
@@ -908,7 +908,7 @@
   enddo
 
   ! do not balance the last one, because it will be balanced automatically by the others
-  do icolor = icolormin,icolormax-1 
+  do icolor = icolormin,icolormax-1
 
     ! if color is already balanced, do nothing
     ! (this works because in the initial set the number of elements per color decreases when the color number increases)
@@ -979,7 +979,7 @@
               mask_ibool(ibool(NGLLX,NGLLY,NGLLZ,ispec2)) .or. &
               mask_ibool(ibool(1,NGLLY,NGLLZ,ispec2))) &
                 icolor_conflict_found(color(ispec2)) = .true.
-  
+
           endif ! domain elements
         enddo
 
@@ -990,9 +990,9 @@
         enddo
 
         ! if cannot find any other color to move this element to
-        if (all(icolor_conflict_found(icolormin:icolormax))) cycle 
+        if (all(icolor_conflict_found(icolormin:icolormax))) cycle
 
-        ! loops on all the colors to determine the color with the smallest number of elements 
+        ! loops on all the colors to determine the color with the smallest number of elements
         ! and for which there is no conflict
         nb_elems_in_color_chosen = 2147000000 ! start with extremely large unrealistic value
         do icolor_target = icolormin,icolormax
@@ -1008,8 +1008,8 @@
         nb_elems_in_this_color(color(ispec)) = nb_elems_in_this_color(color(ispec)) - 1
         color(ispec) = icolor_chosen
         ! and add it to the new color
-        nb_elems_in_this_color(icolor_chosen) = nb_elems_in_this_color(icolor_chosen) + 1 
-      
+        nb_elems_in_this_color(icolor_chosen) = nb_elems_in_this_color(icolor_chosen) + 1
+
       endif ! domain elements
     enddo
 

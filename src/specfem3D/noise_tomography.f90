@@ -447,7 +447,7 @@ end module user_noise_distribution
 
   if (NOISE_TOMOGRAPHY/=0) then
      ! save/read the surface movie using the same c routine as we do for absorbing boundaries (file ID is 2)
-     
+
      ! size of single record
      reclen=CUSTOM_REAL*NDIM*NGLLSQUARE*NSPEC_TOP
 
@@ -459,7 +459,7 @@ end module user_noise_distribution
            print *,'reclen of noise surface_movie needed exceeds integer 4-byte limit: ',reclen
            print *,'  ',CUSTOM_REAL, NDIM, NGLLSQUARE, NSPEC_TOP
            print*,'bit size fortran: ',bit_size(NSPEC_TOP)
-           call exit_MPI(myrank,"error NSPEC_TOP integer limit")            
+           call exit_MPI(myrank,"error NSPEC_TOP integer limit")
         endif
 
         ! total file size

@@ -197,8 +197,9 @@
                       xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
                       ibool,rhostore,GRAVITY)
       ! adjoint fields: acceleration vector
+      ! new expression (\partial_t^2\bfs^\dagger=-\frac{1}{\rho}\bfnabla\phi^\dagger)
       call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
-                      potential_dot_dot_acoustic, accel_elm,&
+                      potential_acoustic, accel_elm,&
                       hprime_xx,hprime_yy,hprime_zz, &
                       xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
                       ibool,rhostore,GRAVITY)
@@ -207,17 +208,18 @@
         do j = 1, NGLLY
           do i = 1, NGLLX
             iglob = ibool(i,j,k,ispec)
-
+            
+            ! new expression
             ! density kernel
             rhol = rhostore(i,j,k,ispec)
             rho_ac_kl(i,j,k,ispec) =  rho_ac_kl(i,j,k,ispec) &
-                      - deltat * rhol * dot_product(accel_elm(:,i,j,k), b_displ_elm(:,i,j,k))
+                      + deltat * rhol * dot_product(accel_elm(:,i,j,k), b_displ_elm(:,i,j,k))
 
             ! bulk modulus kernel
-            kappal = kappastore(i,j,k,ispec)
+            kappal = 1._CUSTOM_REAL / kappastore(i,j,k,ispec)
             kappa_ac_kl(i,j,k,ispec) = kappa_ac_kl(i,j,k,ispec) &
-                                  - deltat / kappal  &
-                                  * potential_dot_dot_acoustic(iglob) &
+                                  + deltat * kappal  &
+                                  * potential_acoustic(iglob) &
                                   * b_potential_dot_dot_acoustic(iglob)
 
           enddo

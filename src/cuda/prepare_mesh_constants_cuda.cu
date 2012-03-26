@@ -102,6 +102,9 @@ void exit_on_cuda_error(char* kernel_name) {
       fprintf(stderr,"Error after %s: %s\n", kernel_name, cudaGetErrorString(err));
       pause_for_debugger(0);
       //free(kernel_name);
+#ifdef WITH_MPI
+      MPI_Abort(MPI_COMM_WORLD,1);
+#endif      
       exit(EXIT_FAILURE);
     }
 }

@@ -37,6 +37,7 @@
 
 #define MAX(a, b) (((a) > (b)) ? (a) : (b))
 
+
 void save_to_max_surface_file_(float* maxval) {
   int rank;
   char filename[BUFSIZ];
@@ -51,6 +52,7 @@ void save_to_max_surface_file_(float* maxval) {
   fprintf(fp,"%e\n",*maxval);
   fclose(fp);
 }
+
 
 void save_fvector_(float* vector, int* size, int* id, int* cpu_or_gpu) {
   FILE* fp;
@@ -265,7 +267,7 @@ void compare_fvector_(float* vector, int* size, int* id, int* cpu_or_gpu) {
   for(i=0;i<*size;i++) {
     if((fabs(vector[i] - compare_vector[i])/vector[i] > 0.0001)) {
       if(error_count < 30) {
-  printf("ERROR[%d]: %g != %g\n",i,compare_vector[i], vector[i]);
+        printf("ERROR[%d]: %f != %f\n",i,compare_vector[i], vector[i]);
       }
       error_count++;
       /* if(compare_vector[i] > 1e-30) error_count++; */
@@ -308,7 +310,7 @@ void compare_ivector_(int* vector, int* size, int* id, int* cpu_or_gpu) {
   int error_count=0;
   for(i=0;i<*size;i++) {
     if((abs(vector[i] - compare_vector[i])/vector[i] > 0.01) && error_count < 30) {
-      printf("ERROR[%d]: %g != %g\n",i,compare_vector[i], vector[i]);
+      printf("ERROR[%d]: %d != %d\n",i,compare_vector[i], vector[i]);
       error_count++;
     }
   }

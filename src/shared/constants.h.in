@@ -199,6 +199,9 @@
   double precision, parameter :: FACTOR_FORCE_SOURCE = 1.d15
   integer, parameter :: COMPONENT_FORCE_SOURCE = 3  ! takes direction in comp E/N/Z = 1/2/3
 
+! set to use a Ricker source time function instead of a gaussian
+  logical, parameter :: USE_RICKER_IPATI = .false.
+
 ! use this t0 as earliest starting time rather than the automatically calculated one
 ! (must be positive and bigger than the automatically one to be effective;
 !  simulation will start at t = - t0)

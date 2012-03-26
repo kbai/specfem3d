@@ -83,7 +83,8 @@
   real(kind=CUSTOM_REAL),dimension(NGLOB_ADJOINT):: b_potential_dot_dot_acoustic
   logical :: ibool_read_adj_arrays
   integer :: it_sub_adj,itime,NTSTEP_BETWEEN_READ_ADJSRC
-  real(kind=CUSTOM_REAL),dimension(nadj_rec_local,NTSTEP_BETWEEN_READ_ADJSRC,NDIM,NGLLX,NGLLY,NGLLZ):: adj_sourcearrays
+  real(kind=CUSTOM_REAL),dimension(nadj_rec_local,NTSTEP_BETWEEN_READ_ADJSRC,NDIM,NGLLX,NGLLY,NGLLZ):: &
+    adj_sourcearrays
 
 ! local parameters
   double precision :: f0
@@ -124,8 +125,13 @@
             stf_pre_compute(isource) = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr( &
                   dble(it-1)*DT-t0-tshift_cmt(isource),hdur(isource))
           else
-            stf_pre_compute(isource) = comp_source_time_function_gauss( &
-                  dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+            if( USE_RICKER_IPATI ) then
+              stf_pre_compute(isource) = comp_source_time_function_rickr( &
+                          dble(it-1)*DT-t0-tshift_cmt(isource),hdur(isource))
+            else
+              stf_pre_compute(isource) = comp_source_time_function_gauss( &
+                          dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+            endif
           endif
         enddo
         stf_used_total = stf_used_total + sum(stf_pre_compute(:))
@@ -172,7 +178,8 @@
 
                 ! we use nu_source(:,3) here because we want a source normal to the surface.
                 ! This is the expression of a Ricker; should be changed according maybe to the Par_file.
-                stf_used = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr(dble(it-1)*DT-t0-tshift_cmt(isource),f0)
+                stf_used = FACTOR_FORCE_SOURCE * &
+                           comp_source_time_function_rickr(dble(it-1)*DT-t0-tshift_cmt(isource),f0)
 
                 ! beware, for acoustic medium, source is: pressure divided by Kappa of the fluid
                 ! the sign is negative because pressure p = - Chi_dot_dot therefore we need
@@ -187,8 +194,14 @@
 
               else
 
-                ! gaussian source time
-                stf = comp_source_time_function_gauss(dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+                if( USE_RICKER_IPATI ) then
+                  stf = comp_source_time_function_rickr( &
+                                dble(it-1)*DT-t0-tshift_cmt(isource),hdur(isource))
+                else
+                  ! gaussian source time
+                  stf = comp_source_time_function_gauss( &
+                                dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+                endif
 
                 ! quasi-heaviside
                 !stf = comp_source_time_function(dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
@@ -306,8 +319,9 @@
            it_start = NSTEP - it_sub_adj*NTSTEP_BETWEEN_READ_ADJSRC + 1
            it_end   = it_start + NTSTEP_BETWEEN_READ_ADJSRC - 1
            write(procname,"(i4)") myrank
-           open(unit=IIN_SU1, file=trim(adjustl(OUTPUT_FILES_PATH))//'../SEM/'//trim(adjustl(procname))//'_dx_SU.adj', &
-                              access='direct',recl=240+4*(NSTEP))
+           open(unit=IIN_SU1, &
+                file=trim(adjustl(OUTPUT_FILES_PATH))//'../SEM/'//trim(adjustl(procname))//'_dx_SU.adj', &
+                access='direct',recl=240+4*(NSTEP))
            do irec_local = 1,nrec_local
              irec = number_receiver_global(irec_local)
              read(IIN_SU1,rec=irec_local) r4head, adj_temp
@@ -403,8 +417,13 @@
             stf_pre_compute(isource) = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr( &
                   dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur(isource))
           else
-            stf_pre_compute(isource) = comp_source_time_function_gauss( &
-                  dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+            if( USE_RICKER_IPATI ) then
+              stf_pre_compute(isource) = comp_source_time_function_rickr( &
+                            dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur(isource))
+            else
+              stf_pre_compute(isource) = comp_source_time_function_gauss( &
+                            dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+            endif
           endif
         enddo
         stf_used_total = stf_used_total + sum(stf_pre_compute(:))
@@ -466,8 +485,14 @@
 
               else
 
-                ! gaussian source time
-                stf = comp_source_time_function_gauss(dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+                if( USE_RICKER_IPATI ) then
+                  stf = comp_source_time_function_rickr( &
+                                  dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur(isource))
+                else
+                  ! gaussian source time
+                  stf = comp_source_time_function_gauss( &
+                                  dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+                endif
 
                 ! distinguishes between single and double precision for reals
                 if(CUSTOM_REAL == SIZE_REAL) then

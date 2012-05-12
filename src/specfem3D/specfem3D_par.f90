@@ -46,29 +46,6 @@ module specfem_par
   integer :: NPROC
   integer :: NSPEC_AB, NGLOB_AB
 
-! mesh parameters
-  integer, dimension(:,:,:,:), allocatable :: ibool
-  real(kind=CUSTOM_REAL), dimension(:), allocatable :: xstore,ystore,zstore
-
-  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: &
-        xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz,jacobian
-
-! material properties
-  ! isotropic
-  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: kappastore,mustore
-
-! CUDA mesh pointer<->integer wrapper
-  integer(kind=8) :: Mesh_pointer
-
-! Global GPU toggle. Set in Par_file
-  logical :: GPU_MODE
-
-! use integer array to store topography values
-  integer :: NX_TOPO,NY_TOPO
-  double precision :: ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO
-  character(len=100) :: topo_file
-  integer, dimension(:,:), allocatable :: itopo_bathy
-
 ! absorbing boundary arrays (for all boundaries) - keeps all infos, allowing for irregular surfaces
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: abs_boundary_normal
   real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: abs_boundary_jacobian2Dw
@@ -110,6 +87,10 @@ module specfem_par
   double precision :: t0
   real(kind=CUSTOM_REAL) :: stf_used_total
   integer :: NSOURCES,nsources_local
+  ! source encoding
+  ! for acoustic sources: takes +/- 1 sign, depending on sign(Mxx)[ = sign(Myy) = sign(Mzz)
+  ! since they have to equal in the acoustic setting]
+  real(kind=CUSTOM_REAL), dimension(:), allocatable :: pm1_source_encoding
 
 ! receiver information
   character(len=256) :: rec_filename,filtered_rec_filename,dummystring
@@ -155,7 +136,8 @@ module specfem_par
 ! parameters
   integer :: SIMULATION_TYPE
   integer :: NTSTEP_BETWEEN_OUTPUT_SEISMOS,NSTEP,UTM_PROJECTION_ZONE
-
+  integer :: IMODEL
+  
   double precision :: DT
 
   logical :: ATTENUATION,USE_OLSEN_ATTENUATION, &
@@ -191,6 +173,14 @@ module specfem_par
   integer, dimension(:), allocatable :: request_recv_scalar_ext_mesh
   integer, dimension(:), allocatable :: request_send_vector_ext_mesh
   integer, dimension(:), allocatable :: request_recv_vector_ext_mesh
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: buffer_send_vector_ext_mesh_s
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: buffer_recv_vector_ext_mesh_s
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: buffer_send_vector_ext_mesh_w
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: buffer_recv_vector_ext_mesh_w
+  integer, dimension(:), allocatable :: request_send_vector_ext_mesh_s
+  integer, dimension(:), allocatable :: request_recv_vector_ext_mesh_s
+  integer, dimension(:), allocatable :: request_send_vector_ext_mesh_w
+  integer, dimension(:), allocatable :: request_recv_vector_ext_mesh_w
 
 ! for detecting surface receivers and source in case of external mesh
   logical, dimension(:), allocatable :: iglob_is_surface_external_mesh
@@ -198,6 +188,13 @@ module specfem_par
 
 ! MPI partition surfaces
   logical, dimension(:), allocatable :: ispec_is_inner
+
+! maximum of the norm of the displacement
+  real(kind=CUSTOM_REAL) Usolidnorm,Usolidnorm_all ! elastic
+  real(kind=CUSTOM_REAL) Usolidnormp,Usolidnormp_all ! acoustic
+  real(kind=CUSTOM_REAL) Usolidnorms,Usolidnorms_all ! solid poroelastic
+  real(kind=CUSTOM_REAL) Usolidnormw,Usolidnormw_all ! fluid (w.r.t.s) poroelastic
+  integer:: Usolidnorm_index(1)
 
 ! maximum speed in velocity model
   real(kind=CUSTOM_REAL):: model_speed_max
@@ -282,6 +279,7 @@ module specfem_par_elastic
 
 ! displacement, velocity, acceleration
   real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: displ,veloc,accel
+  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: accel_adj_coupling
 
 ! variables needed for OpenMP version
   real(kind=CUSTOM_REAL), dimension(:,:,:,:),allocatable :: &
@@ -362,7 +360,7 @@ end module specfem_par_elastic
 
 module specfem_par_acoustic
 
-! parameter module for elastic solver
+! parameter module for acoustic solver
 
   use constants,only: CUSTOM_REAL
   implicit none
@@ -370,6 +368,7 @@ module specfem_par_acoustic
 ! potential
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: potential_acoustic, &
                         potential_dot_acoustic,potential_dot_dot_acoustic
+  real(kind=CUSTOM_REAL), dimension(:), allocatable :: potential_acoustic_adj_coupling
 
 ! density
   real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: rhostore
@@ -383,6 +382,13 @@ module specfem_par_acoustic
   integer, dimension(:,:,:), allocatable :: coupling_ac_el_ijk
   integer, dimension(:), allocatable :: coupling_ac_el_ispec
   integer :: num_coupling_ac_el_faces
+
+! acoustic-poroelastic coupling surface
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: coupling_ac_po_normal
+  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: coupling_ac_po_jacobian2Dw
+  integer, dimension(:,:,:), allocatable :: coupling_ac_po_ijk
+  integer, dimension(:), allocatable :: coupling_ac_po_ispec
+  integer :: num_coupling_ac_po_faces
 
 ! material flag
   logical, dimension(:), allocatable :: ispec_is_acoustic
@@ -433,8 +439,32 @@ module specfem_par_poroelastic
   real(kind=CUSTOM_REAL), dimension(:), allocatable :: rmass_solid_poroelastic,&
     rmass_fluid_poroelastic
 
+! displacement, velocity, acceleration
+  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: accels_poroelastic,velocs_poroelastic,displs_poroelastic
+  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: accelw_poroelastic,velocw_poroelastic,displw_poroelastic
+  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: b_accels_poroelastic,b_velocs_poroelastic,b_displs_poroelastic
+  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: b_accelw_poroelastic,b_velocw_poroelastic,b_displw_poroelastic
+
+! material properties
+!  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: mustore
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: etastore,tortstore
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: phistore
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:,:), allocatable :: rhoarraystore
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:,:), allocatable :: kappaarraystore
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:,:), allocatable :: permstore
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: rho_vpI,rho_vpII,rho_vsI
+
+! elastic-poroelastic coupling surface
+  real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: coupling_el_po_normal
+  real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: coupling_el_po_jacobian2Dw
+  integer, dimension(:,:,:), allocatable :: coupling_el_po_ijk,coupling_po_el_ijk
+  integer, dimension(:), allocatable :: coupling_el_po_ispec,coupling_po_el_ispec
+  integer :: num_coupling_el_po_faces
+
 ! material flag
   logical, dimension(:), allocatable :: ispec_is_poroelastic
+  integer, dimension(:,:), allocatable :: phase_ispec_inner_poroelastic
+  integer :: num_phase_ispec_poroelastic,nspec_inner_poroelastic,nspec_outer_poroelastic
 
   logical :: POROELASTIC_SIMULATION
 

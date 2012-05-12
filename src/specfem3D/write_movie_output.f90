@@ -170,6 +170,7 @@
     if (USE_HIGHRES_FOR_MOVIES) then
       do ipoin = 1, NGLLX*NGLLY
         iglob = faces_surface_ext_mesh(ipoin,ispec2D)
+        
         ! saves norm of displacement,velocity and acceleration vector
         if( ispec_is_elastic(ispec) ) then
           ! norm of displacement
@@ -189,7 +190,7 @@
         ! acoustic domains
         if( ispec_is_acoustic(ispec) ) then
           ! sets velocity vector with maximum norm of wavefield values
-          call wmo_get_max_vector(ispec,ispec2D,ipoin, &
+          call wmo_get_max_vector(ispec,ispec2D,iglob,ipoin, &
                                   displ_element,veloc_element,accel_element, &
                                   NGLLX*NGLLY)
         endif
@@ -218,7 +219,7 @@
         ! acoustic domains
         if( ispec_is_acoustic(ispec) ) then
           ! sets velocity vector with maximum norm of wavefield values
-          call wmo_get_max_vector(ispec,ispec2D,ipoin, &
+          call wmo_get_max_vector(ispec,ispec2D,iglob,ipoin, &
                                   displ_element,veloc_element,accel_element, &
                                   NGNOD2D)
         endif
@@ -290,7 +291,7 @@
 
 !================================================================
 
-  subroutine wmo_get_max_vector(ispec,ispec2D,ipoin, &
+  subroutine wmo_get_max_vector(ispec,ispec2D,iglob,ipoin, &
                                 displ_element,veloc_element,accel_element, &
                                 narraydim)
 
@@ -300,15 +301,17 @@
   use specfem_par_movie
   implicit none
 
-  integer :: ispec,ispec2D,ipoin,narraydim
+  integer,intent(in) :: ispec,ispec2D,iglob,ipoin,narraydim
   real(kind=CUSTOM_REAL),dimension(NDIM,NGLLX,NGLLY,NGLLZ) :: &
     displ_element,veloc_element,accel_element
 
   ! local parameters
-  integer :: i,j,k,iglob
+  integer :: i,j,k
   logical :: is_done
 
   is_done = .false.
+  
+  ! loops over all gll points from this element
   do k=1,NGLLZ
     do j=1,NGLLY
       do i=1,NGLLX
@@ -403,6 +406,14 @@
                           hprime_xx,hprime_yy,hprime_zz, &
                           xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
                           ibool,rhostore,GRAVITY)
+      endif
+      else
+        ! velocity vector
+        call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
+                          potential_dot_acoustic, val_element,&
+                          hprime_xx,hprime_yy,hprime_zz, &
+                          xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
+                          ibool,rhostore)
       endif
     endif
 
@@ -755,7 +766,7 @@
 
   end subroutine wmo_movie_surface_output_o
 
-!=====================================================================
+!================================================================
 
   subroutine wmo_create_shakemap_o()
 
@@ -833,7 +844,7 @@
         ! acoustic domains
         if( ispec_is_acoustic(ispec) ) then
           ! stores maximum values
-          call wmo_get_max_vector_o(ispec,ipoin,displ_element,veloc_element,accel_element)
+          call wmo_get_max_vector_o(ispec,iglob,ipoin,displ_element,veloc_element,accel_element)
         endif
 
       enddo
@@ -871,7 +882,7 @@
         ! acoustic domains
         if( ispec_is_acoustic(ispec) ) then
           ! stores maximum values
-          call wmo_get_max_vector_o(ispec,ipoin,displ_element,veloc_element,accel_element)
+          call wmo_get_max_vector_o(ispec,iglob,ipoin,displ_element,veloc_element,accel_element)
         endif
 
       enddo
@@ -943,7 +954,7 @@
 
 !================================================================
 
-  subroutine wmo_get_max_vector_o(ispec,ipoin,displ_element,veloc_element,accel_element)
+  subroutine wmo_get_max_vector_o(ispec,iglob,ipoin,displ_element,veloc_element,accel_element)
 
   ! put into this separate routine to make compilation faster
 
@@ -951,20 +962,24 @@
   use specfem_par_movie
   implicit none
 
-  integer :: ispec,ipoin
+  integer,intent(in) :: ispec,iglob,ipoin
   real(kind=CUSTOM_REAL),dimension(NDIM,NGLLX,NGLLY,NGLLZ) :: &
     displ_element,veloc_element,accel_element
 
   ! local parameters
-  integer :: i,j,k,iglob
+  integer :: i,j,k
   logical :: is_done
 
   ! velocity vector
   is_done = .false.
+    
+  ! loops over all gll points from this element
   do k=1,NGLLZ
     do j=1,NGLLY
       do i=1,NGLLX
+        ! checks if global point is found
         if( iglob == ibool(i,j,k,ispec) ) then
+        
           ! horizontal displacement
           store_val_ux_external_mesh(ipoin) = max(store_val_ux_external_mesh(ipoin),&
                                         abs(displ_element(1,i,j,k)),abs(displ_element(2,i,j,k)))
@@ -992,6 +1007,7 @@
 
   use specfem_par
   use specfem_par_elastic
+  use specfem_par_poroelastic
   use specfem_par_acoustic
   use specfem_par_movie
   implicit none
@@ -1004,8 +1020,8 @@
   character(len=3) :: channel
   character(len=1) :: compx,compy,compz
 
-  real(kind=CUSTOM_REAL),dimension(:,:,:,:),allocatable:: tmpdata
-  integer :: i,j,k,iglob
+  !real(kind=CUSTOM_REAL),dimension(:,:,:,:),allocatable:: tmpdata
+  !integer :: i,j,k,iglob
 
   ! gets component characters: X/Y/Z or E/N/Z
   call write_channel_name(1,channel)
@@ -1077,6 +1093,29 @@
 
     deallocate(div_glob,curl_glob,valency)
 
+  endif ! elastic
+
+  ! saves full snapshot data to local disk
+  if( POROELASTIC_SIMULATION ) then
+    ! allocate array for single elements
+    allocate(div_glob(NGLOB_AB), &
+            curl_glob(NGLOB_AB), &
+            valency(NGLOB_AB), stat=ier)
+    if( ier /= 0 ) stop 'error allocating arrays for movie div and curl'
+    ! calculates divergence and curl of velocity field
+    call wmo_movie_div_curl(NSPEC_AB,NGLOB_AB,velocs_poroelastic, &
+                                div_glob,curl_glob,valency, &
+                                div,curl_x,curl_y,curl_z, &
+                                velocity_x,velocity_y,velocity_z, &
+                                ibool,ispec_is_poroelastic, &
+                                hprime_xx,hprime_yy,hprime_zz, &
+                                xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz)
+    deallocate(div_glob,curl_glob,valency)
+  endif ! poroelastic
+
+
+  if( ELASTIC_SIMULATION .or. POROELASTIC_SIMULATION ) then
+
     ! writes our divergence
     write(outputname,"('/proc',i6.6,'_div_it',i6.6,'.bin')") myrank,it
     open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
@@ -1106,9 +1145,10 @@
     !write(27) veloc
     !close(27)
 
-  endif ! elastic
+  endif
 
-  if( ACOUSTIC_SIMULATION .or. ELASTIC_SIMULATION ) then
+
+  if( ACOUSTIC_SIMULATION .or. ELASTIC_SIMULATION .or. POROELASTIC_SIMULATION) then
     write(outputname,"('/proc',i6.6,'_velocity_',a1,'_it',i6.6,'.bin')") myrank,compx,it
     open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
     if( ier /= 0 ) stop 'error opening file movie output velocity x'
@@ -1134,55 +1174,55 @@
     !close(27)
 
     ! norms
-    allocate( tmpdata(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
-    if( ier /= 0 ) stop 'error allocating tmpdata arrays for movie output'
-
-    if( ELASTIC_SIMULATION ) then
-      ! norm of displacement
-      do ispec=1,NSPEC_AB
-        do k=1,NGLLZ
-          do j=1,NGLLY
-            do i=1,NGLLX
-              iglob = ibool(i,j,k,ispec)
-              tmpdata(i,j,k,ispec) = sqrt( displ(1,iglob)**2 + displ(2,iglob)**2 + displ(3,iglob)**2 )
-            enddo
-          enddo
-        enddo
-      enddo
-      write(outputname,"('/proc',i6.6,'_displ_norm_it',i6.6,'.bin')") myrank,it
-      open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
-      if( ier /= 0 ) stop 'error opening file movie output velocity z'
-      write(27) tmpdata
-      close(27)
-
-      ! norm of acceleration
-      do ispec=1,NSPEC_AB
-        do k=1,NGLLZ
-          do j=1,NGLLY
-            do i=1,NGLLX
-              iglob = ibool(i,j,k,ispec)
-              tmpdata(i,j,k,ispec) = sqrt( accel(1,iglob)**2 + accel(2,iglob)**2 + accel(3,iglob)**2 )
-            enddo
-          enddo
-        enddo
-      enddo
-      write(outputname,"('/proc',i6.6,'_accel_norm_it',i6.6,'.bin')") myrank,it
-      open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
-      if( ier /= 0 ) stop 'error opening file movie output velocity z'
-      write(27) tmpdata
-      close(27)
-    endif
-
-    ! norm of velocity
-    tmpdata = sqrt( velocity_x**2 + velocity_y**2 + velocity_z**2)
-
-    write(outputname,"('/proc',i6.6,'_velocity_norm_it',i6.6,'.bin')") myrank,it
-    open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
-    if( ier /= 0 ) stop 'error opening file movie output velocity z'
-    write(27) tmpdata
-    close(27)
-
-    deallocate(tmpdata)
+    !allocate( tmpdata(NGLLX,NGLLY,NGLLZ,NSPEC_AB),stat=ier)
+    !if( ier /= 0 ) stop 'error allocating tmpdata arrays for movie output'
+    !
+    !if( ELASTIC_SIMULATION ) then
+    !  ! norm of displacement
+    !  do ispec=1,NSPEC_AB
+    !    do k=1,NGLLZ
+    !      do j=1,NGLLY
+    !        do i=1,NGLLX
+    !          iglob = ibool(i,j,k,ispec)
+    !          tmpdata(i,j,k,ispec) = sqrt( displ(1,iglob)**2 + displ(2,iglob)**2 + displ(3,iglob)**2 )
+    !        enddo
+    !      enddo
+    !    enddo
+    !  enddo
+    !  write(outputname,"('/proc',i6.6,'_displ_norm_it',i6.6,'.bin')") myrank,it
+    !  open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
+    !  if( ier /= 0 ) stop 'error opening file movie output velocity z'
+    !  write(27) tmpdata
+    !  close(27)
+    !
+    !  ! norm of acceleration
+    !  do ispec=1,NSPEC_AB
+    !    do k=1,NGLLZ
+    !      do j=1,NGLLY
+    !        do i=1,NGLLX
+    !          iglob = ibool(i,j,k,ispec)
+    !          tmpdata(i,j,k,ispec) = sqrt( accel(1,iglob)**2 + accel(2,iglob)**2 + accel(3,iglob)**2 )
+    !        enddo
+    !      enddo
+    !    enddo
+    !  enddo
+    !  write(outputname,"('/proc',i6.6,'_accel_norm_it',i6.6,'.bin')") myrank,it
+    !  open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
+    !  if( ier /= 0 ) stop 'error opening file movie output velocity z'
+    !  write(27) tmpdata
+    !  close(27)
+    !endif
+    !
+    !! norm of velocity
+    !tmpdata = sqrt( velocity_x**2 + velocity_y**2 + velocity_z**2)
+    !
+    !write(outputname,"('/proc',i6.6,'_velocity_norm_it',i6.6,'.bin')") myrank,it
+    !open(unit=27,file=trim(LOCAL_PATH)//trim(outputname),status='unknown',form='unformatted',iostat=ier)
+    !if( ier /= 0 ) stop 'error opening file movie output velocity z'
+    !write(27) tmpdata
+    !close(27)
+    !
+    !deallocate(tmpdata)
 
   endif
 
@@ -1194,7 +1234,7 @@
                                 div_glob,curl_glob,valency, &
                                 div,curl_x,curl_y,curl_z, &
                                 velocity_x,velocity_y,velocity_z, &
-                                ibool,ispec_is_elastic, &
+                                ibool,ispec_is, &
                                 hprime_xx,hprime_yy,hprime_zz, &
                                 xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz)
 
@@ -1216,7 +1256,7 @@
   real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB) :: div, curl_x, curl_y, curl_z
   real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB) :: velocity_x,velocity_y,velocity_z
   integer,dimension(NGLLX,NGLLY,NGLLZ,NSPEC_AB):: ibool
-  logical,dimension(NSPEC_AB) :: ispec_is_elastic
+  logical,dimension(NSPEC_AB) :: ispec_is
 
   ! array with derivatives of Lagrange polynomials
   real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLX) :: hprime_xx
@@ -1243,7 +1283,7 @@
 
   ! loops over elements
   do ispec=1,NSPEC_AB
-    if( .not. ispec_is_elastic(ispec) ) cycle
+    if( .not. ispec_is(ispec) ) cycle
 
     ! calculates divergence and curl of velocity field
     do k=1,NGLLZ

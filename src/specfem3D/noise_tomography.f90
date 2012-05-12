@@ -134,15 +134,7 @@ contains
   ! output parameters
   real(kind=CUSTOM_REAL) :: normal_x_noise_out,normal_y_noise_out,normal_z_noise_out,mask_noise_out
   ! local parameters
-  !PB VARIABLES TO DEFINE THE REGION OF NOISE
-  real(kind=CUSTOM_REAL) :: xcoord,ycoord,zcoord !,xcoord_center,ycoord_center
-  real :: lon,lat,colat,lon_cn,lat_cn,dsigma,d,dmax
-
-  ! coordinates "x/y/zcoord_in" actually contain r theta phi, therefore convert back to x y z
-  ! call rthetaphi_2_xyz(xcoord,ycoord,zcoord, xcoord_in,ycoord_in,zcoord_in)
-  xcoord=xcoord_in
-  ycoord=ycoord_in
-  zcoord=zcoord_in
+  real(kind=CUSTOM_REAL) :: ldummy
 
   !PB NOT UNIF DISTRIBUTION OF NOISE ON THE SURFACE OF A SPHERE
   !PB lon lat colat ARE IN RADIANS SINCE ARE OBTAINED FROM CARTESIAN COORDINATES
@@ -206,7 +198,12 @@ contains
   !******************************** change your noise characteristics above ****************************************
   !*****************************************************************************************************************
 
-  end subroutine noise_distribution_dir_non_uni
+  ! dummy assign to avoid compiler warnings
+  ldummy = xcoord_in
+  ldummy = ycoord_in
+  ldummy = zcoord_in
+
+  end subroutine noise_distribution_direction
 
 
 end module user_noise_distribution
@@ -450,33 +447,20 @@ end module user_noise_distribution
 
      ! size of single record
      reclen=CUSTOM_REAL*NDIM*NGLLSQUARE*NSPEC_TOP
+     ! total file size
+     filesize = reclen
+     filesize = filesize*NSTEP
 
-     ! only open files if there are surface faces in this paritition
-     if(NSPEC_TOP .gt. 0) then
-
-        ! check integer size limit: size of b_reclen_field must fit onto an 4-byte integer
-        if( NSPEC_TOP > 2147483647 / (CUSTOM_REAL * NGLLSQUARE * NDIM) ) then
-           print *,'reclen of noise surface_movie needed exceeds integer 4-byte limit: ',reclen
-           print *,'  ',CUSTOM_REAL, NDIM, NGLLSQUARE, NSPEC_TOP
-           print*,'bit size fortran: ',bit_size(NSPEC_TOP)
-           call exit_MPI(myrank,"error NSPEC_TOP integer limit")
-        endif
-
-        ! total file size
-        filesize = reclen
-        filesize = filesize*NSTEP
-
-        write(outputname,"('/proc',i6.6,'_surface_movie')") myrank
-        if (NOISE_TOMOGRAPHY==1) call open_file_abs_w(2,trim(LOCAL_PATH)//trim(outputname), &
-             len_trim(trim(LOCAL_PATH)//trim(outputname)), &
-             filesize)
-        if (NOISE_TOMOGRAPHY==2) call open_file_abs_r(2,trim(LOCAL_PATH)//trim(outputname), &
-             len_trim(trim(LOCAL_PATH)//trim(outputname)), &
-             filesize)
-        if (NOISE_TOMOGRAPHY==3) call open_file_abs_r(2,trim(LOCAL_PATH)//trim(outputname), &
-             len_trim(trim(LOCAL_PATH)//trim(outputname)), &
-             filesize)
-     endif
+     write(outputname,"('/proc',i6.6,'_surface_movie')") myrank
+     if (NOISE_TOMOGRAPHY==1) call open_file_abs_w(2,trim(LOCAL_PATH)//trim(outputname), &
+                                      len_trim(trim(LOCAL_PATH)//trim(outputname)), &
+                                      filesize)
+     if (NOISE_TOMOGRAPHY==2) call open_file_abs_r(2,trim(LOCAL_PATH)//trim(outputname), &
+                                      len_trim(trim(LOCAL_PATH)//trim(outputname)), &
+                                      filesize)
+     if (NOISE_TOMOGRAPHY==3) call open_file_abs_r(2,trim(LOCAL_PATH)//trim(outputname), &
+                                      len_trim(trim(LOCAL_PATH)//trim(outputname)), &
+                                      filesize)
   endif
   end subroutine check_parameters_noise
 
@@ -657,8 +641,11 @@ end module user_noise_distribution
   integer(kind=8) :: Mesh_pointer
   logical :: GPU_MODE
 
-  ! writes out wavefield at surface
-  if( num_free_surface_faces > 0 ) then
+  ! loops over surface points
+  ! get coordinates of surface mesh and surface displacement
+  do iface = 1, num_free_surface_faces
+
+    ispec = free_surface_ispec(iface)
 
     if(.NOT. GPU_MODE) then
        ! loops over surface points
@@ -742,8 +729,9 @@ end module user_noise_distribution
   ! reads in ensemble noise sources at surface
   if( num_free_surface_faces > 0 ) then
 
-    ! read surface movie
-    call read_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)
+  ! loops over surface points
+  ! puts noise distrubution and direction onto the surface points
+  do iface = 1, num_free_surface_faces
 
     if(GPU_MODE) then
        call noise_read_add_surface_movie_cu(Mesh_pointer, noise_surface_movie,NOISE_TOMOGRAPHY)
@@ -758,10 +746,13 @@ end module user_noise_distribution
 
           ispec = free_surface_ispec(iface)
 
-          do igll = 1, NGLLSQUARE
-             i = free_surface_ijk(1,igll,iface)
-             j = free_surface_ijk(2,igll,iface)
-             k = free_surface_ijk(3,igll,iface)
+      accel(1,iglob) = accel(1,iglob) + eta * mask_noise(ipoin) * normal_x_noise(ipoin) &
+                                  * free_surface_jacobian2Dw(igll,iface)
+      accel(2,iglob) = accel(2,iglob) + eta * mask_noise(ipoin) * normal_y_noise(ipoin) &
+                                  * free_surface_jacobian2Dw(igll,iface)
+      accel(3,iglob) = accel(3,iglob) + eta * mask_noise(ipoin) * normal_z_noise(ipoin) &
+                                  * free_surface_jacobian2Dw(igll,iface) ! wgllwgll_xy(i,j) * jacobian2D_top(i,j,iface)
+    enddo
 
              ipoin = ipoin + 1
              iglob = ibool(i,j,k,ispec)
@@ -832,8 +823,14 @@ end module user_noise_distribution
   integer(kind=8) :: Mesh_pointer
   logical :: GPU_MODE
 
-  ! updates contribution to noise strength kernel
-  if( num_free_surface_faces > 0 ) then
+  ! noise source strength kernel
+  ! to keep similar structure to other kernels, the source strength kernel is saved as a volumetric kernel
+  ! but only updated at the surface, because the noise is generated there
+  ipoin = 0
+
+  ! loops over surface points
+  ! puts noise distrubution and direction onto the surface points
+  do iface = 1, num_free_surface_faces
 
     ! read surface movie, needed for Sigma_kl
     call read_abs(2,noise_surface_movie,CUSTOM_REAL*NDIM*NGLLSQUARE*num_free_surface_faces,it)

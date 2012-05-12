@@ -66,7 +66,7 @@
   do it = 1,NSTEP
 
     ! simulation status output and stability check
-    if(mod(it,NTSTEP_BETWEEN_OUTPUT_INFO) == 0 .or. it == 5) then
+    if(mod(it,NTSTEP_BETWEEN_OUTPUT_INFO) == 0 .or. it == 5 .or. it == NSTEP) then
       call it_check_stability()
     endif
 
@@ -78,14 +78,14 @@
     if( ACOUSTIC_SIMULATION ) call compute_forces_acoustic()
 
     ! elastic solver
+    ! (needs to be done first, before poroelastic one)
     if( ELASTIC_SIMULATION ) call compute_forces_elastic()
 
     ! poroelastic solver
-    if( POROELASTIC_SIMULATION ) stop 'poroelastic simulation not implemented yet'
+    if( POROELASTIC_SIMULATION ) call compute_forces_poroelastic()
 
     ! restores last time snapshot saved for backward/reconstruction of wavefields
     ! note: this must be read in after the Newmark time scheme
-    ! note 2: GPU b_field transfers are included
     if( SIMULATION_TYPE == 3 .and. it == 1 ) then
      call it_read_foward_arrays()
     endif
@@ -169,6 +169,7 @@
 
   use specfem_par
   use specfem_par_elastic
+  use specfem_par_poroelastic
   use specfem_par_acoustic
   implicit none
 
@@ -177,40 +178,25 @@
              ihours_remain,iminutes_remain,iseconds_remain,int_t_remain, &
              ihours_total,iminutes_total,iseconds_total,int_t_total
 
-  ! maximum of the norm of the displacement
-  real(kind=CUSTOM_REAL) Usolidnorm,Usolidnorm_all
-  ! norm of the backward displacement
-  real(kind=CUSTOM_REAL) b_Usolidnorm, b_Usolidnorm_all
-  !integer:: Usolidnorm_index(1)
-
-!  if(GPU_MODE) then
-!    ! way 1: copy whole fields
-!    ! elastic wavefield
-!    if( ELASTIC_SIMULATION ) then
-!      call transfer_fields_el_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
-!      ! backward/reconstructed wavefield
-!      if(SIMULATION_TYPE==3) &
-!        call transfer_b_fields_from_device(NDIM*NGLOB_AB,b_displ,b_veloc,b_accel, Mesh_pointer)
-!    endif
-!  endif
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+!chris: Rewrite to get norm for each material when coupled simulations
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 ! compute maximum of norm of displacement in each slice
-  if( ELASTIC_SIMULATION ) then
+  if( ELASTIC_SIMULATION ) &
     if( GPU_MODE) then
       ! way 2: just get maximum of field from GPU
       call get_norm_elastic_from_device(Usolidnorm,Mesh_pointer,1)
     else
       Usolidnorm = maxval(sqrt(displ(1,:)**2 + displ(2,:)**2 + displ(3,:)**2))
     endif
-  else
-    if( ACOUSTIC_SIMULATION ) then
-      if(GPU_MODE) then
-        ! way 2: just get maximum of field from GPU
-        call get_norm_acoustic_from_device(Usolidnorm,Mesh_pointer,1)
-      else
-        Usolidnorm = maxval(abs(potential_dot_dot_acoustic(:)))
-      endif
-    endif
+  if( ACOUSTIC_SIMULATION ) &
+      Usolidnormp = maxval(abs(potential_dot_dot_acoustic(:)))
+  if( POROELASTIC_SIMULATION ) then
+    Usolidnorms = maxval(sqrt(displs_poroelastic(1,:)**2 + displs_poroelastic(2,:)**2 + &
+                             displs_poroelastic(3,:)**2))
+    Usolidnormw = maxval(sqrt(displw_poroelastic(1,:)**2 + displw_poroelastic(2,:)**2 + &
+                             displw_poroelastic(3,:)**2))
   endif
   ! check stability of the code, exit if unstable
   ! negative values can occur with some compilers when the unstable value is greater
@@ -220,6 +206,9 @@
 
 ! compute the maximum of the maxima for all the slices using an MPI reduction
   call max_all_cr(Usolidnorm,Usolidnorm_all)
+  call max_all_cr(Usolidnormp,Usolidnormp_all)
+  call max_all_cr(Usolidnorms,Usolidnorms_all)
+  call max_all_cr(Usolidnormw,Usolidnormw_all)
 
 ! adjoint simulations
   if( SIMULATION_TYPE == 3 ) then
@@ -265,12 +254,13 @@
     write(IMAIN,*) 'Elapsed time in seconds = ',tCPU
     write(IMAIN,"(' Elapsed time in hh:mm:ss = ',i4,' h ',i2.2,' m ',i2.2,' s')") ihours,iminutes,iseconds
     write(IMAIN,*) 'Mean elapsed time per time step in seconds = ',sngl(tCPU/dble(it))
-    if( ELASTIC_SIMULATION ) then
+    if( ELASTIC_SIMULATION ) &
       write(IMAIN,*) 'Max norm displacement vector U in all slices (m) = ',Usolidnorm_all
-    else
-      if( ACOUSTIC_SIMULATION ) then
-        write(IMAIN,*) 'Max norm pressure P in all slices (Pa) = ',Usolidnorm_all
-      endif
+    if( ACOUSTIC_SIMULATION ) &
+        write(IMAIN,*) 'Max norm pressure P in all slices (Pa) = ',Usolidnormp_all
+    if( POROELASTIC_SIMULATION ) then
+        write(IMAIN,*) 'Max norm displacement vector Us in all slices (m) = ',Usolidnorms_all
+        write(IMAIN,*) 'Max norm displacement vector W in all slices (m) = ',Usolidnormw_all
     endif
     ! adjoint simulations
     if (SIMULATION_TYPE == 3) write(IMAIN,*) &
@@ -315,17 +305,37 @@
     write(IOUT,*) 'Elapsed time in seconds = ',tCPU
     write(IOUT,"(' Elapsed time in hh:mm:ss = ',i4,' h ',i2.2,' m ',i2.2,' s')") ihours,iminutes,iseconds
     write(IOUT,*) 'Mean elapsed time per time step in seconds = ',tCPU/dble(it)
-    write(IOUT,*) 'Max norm displacement vector U in all slices (m) = ',Usolidnorm_all
+    if( ELASTIC_SIMULATION ) &
+      write(IOUT,*) 'Max norm displacement vector U in all slices (m) = ',Usolidnorm_all
+    if( ACOUSTIC_SIMULATION ) &
+        write(IOUT,*) 'Max norm pressure P in all slices (Pa) = ',Usolidnormp_all
+    if( POROELASTIC_SIMULATION ) then
+        write(IOUT,*) 'Max norm displacement vector Us in all slices (m) = ',Usolidnorms_all
+        write(IOUT,*) 'Max norm displacement vector W in all slices (m) = ',Usolidnormw_all
+    endif
     ! adjoint simulations
     if (SIMULATION_TYPE == 3) write(IOUT,*) &
            'Max norm U (backward) in all slices = ',b_Usolidnorm_all
+    ! estimation
+    write(IOUT,*) 'Time steps done = ',it,' out of ',NSTEP
+    write(IOUT,*) 'Time steps remaining = ',NSTEP - it    
+    write(IOUT,*) 'Estimated remaining time in seconds = ',t_remain
+    write(IOUT,"(' Estimated remaining time in hh:mm:ss = ',i4,' h ',i2.2,' m ',i2.2,' s')") &
+             ihours_remain,iminutes_remain,iseconds_remain    
+    write(IOUT,*) 'Estimated total run time in seconds = ',t_total
+    write(IOUT,"(' Estimated total run time in hh:mm:ss = ',i4,' h ',i2.2,' m ',i2.2,' s')") &
+             ihours_total,iminutes_total,iseconds_total
+    write(IOUT,*) 'We have done ',sngl(100.d0*dble(it)/dble(NSTEP)),'% of that'           
     close(IOUT)
 
 
 ! check stability of the code, exit if unstable
 ! negative values can occur with some compilers when the unstable value is greater
 ! than the greatest possible floating-point number of the machine
-    if(Usolidnorm_all > STABILITY_THRESHOLD .or. Usolidnorm_all < 0) &
+    if(Usolidnorm_all > STABILITY_THRESHOLD .or. Usolidnorm_all < 0 &
+     .or. Usolidnormp_all > STABILITY_THRESHOLD .or. Usolidnormp_all < 0 &
+     .or. Usolidnorms_all > STABILITY_THRESHOLD .or. Usolidnorms_all < 0 &
+     .or. Usolidnormw_all > STABILITY_THRESHOLD .or. Usolidnormw_all < 0) &
         call exit_MPI(myrank,'forward simulation became unstable and blew up')
     ! adjoint simulations
     if(SIMULATION_TYPE == 3 .and. (b_Usolidnorm_all > STABILITY_THRESHOLD &
@@ -397,10 +407,7 @@
     endif
 
     ! time marching potentials
-    if(PML)  then
-      if( GPU_MODE ) call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
-
+    if(ABSORB_USE_PML .and. ABSORBING_CONDITIONS) then
       call PML_acoustic_time_march(NSPEC_AB,NGLOB_AB,ibool,&
                         potential_acoustic,potential_dot_acoustic,&
                         deltat,deltatsqover2,deltatover2,&
@@ -413,6 +420,8 @@
                         nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,&
                         my_neighbours_ext_mesh,NPROC,&
                         ispec_is_acoustic)
+    endif
+  endif
 
       if( GPU_MODE ) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
                               potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
@@ -422,16 +431,25 @@
 
 ! updates elastic displacement and velocity
   if( ELASTIC_SIMULATION ) then
+    displ(:,:) = displ(:,:) + deltat*veloc(:,:) + deltatsqover2*accel(:,:)
+    veloc(:,:) = veloc(:,:) + deltatover2*accel(:,:)
+    if( SIMULATION_TYPE /= 1 ) accel_adj_coupling(:,:) = accel(:,:)
+    accel(:,:) = 0._CUSTOM_REAL
+  endif
 
-     if(.NOT. GPU_MODE) then
-        displ(:,:) = displ(:,:) + deltat*veloc(:,:) + deltatsqover2*accel(:,:)
-        veloc(:,:) = veloc(:,:) + deltatover2*accel(:,:)
-        accel(:,:) = 0._CUSTOM_REAL
-     else ! GPU_MODE == 1
-        ! Includes SIM_TYPE 1 & 3 (for noise tomography)
-        call it_update_displacement_cuda(Mesh_pointer, size(displ), deltat, deltatsqover2,&
-             deltatover2, SIMULATION_TYPE, b_deltat, b_deltatsqover2, b_deltatover2)
-     endif
+! updates poroelastic displacements and velocities
+  if( POROELASTIC_SIMULATION ) then
+    ! solid phase
+    displs_poroelastic(:,:) = displs_poroelastic(:,:) + deltat*velocs_poroelastic(:,:) + &
+                              deltatsqover2*accels_poroelastic(:,:)
+    velocs_poroelastic(:,:) = velocs_poroelastic(:,:) + deltatover2*accels_poroelastic(:,:)
+    accels_poroelastic(:,:) = 0._CUSTOM_REAL
+
+    ! fluid phase
+    displw_poroelastic(:,:) = displw_poroelastic(:,:) + deltat*velocw_poroelastic(:,:) + &
+                              deltatsqover2*accelw_poroelastic(:,:)
+    velocw_poroelastic(:,:) = velocw_poroelastic(:,:) + deltatover2*accelw_poroelastic(:,:)
+    accelw_poroelastic(:,:) = 0._CUSTOM_REAL
   endif
 
 ! adjoint simulations

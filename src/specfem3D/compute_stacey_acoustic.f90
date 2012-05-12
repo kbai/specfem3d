@@ -77,14 +77,11 @@
   integer :: ispec,iglob,i,j,k,iface,igll
   !integer:: reclen1,reclen2
 
-  ! checks if anything to do
-  if( num_abs_boundary_faces == 0 ) return
-
-! adjoint simulations:
+  ! adjoint simulations:
   if (SIMULATION_TYPE == 3 .and. num_abs_boundary_faces > 0)  then
     ! reads in absorbing boundary array when first phase is running
     if( phase_is_inner .eqv. .false. ) then
-      ! note: the index NSTEP-it+1 is valid if b_displ is read in after the Newmark scheme
+      ! note: the index NSTEP-it+1 is valid if b_displ is read in after the Newark scheme
       ! uses fortran routine
       !read(IOABS_AC,rec=NSTEP-it+1) reclen1,b_absorb_potential,reclen2
       !if (reclen1 /= b_reclen_potential .or. reclen1 /= reclen2) &
@@ -94,7 +91,7 @@
     endif
   endif !adjoint
 
-! absorbs absorbing-boundary surface using Sommerfeld condition (vanishing field in the outer-space)
+  ! absorbs absorbing-boundary surface using Sommerfeld condition (vanishing field in the outer-space)
   if( .NOT. GPU_MODE ) then
     ! on CPU
     do iface=1,num_abs_boundary_faces
@@ -127,7 +124,6 @@
             absorbl = potential_dot_acoustic(iglob) * jacobianw / cpl / rhol
             potential_dot_dot_acoustic(iglob) = potential_dot_dot_acoustic(iglob) &
                                                 - absorbl
-
 
             ! adjoint simulations
             if (SIMULATION_TYPE == 3) then

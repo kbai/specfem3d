@@ -143,6 +143,30 @@
 !----
 !
 
+  subroutine bcast_all_r(buffer, count)
+
+  implicit none
+
+! standard include of the MPI library
+  include 'mpif.h'
+
+  include "constants.h"
+  include "precision.h"
+
+  integer count
+  real, dimension(count) :: buffer
+
+  integer ier
+
+  call MPI_BCAST(buffer,count,MPI_REAL,0,MPI_COMM_WORLD,ier)
+
+  end subroutine bcast_all_r
+
+
+!
+!----
+!
+
   subroutine gather_all_i(sendbuf, sendcnt, recvbuf, recvcount, NPROC)
 
   implicit none
@@ -731,7 +755,7 @@
 
   integer ier
 
-  call MPI_ISEND(sendbuf(1),sendcount,CUSTOM_MPI_TYPE,dest,sendtag, &
+  call MPI_ISEND(sendbuf,sendcount,CUSTOM_MPI_TYPE,dest,sendtag, &
                   MPI_COMM_WORLD,req,ier)
 
   end subroutine isend_cr
@@ -755,7 +779,7 @@
 
   integer ier
 
-  call MPI_IRECV(recvbuf(1),recvcount,CUSTOM_MPI_TYPE,dest,recvtag, &
+  call MPI_IRECV(recvbuf,recvcount,CUSTOM_MPI_TYPE,dest,recvtag, &
                   MPI_COMM_WORLD,req,ier)
 
   end subroutine irecv_cr
@@ -779,7 +803,7 @@
 
   integer ier
 
-  call MPI_ISEND(sendbuf(1),sendcount,MPI_INTEGER,dest,sendtag, &
+  call MPI_ISEND(sendbuf,sendcount,MPI_INTEGER,dest,sendtag, &
                   MPI_COMM_WORLD,req,ier)
 
   end subroutine isend_i
@@ -802,7 +826,7 @@
   integer, dimension(recvcount) :: recvbuf
   integer ier
 
-  call MPI_IRECV(recvbuf(1),recvcount,MPI_INTEGER,dest,recvtag, &
+  call MPI_IRECV(recvbuf,recvcount,MPI_INTEGER,dest,recvtag, &
                   MPI_COMM_WORLD,req,ier)
 
   end subroutine irecv_i

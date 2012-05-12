@@ -213,11 +213,9 @@
   integer, dimension(:,:), allocatable :: addressing
 
 ! use integer array to store topography values
-  integer icornerlat,icornerlong !,NX_TOPO,NY_TOPO
-  double precision lat,long !,elevation,ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO
+  integer icornerlat,icornerlong
+  double precision lat,long
   double precision long_corner,lat_corner,ratio_xi,ratio_eta
-  !character(len=100) topo_file
-  !integer, dimension(:,:), allocatable :: itopo_bathy
 
 ! timer MPI
   double precision, external :: wtime
@@ -239,7 +237,7 @@
   logical SUPPRESS_UTM_PROJECTION,USE_REGULAR_MESH
 
 ! Mesh files for visualization
-  logical CREATE_ABAQUS_FILES,CREATE_DX_FILES
+  logical CREATE_ABAQUS_FILES,CREATE_DX_FILES,CREATE_VTK_FILES
 
 ! doublings parameters
   integer NDOUBLINGS
@@ -331,12 +329,12 @@
 
  ! nullify(subregions,material_properties)
   call read_parameter_file(LATITUDE_MIN,LATITUDE_MAX,LONGITUDE_MIN,LONGITUDE_MAX, &
-        UTM_X_MIN,UTM_X_MAX,UTM_Y_MIN,UTM_Y_MAX,Z_DEPTH_BLOCK, &
-        NEX_XI,NEX_ETA,NPROC_XI,NPROC_ETA,UTM_PROJECTION_ZONE, &
-        LOCAL_PATH,SUPPRESS_UTM_PROJECTION,&
-        INTERFACES_FILE,NSUBREGIONS,subregions,NMATERIALS,material_properties, &
-        CREATE_ABAQUS_FILES,CREATE_DX_FILES,&
-        USE_REGULAR_MESH,NDOUBLINGS,ner_doublings)
+                          UTM_X_MIN,UTM_X_MAX,UTM_Y_MIN,UTM_Y_MAX,Z_DEPTH_BLOCK, &
+                          NEX_XI,NEX_ETA,NPROC_XI,NPROC_ETA,UTM_PROJECTION_ZONE, &
+                          LOCAL_PATH,SUPPRESS_UTM_PROJECTION,&
+                          INTERFACES_FILE,NSUBREGIONS,subregions,NMATERIALS,material_properties, &
+                          CREATE_ABAQUS_FILES,CREATE_DX_FILES,CREATE_VTK_FILES, &
+                          USE_REGULAR_MESH,NDOUBLINGS,ner_doublings)
 
   if (sizeprocs == 1 .and. (NPROC_XI /= 1 .or. NPROC_ETA /= 1)) then
     stop 'must have NPROC_XI = NPROC_ETA = 1 for a serial run'
@@ -345,11 +343,12 @@
 ! get interface data from external file to count the spectral elements along Z
   if(myrank == 0) then
      write(IMAIN,*) 'Reading interface data from file ',&
-          MF_IN_DATA_FILES_PATH(1:len_trim(MF_IN_DATA_FILES_PATH))//INTERFACES_FILE(1:len_trim(INTERFACES_FILE)), &
-          ' to count the spectral elements'
+      MF_IN_DATA_FILES_PATH(1:len_trim(MF_IN_DATA_FILES_PATH))//INTERFACES_FILE(1:len_trim(INTERFACES_FILE)), &
+      ' to count the spectral elements'
   end if
 
-  open(unit=IIN,file=MF_IN_DATA_FILES_PATH(1:len_trim(MF_IN_DATA_FILES_PATH))//INTERFACES_FILE,status='old')
+  open(unit=IIN,file=MF_IN_DATA_FILES_PATH(1:len_trim(MF_IN_DATA_FILES_PATH))//INTERFACES_FILE, &
+      status='old')
 
   max_npx_interface  = -1
   max_npy_interface  = -1
@@ -392,12 +391,12 @@
 
 ! compute other parameters based upon values read
   call compute_parameters(NER,NEX_XI,NEX_ETA,NPROC_XI,NPROC_ETA, &
-      NPROC,NEX_PER_PROC_XI,NEX_PER_PROC_ETA, &
-      NSPEC_AB,NSPEC2D_A_XI,NSPEC2D_B_XI, &
-      NSPEC2D_A_ETA,NSPEC2D_B_ETA, &
-      NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX,NSPEC2D_BOTTOM,NSPEC2D_TOP, &
-      NPOIN2DMAX_XMIN_XMAX,NPOIN2DMAX_YMIN_YMAX,NGLOB_AB,&
-      USE_REGULAR_MESH,NDOUBLINGS,ner_doublings)
+                        NPROC,NEX_PER_PROC_XI,NEX_PER_PROC_ETA, &
+                        NSPEC_AB,NSPEC2D_A_XI,NSPEC2D_B_XI, &
+                        NSPEC2D_A_ETA,NSPEC2D_B_ETA, &
+                        NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX,NSPEC2D_BOTTOM,NSPEC2D_TOP, &
+                        NPOIN2DMAX_XMIN_XMAX,NPOIN2DMAX_YMIN_YMAX,NGLOB_AB,&
+                        USE_REGULAR_MESH,NDOUBLINGS,ner_doublings)
 
 ! check that the code is running with the requested nb of processes
   if(sizeprocs /= NPROC) then
@@ -405,8 +404,8 @@
       write(IMAIN,*) 'error: number of processors supposed to run on: ',NPROC
       write(IMAIN,*) 'error: number of MPI processors actually run on: ',sizeprocs
       print*
-      print*, 'error: number of processors supposed to run on: ',NPROC
-      print*, 'error: number of MPI processors actually run on: ',sizeprocs
+      print*, 'error meshfem3D: number of processors supposed to run on: ',NPROC
+      print*, 'error meshfem3D: number of MPI processors actually run on: ',sizeprocs      
       print*
     endif
     call exit_MPI(myrank,'wrong number of MPI processes')
@@ -629,7 +628,7 @@
 
 ! get coordinate of corner in bathy/topo model
         icornerlong = int((long - orig_x_interface_bottom) / spacing_x_interface_bottom) + 1
-        icornerlat = int((lat - orig_y_interface_bottom) / spacing_x_interface_bottom) + 1
+        icornerlat = int((lat - orig_y_interface_bottom) / spacing_y_interface_bottom) + 1
 
 ! avoid edge effects and extend with identical point if outside model
         if(icornerlong < 1) icornerlong = 1
@@ -749,15 +748,15 @@
   if(ier /= 0) call exit_MPI(myrank,'not enough memory to allocate arrays')
 
   call create_regions_mesh(xgrid,ygrid,zgrid,ibool, &
-           xstore,ystore,zstore,iproc_xi,iproc_eta,addressing,nspec, &
-           NGLOB_AB,npointot, &
-           NEX_PER_PROC_XI,NEX_PER_PROC_ETA,NER, &
-           NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX,NSPEC2D_BOTTOM,NSPEC2D_TOP, &
-           NPROC_XI,NPROC_ETA, &
-           NSUBREGIONS,subregions,number_of_layers,ner_layer,NMATERIALS,material_properties, &
-           myrank,LOCAL_PATH,UTM_X_MIN,UTM_X_MAX,UTM_Y_MIN,UTM_Y_MAX,Z_DEPTH_BLOCK,&
-           CREATE_ABAQUS_FILES,CREATE_DX_FILES,&
-           USE_REGULAR_MESH,NDOUBLINGS,ner_doublings)
+                         xstore,ystore,zstore,iproc_xi,iproc_eta,addressing,nspec, &
+                         NGLOB_AB,npointot, &
+                         NEX_PER_PROC_XI,NEX_PER_PROC_ETA,NER, &
+                         NSPEC2DMAX_XMIN_XMAX,NSPEC2DMAX_YMIN_YMAX,NSPEC2D_BOTTOM,NSPEC2D_TOP, &
+                         NPROC_XI,NPROC_ETA, &
+                         NSUBREGIONS,subregions,number_of_layers,ner_layer,NMATERIALS,material_properties, &
+                         myrank,LOCAL_PATH,UTM_X_MIN,UTM_X_MAX,UTM_Y_MIN,UTM_Y_MAX,Z_DEPTH_BLOCK,&
+                         CREATE_ABAQUS_FILES,CREATE_DX_FILES,CREATE_VTK_FILES, &
+                         USE_REGULAR_MESH,NDOUBLINGS,ner_doublings)
 
   if(myrank == 0) then
 ! compare to exact theoretical value (bottom is always flat)

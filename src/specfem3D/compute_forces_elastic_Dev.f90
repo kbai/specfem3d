@@ -25,7 +25,6 @@
 !=====================================================================
 
 
-
 subroutine compute_forces_elastic_Dev_5p( iphase ,NSPEC_AB,NGLOB_AB, &
                                     displ,accel, &
                                     xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &

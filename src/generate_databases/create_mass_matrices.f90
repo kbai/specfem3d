@@ -42,6 +42,7 @@
   double precision :: weight
   real(kind=CUSTOM_REAL) :: jacobianl
   integer :: ispec,i,j,k,iglob,ier
+  real(kind=CUSTOM_REAL) :: rho_s, rho_f, rho_bar, phi, tort
 
 ! allocates memory
   allocate(rmass(nglob),stat=ier); if(ier /= 0) stop 'error in allocate rmass'
@@ -90,31 +91,30 @@
 ! poroelastic mass matrices
           if( ispec_is_poroelastic(ispec) ) then
 
-            stop 'poroelastic mass matrices not implemented yet'
+            rho_s = rhoarraystore(1,i,j,k,ispec)
+            rho_f = rhoarraystore(2,i,j,k,ispec)
+            phi = phistore(i,j,k,ispec)
+            tort = tortstore(i,j,k,ispec)
+            rho_bar = (1._CUSTOM_REAL-phi)*rho_s + phi*rho_f
 
-            !rho_solid = density(1,kmato(ispec))
-            !rho_fluid = density(2,kmato(ispec))
-            !phi = porosity(kmato(ispec))
-            !tort = tortuosity(kmato(ispec))
-            !rho_bar = (1._CUSTOM_REAL-phil)*rhol_s + phil*rhol_f
-            !
-            !if(CUSTOM_REAL == SIZE_REAL) then
-            !  ! for the solid mass matrix
-            !  rmass_solid_poroelastic(iglob) = rmass_solid_poroelastic(iglob) + &
-            !      sngl( dble(jacobianl) * weight * dble(rho_bar - phi*rho_fluid/tort) )
-            !
-            !  ! for the fluid mass matrix
-            !  rmass_fluid_poroelastic(iglob) = rmass_fluid_poroelastic(iglob) + &
-            !      sngl( dble(jacobianl) * weight * dble(rho_bar*rho_fluid*tort - &
-            !                                  phi*rho_fluid*rho_fluid)/dble(rho_bar*phi) )
-            !else
-            !  rmass_solid_poroelastic(iglob) = rmass_solid_poroelastic(iglob) + &
-            !      jacobianl * weight * (rho_bar - phi*rho_fluid/tort)
-            !
-            !  rmass_fluid_poroelastic(iglob) = rmass_fluid_poroelastic(iglob) + &
-            !      jacobianl * weight * (rho_bar*rho_fluid*tort - &
-            !                                  phi*rho_fluid*rho_fluid) / (rho_bar*phi)
-            !endif
+            if(CUSTOM_REAL == SIZE_REAL) then
+              ! for the solid mass matrix
+              rmass_solid_poroelastic(iglob) = rmass_solid_poroelastic(iglob) + &
+                  sngl( dble(jacobianl) * weight * dble(rho_bar - phi*rho_f/tort) )
+
+              ! for the fluid mass matrix
+              rmass_fluid_poroelastic(iglob) = rmass_fluid_poroelastic(iglob) + &
+                  sngl( dble(jacobianl) * weight * dble(rho_bar*rho_f*tort - &
+                                              phi*rho_f*rho_f)/dble(rho_bar*phi) )
+            else
+              rmass_solid_poroelastic(iglob) = rmass_solid_poroelastic(iglob) + &
+                  jacobianl * weight * (rho_bar - phi*rho_f/tort)
+
+              rmass_fluid_poroelastic(iglob) = rmass_fluid_poroelastic(iglob) + &
+                  jacobianl * weight * (rho_bar*rho_f*tort - &
+                                              phi*rho_f*rho_f) / (rho_bar*phi)
+            endif
+
           endif
 
         enddo
@@ -129,9 +129,8 @@
 !
 
   subroutine create_mass_matrices_ocean_load(nglob,nspec,ibool,OCEANS,TOPOGRAPHY, &
-                        UTM_PROJECTION_ZONE,SUPPRESS_UTM_PROJECTION,NX_TOPO,NY_TOPO, &
-                        ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO, &
-                        itopo_bathy)
+                                            UTM_PROJECTION_ZONE,SUPPRESS_UTM_PROJECTION, &
+                                            NX_TOPO,NY_TOPO,itopo_bathy)
 
 ! returns precomputed mass matrix in rmass array
 
@@ -149,18 +148,19 @@
   ! use integer array to store topography values
   integer :: UTM_PROJECTION_ZONE
   logical :: SUPPRESS_UTM_PROJECTION
+
   integer :: NX_TOPO,NY_TOPO
-  double precision :: ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO
   integer, dimension(NX_TOPO,NY_TOPO) :: itopo_bathy
 
   ! local parameters
   double precision :: weight
-  double precision :: xval,yval,long,lat,elevation
+  double precision :: elevation
   double precision :: height_oceans
-  double precision :: long_corner,lat_corner,ratio_xi,ratio_eta
   integer :: ix_oceans,iy_oceans,iz_oceans,ispec_oceans,ispec2D,igll,iglobnum
-  integer :: icornerlong,icornerlat
   integer :: ier
+
+  real(kind=CUSTOM_REAL) :: xloc,yloc,loc_elevation
+  
   ! creates ocean load mass matrix
   if(OCEANS) then
 
@@ -191,45 +191,17 @@
 
           ! compute local height of oceans
           if( TOPOGRAPHY ) then
+          
             ! takes elevation from topography file
-            ! get coordinates of current point
-            xval = xstore_dummy(iglobnum)
-            yval = ystore_dummy(iglobnum)
-
-            ! project x and y in UTM back to long/lat since topo file is in long/lat
-            call utm_geo(long,lat,xval,yval,UTM_PROJECTION_ZONE,IUTM2LONGLAT,SUPPRESS_UTM_PROJECTION)
-
-            ! get coordinate of corner in bathy/topo model
-            icornerlong = int((long - ORIG_LONG_TOPO) / DEGREES_PER_CELL_TOPO) + 1
-            icornerlat = int((lat - ORIG_LAT_TOPO) / DEGREES_PER_CELL_TOPO) + 1
-
-            ! avoid edge effects and extend with identical point if outside model
-            if(icornerlong < 1) icornerlong = 1
-            if(icornerlong > NX_TOPO-1) icornerlong = NX_TOPO-1
-            if(icornerlat < 1) icornerlat = 1
-            if(icornerlat > NY_TOPO-1) icornerlat = NY_TOPO-1
-
-            ! compute coordinates of corner
-            long_corner = ORIG_LONG_TOPO + (icornerlong-1)*DEGREES_PER_CELL_TOPO
-            lat_corner = ORIG_LAT_TOPO + (icornerlat-1)*DEGREES_PER_CELL_TOPO
-
-            ! compute ratio for interpolation
-            ratio_xi = (long - long_corner) / DEGREES_PER_CELL_TOPO
-            ratio_eta = (lat - lat_corner) / DEGREES_PER_CELL_TOPO
-
-            ! avoid edge effects
-            if(ratio_xi < 0.) ratio_xi = 0.
-            if(ratio_xi > 1.) ratio_xi = 1.
-            if(ratio_eta < 0.) ratio_eta = 0.
-            if(ratio_eta > 1.) ratio_eta = 1.
-
-            ! interpolate elevation at current point
-            elevation = &
-                  itopo_bathy(icornerlong,icornerlat)*(1.-ratio_xi)*(1.-ratio_eta) + &
-                  itopo_bathy(icornerlong+1,icornerlat)*ratio_xi*(1.-ratio_eta) + &
-                  itopo_bathy(icornerlong+1,icornerlat+1)*ratio_xi*ratio_eta + &
-                  itopo_bathy(icornerlong,icornerlat+1)*(1.-ratio_xi)*ratio_eta
-
+            xloc = xstore_dummy(iglobnum)
+            yloc = ystore_dummy(iglobnum)
+            
+            call get_topo_bathy_elevation(xloc,yloc,loc_elevation, &
+                                        itopo_bathy,NX_TOPO,NY_TOPO, &
+                                        UTM_PROJECTION_ZONE,SUPPRESS_UTM_PROJECTION)
+            
+            elevation = dble(loc_elevation)
+            
           else
 
             ! takes elevation from z-coordinate of mesh point

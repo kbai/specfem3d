@@ -41,7 +41,7 @@ module decompose_mesh_SCOTCH
   integer, dimension(:,:), allocatable  :: elmnts
   integer, dimension(:,:), allocatable  :: mat
   integer, dimension(:), allocatable  :: part
-
+  
   integer :: nnodes
   double precision, dimension(:,:), allocatable  :: nodes_coords
 
@@ -62,7 +62,7 @@ module decompose_mesh_SCOTCH
   integer  ::  ninterfaces
   integer  :: my_ninterface
 
-  integer  :: nsize           ! Max number of elements that contain the same node.
+  integer :: nsize           ! Max number of elements that contain the same node.
   integer  :: nb_edges
 
   integer  :: ispec, inode
@@ -70,7 +70,7 @@ module decompose_mesh_SCOTCH
   integer  :: max_neighbour         ! Real maximum number of neighbours per element
   integer  :: sup_neighbour   ! Majoration of the maximum number of neighbours per element
 
-  integer  :: ipart, nnodes_loc, nspec_loc
+  integer  :: ipart, nnodes_loc, nspec_local
   integer  :: num_elmnt, num_node, num_mat
 
   ! boundaries
@@ -106,6 +106,8 @@ module decompose_mesh_SCOTCH
 
   integer :: aniso_flag,idomain_id
   double precision :: vp,vs,rho,qmu
+! poroelastic parameters read in a new file
+  double precision :: rhos,rhof,phi,tort,kxx,kxy,kxz,kyy,kyz,kzz,kappas,kappaf,kappafr,eta,mufr
 
   integer, parameter :: IIN_database = 15
 
@@ -117,7 +119,9 @@ module decompose_mesh_SCOTCH
   subroutine read_mesh_files
     implicit none
     character(len=256)  :: line
-
+    logical :: use_poroelastic_file
+    integer(long) :: nspec_long
+    
   ! sets number of nodes per element
     ngnod = esize
 
@@ -140,13 +144,24 @@ module decompose_mesh_SCOTCH
     print*, 'total number of nodes: '
     print*, '  nnodes = ', nnodes
 
-  ! reads mesh elements indexing
-  !(CUBIT calls this the connectivity, guess in the sense that it connects with the points index in
-  ! the global coordinate file "nodes_coords_file"; it doesn't tell you which point is connected with others)
+    ! reads mesh elements indexing
+    !(CUBIT calls this the connectivity, guess in the sense that it connects with the points index in
+    ! the global coordinate file "nodes_coords_file"; it doesn't tell you which point is connected with others)
     open(unit=98, file=localpath_name(1:len_trim(localpath_name))//'/mesh_file', &
           status='old', form='formatted',iostat=ier)
     if( ier /= 0 ) stop 'error opening mesh_file'
-    read(98,*) nspec
+    read(98,*) nspec_long
+
+    ! debug check size limit
+    if( nspec_long > 2147483647 ) then
+      print *,'size exceeds integer 4-byte limit: ',nspec_long
+      print*,'bit size fortran: ',bit_size(nspec)
+      stop 'error number of elements too large'
+    endif
+    
+    ! sets number of elements (integer 4-byte)
+    nspec = nspec_long
+    
     allocate(elmnts(esize,nspec),stat=ier)
     if( ier /= 0 ) stop 'error allocating array elmnts'
     do ispec = 1, nspec
@@ -219,6 +234,9 @@ module decompose_mesh_SCOTCH
   !     vs                             : S-velocity
   !     Q_mu                      : 0=no attenuation
   !     anisotropy_flag        : 0=no anisotropy/ 1,2,.. check with implementation in aniso_model.f90
+  ! Note that when poroelastic material, this file is a dummy except for material_domain_id & material_id,
+  ! and that poroelastic materials are actually read from nummaterial_poroelastic_file, because CUBIT
+  ! cannot support more than 10 attributes
     count_def_mat = 0
     count_undef_mat = 0
     open(unit=98, file=localpath_name(1:len_trim(localpath_name))//'/nummaterial_velocity_file',&
@@ -249,7 +267,7 @@ module decompose_mesh_SCOTCH
       print*,'  bigger than defined materials in nummaterial_velocity_file:',count_def_mat
       stop 'error materials'
     endif
-    allocate(mat_prop(6,count_def_mat),stat=ier)
+    allocate(mat_prop(16,count_def_mat),stat=ier)
     if( ier /= 0 ) stop 'error allocating array mat_prop'
     allocate(undef_mat_prop(6,count_undef_mat),stat=ier)
     if( ier /= 0 ) stop 'error allocating array undef_mat_prop'
@@ -260,6 +278,32 @@ module decompose_mesh_SCOTCH
     open(unit=98, file=localpath_name(1:len_trim(localpath_name))//'/nummaterial_velocity_file', &
           status='old', form='formatted', iostat=ier)
     if( ier /= 0 ) stop 'error opening nummaterial_velocity_file'
+
+  ! modif to read poro parameters, added if loop on idomain_id
+  ! note: format of nummaterial_poroelastic_file located in MESH must be
+  !
+  ! #(1)rhos,#(2)rhof,#(3)phi,#(4)tort,#(5)kxx,#(6)kxy,#(7)kxz,#(8)kyy,#(9)kyz,#(10)kzz,
+  ! #(11)kappas,#(12)kappaf,#(13)kappafr,#(14)eta,#(15)mufr
+  !
+  ! where
+  !     rhos, rhof : solid & fluid density
+  !     phi : porosity
+  !     tort : tortuosity
+  !     k : permeability tensor
+  !     kappas, kappaf, kappafr : solid, fluid and frame bulk moduli
+  !     eta : fluid viscosity
+  !     mufr : frame shear modulus
+    open(unit=97, file=localpath_name(1:len_trim(localpath_name))//'/nummaterial_poroelastic_file', &
+          status='old', form='formatted', iostat=ier)
+    ! checks if we can use file
+    if( ier /= 0 ) then
+      use_poroelastic_file = .false.
+      !stop 'error opening nummaterial_poroelastic_file'
+    else
+      use_poroelastic_file = .true.
+      print*, '  poroelastic material file found'
+    endif
+    ier = 0
 
     ! note: entries in nummaterial_velocity_file can be an unsorted list of all
     !          defined materials (material_id > 0) and undefined materials (material_id < 0 )
@@ -284,14 +328,41 @@ module decompose_mesh_SCOTCH
        ! checks material_id bounds
        if(num_mat < 1 .or. num_mat > count_def_mat)  stop "ERROR : Invalid nummaterial_velocity_file file."
 
-       !read(98,*) num_mat, mat_prop(1,num_mat),mat_prop(2,num_mat),&
-       !           mat_prop(3,num_mat),mat_prop(4,num_mat),mat_prop(5,num_mat)
-       mat_prop(1,num_mat) = rho
-       mat_prop(2,num_mat) = vp
-       mat_prop(3,num_mat) = vs
-       mat_prop(4,num_mat) = qmu
-       mat_prop(5,num_mat) = aniso_flag
-       mat_prop(6,num_mat) = idomain_id
+       if(idomain_id == 1 .or. idomain_id == 2) then
+         ! material is elastic or acoustic
+
+         !read(98,*) num_mat, mat_prop(1,num_mat),mat_prop(2,num_mat),&
+         !           mat_prop(3,num_mat),mat_prop(4,num_mat),mat_prop(5,num_mat)
+         mat_prop(1,num_mat) = rho
+         mat_prop(2,num_mat) = vp
+         mat_prop(3,num_mat) = vs
+         mat_prop(4,num_mat) = qmu
+         mat_prop(5,num_mat) = aniso_flag
+         mat_prop(6,num_mat) = idomain_id
+
+       else
+         ! material is poroelastic
+         if( use_poroelastic_file .eqv. .false. ) stop 'error poroelastic material requires nummaterial_poroelastic_file'
+
+         read(97,*) rhos,rhof,phi,tort,kxx,kxy,kxz,kyy,kyz,kzz,kappas,kappaf,kappafr,eta,mufr
+         mat_prop(1,num_mat) = rhos
+         mat_prop(2,num_mat) = rhof
+         mat_prop(3,num_mat) = phi
+         mat_prop(4,num_mat) = tort
+         mat_prop(5,num_mat) = eta
+         mat_prop(6,num_mat) = idomain_id
+         mat_prop(7,num_mat) = kxx
+         mat_prop(8,num_mat) = kxy
+         mat_prop(9,num_mat) = kxz
+         mat_prop(10,num_mat) = kyy
+         mat_prop(11,num_mat) = kyz
+         mat_prop(12,num_mat) = kzz
+         mat_prop(13,num_mat) = kappas
+         mat_prop(14,num_mat) = kappaf
+         mat_prop(15,num_mat) = kappafr
+         mat_prop(16,num_mat) = mufr
+
+       endif !if(idomain_id == 1 .or. idomain_id == 2)
 
     end do
 
@@ -372,6 +443,7 @@ module decompose_mesh_SCOTCH
          endif
        endif
     end do
+    if( use_poroelastic_file ) close(97)
     close(98)
 
 
@@ -587,7 +659,15 @@ module decompose_mesh_SCOTCH
       endif
     enddo
     nsize = maxval(used_nodes_elmnts(:))
+
+    ! debug check size limit
+    if( ngnod * nsize - (ngnod + (ngnod/2 - 1)*nfaces) > 2147483647 ) then
+      print *,'size exceeds integer 4-byte limit: ',sup_neighbour,ngnod,nsize,nfaces
+      print*,'bit size fortran: ',bit_size(sup_neighbour)
+    endif
+
     sup_neighbour = ngnod * nsize - (ngnod + (ngnod/2 - 1)*nfaces)
+
     print*, '  nsize = ',nsize, 'sup_neighbour = ', sup_neighbour
 
   end subroutine check_valence
@@ -614,8 +694,10 @@ module decompose_mesh_SCOTCH
     if( ier /= 0 ) stop 'error allocating array nnodes_elmnts'
     allocate(nodes_elmnts(1:nsize*nnodes),stat=ier)
     if( ier /= 0 ) stop 'error allocating array nodes_elmnts'
+
     call mesh2dual_ncommonnodes(nspec, nnodes, nsize, sup_neighbour, elmnts, xadj, adjncy, nnodes_elmnts, &
          nodes_elmnts, max_neighbour, 1)
+
     print*, 'mesh2dual: '
     print*, '  max_neighbour = ',max_neighbour
 
@@ -639,9 +721,9 @@ module decompose_mesh_SCOTCH
     if( ier /= 0 ) stop 'error allocating array num_material'
     num_material(:) = mat(1,:)
 
-    ! in case of acoustic/elastic simulation, weights elements accordingly
-    call acoustic_elastic_load(elmnts_load,nspec,count_def_mat,count_undef_mat, &
-                              num_material,mat_prop,undef_mat_prop)
+    ! in case of acoustic/elastic/poro simulation, weights elements accordingly
+    call acoustic_elastic_poro_load(elmnts_load,nspec,count_def_mat,count_undef_mat, &
+                                  num_material,mat_prop,undef_mat_prop)
 
     deallocate(num_material)
 
@@ -728,15 +810,15 @@ module decompose_mesh_SCOTCH
     if (ier /= 0) then
        stop 'ERROR : MAIN : Cannot destroy strat'
     endif
-
-
-  ! re-partitioning puts acoustic-elastic coupled elements into same partition
+    
+  ! re-partitioning puts poroelastic-elastic coupled elements into same partition
   !  integer  :: nfaces_coupled
   !  integer, dimension(:,:), pointer  :: faces_coupled
-  !    call acoustic_elastic_repartitioning (nspec, nnodes, elmnts, &
-  !                   count_def_mat, mat(1,:) , mat_prop, &
-  !                   sup_neighbour, nsize, &
-  !                   nparts, part, nfaces_coupled, faces_coupled)
+    call poro_elastic_repartitioning (nspec, nnodes, elmnts, &
+                     count_def_mat, mat(1,:) , mat_prop, &
+                     sup_neighbour, nsize, &
+                     nparts, part)
+                     !nparts, part, nfaces_coupled, faces_coupled)
 
   ! re-partitioning puts moho-surface coupled elements into same partition
     call moho_surface_repartitioning (nspec, nnodes, elmnts, &
@@ -744,7 +826,7 @@ module decompose_mesh_SCOTCH
                      nspec2D_moho,ibelm_moho,nodes_ibelm_moho )
 
 
-  ! local number of each element for each partition
+  ! local number of each element for each partition    
     call build_glob2loc_elmnts(nspec, part, glob2loc_elmnts,nparts)
 
   ! local number of each node for each partition
@@ -752,7 +834,7 @@ module decompose_mesh_SCOTCH
          glob2loc_nodes_nparts, glob2loc_nodes_parts, glob2loc_nodes, nparts)
 
   ! mpi interfaces
-    ! acoustic/elastic boundaries will be split into different MPI partitions
+    ! acoustic/elastic/poroelastic boundaries will be split into different MPI partitions
     call build_interfaces(nspec, sup_neighbour, part, elmnts, &
                              xadj, adjncy, tab_interfaces, &
                              tab_size_interfaces, ninterfaces, &
@@ -800,7 +882,7 @@ module decompose_mesh_SCOTCH
                                   glob2loc_nodes, nnodes, 1)
 
        ! gets number of spectral elements
-       call write_partition_database(IIN_database, ipart, nspec_loc, nspec, elmnts, &
+       call write_partition_database(IIN_database, ipart, nspec_local, nspec, elmnts, &
                                   glob2loc_elmnts, glob2loc_nodes_nparts, &
                                   glob2loc_nodes_parts, glob2loc_nodes, part, mat, ngnod, 1)
 
@@ -816,10 +898,9 @@ module decompose_mesh_SCOTCH
                                   mat_prop, undef_mat_prop)
 
        ! writes out spectral element indices
-       !write(IIN_database,*) nspec_loc
-       write(IIN_database) nspec_loc
-
-       call write_partition_database(IIN_database, ipart, nspec_loc, nspec, elmnts, &
+       !write(IIN_database,*) nspec_local
+       write(IIN_database) nspec_local
+       call write_partition_database(IIN_database, ipart, nspec_local, nspec, elmnts, &
                                   glob2loc_elmnts, glob2loc_nodes_nparts, &
                                   glob2loc_nodes_parts, glob2loc_nodes, part, mat, ngnod, 2)
 
@@ -842,7 +923,7 @@ module decompose_mesh_SCOTCH
        ! writes out MPI interfaces elements
        !print*,' my interfaces:',my_ninterface,maxval(my_nb_interfaces)
        if( my_ninterface == 0 ) then
-        !write(IIN_database,*) my_ninterface, 0       ! avoids problem with maxval for empty array my_nb_interfaces
+        !write(IIN_database,*) my_ninterface, 0
         write(IIN_database) my_ninterface, 0       ! avoids problem with maxval for empty array my_nb_interfaces
        else
         !write(IIN_database,*) my_ninterface, maxval(my_nb_interfaces)

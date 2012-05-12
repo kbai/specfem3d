@@ -56,17 +56,18 @@
     if(NSOURCES > 1) write(IMAIN,*) 'Using ',NSOURCES,' point sources'
   endif
 
-end subroutine setup_sources_receivers
+  end subroutine setup_sources_receivers
 
 !
 !-------------------------------------------------------------------------------------------------
 !
 
-subroutine setup_sources()
+  subroutine setup_sources()
 
   use specfem_par
   use specfem_par_acoustic
   use specfem_par_elastic
+  use specfem_par_poroelastic
   use specfem_par_movie
   implicit none
 
@@ -94,6 +95,10 @@ subroutine setup_sources()
           nu_source(3,3,NSOURCES),stat=ier)
   if( ier /= 0 ) stop 'error allocating arrays for sources'
 
+  ! for source encoding (acoustic sources so far only)
+  allocate(pm1_source_encoding(NSOURCES),stat=ier)
+  if( ier /= 0 ) stop 'error allocating arrays for sources'
+
 ! locate sources in the mesh
 !
 ! returns:  islice_selected_source & ispec_selected_source,
@@ -107,7 +112,7 @@ subroutine setup_sources()
           UTM_PROJECTION_ZONE,SUPPRESS_UTM_PROJECTION, &
           PRINT_SOURCE_TIME_FUNCTION, &
           nu_source,iglob_is_surface_external_mesh,ispec_is_surface_external_mesh,&
-          ispec_is_acoustic,ispec_is_elastic, &
+          ispec_is_acoustic,ispec_is_elastic,ispec_is_poroelastic, &
           num_free_surface_faces,free_surface_ispec,free_surface_ijk)
 
   if(abs(minval(tshift_cmt)) > TINYVAL) call exit_MPI(myrank,'one tshift_cmt must be zero, others must be positive')
@@ -215,14 +220,14 @@ subroutine setup_sources()
   ! checks if source is in an acoustic element and exactly on the free surface because pressure is zero there
   call setup_sources_check_acoustic()
 
-end subroutine setup_sources
+  end subroutine setup_sources
 
 !
 !-------------------------------------------------------------------------------------------------
 !
 
 
-subroutine setup_sources_check_acoustic()
+  subroutine setup_sources_check_acoustic()
 
 ! checks if source is in an acoustic element and exactly on the free surface because pressure is zero there
 
@@ -322,13 +327,13 @@ subroutine setup_sources_check_acoustic()
   enddo ! num_free_surface_faces
 
 
-end subroutine setup_sources_check_acoustic
+  end subroutine setup_sources_check_acoustic
 
 !
 !-------------------------------------------------------------------------------------------------
 !
 
-subroutine setup_receivers()
+  subroutine setup_receivers()
 
   use specfem_par
   use specfem_par_acoustic
@@ -418,14 +423,14 @@ subroutine setup_receivers()
 ! checks if acoustic receiver is exactly on the free surface because pressure is zero there
   call setup_receivers_check_acoustic()
 
-end subroutine setup_receivers
+  end subroutine setup_receivers
 
 
 !
 !-------------------------------------------------------------------------------------------------
 !
 
-subroutine setup_receivers_check_acoustic()
+  subroutine setup_receivers_check_acoustic()
 
 ! checks if acoustic receiver is exactly on the free surface because pressure is zero there
 
@@ -492,27 +497,31 @@ subroutine setup_receivers_check_acoustic()
     ! user output
     call any_all_l( is_on, is_on_all )
     if( myrank == 0 .and. is_on_all ) then
-      write(IMAIN,*) '**********************************************************************'
-      write(IMAIN,*) '*** station:',irec,'                                          ***'
-      write(IMAIN,*) '*** Warning: acoustic receiver located exactly on the free surface ***'
-      write(IMAIN,*) '*** Warning: tangential component will be zero there               ***'
-      write(IMAIN,*) '**********************************************************************'
-      write(IMAIN,*)
+      ! limits user output if too many receivers
+      if( nrec < 1000 .and. (.not. SU_FORMAT ) ) then
+        write(IMAIN,*) '**********************************************************************'
+        write(IMAIN,*) '*** station:',irec,'                                          ***'
+        write(IMAIN,*) '*** Warning: acoustic receiver located exactly on the free surface ***'
+        write(IMAIN,*) '*** Warning: tangential component will be zero there               ***'
+        write(IMAIN,*) '**********************************************************************'
+        write(IMAIN,*)
+      endif
     endif
 
   enddo ! num_free_surface_faces
 
-end subroutine setup_receivers_check_acoustic
+  end subroutine setup_receivers_check_acoustic
 
 
 !
 !-------------------------------------------------------------------------------------------------
 !
 
-subroutine setup_sources_precompute_arrays()
+  subroutine setup_sources_precompute_arrays()
 
   use specfem_par
   use specfem_par_elastic
+  use specfem_par_poroelastic
   use specfem_par_acoustic
   implicit none
 
@@ -543,8 +552,8 @@ subroutine setup_sources_precompute_arrays()
 
         ispec = ispec_selected_source(isource)
 
-        ! elastic moment tensor source
-        if( ispec_is_elastic(ispec) ) then
+        ! elastic or poroelastic moment tensor source
+        if( ispec_is_elastic(ispec) .or. ispec_is_poroelastic(ispec)) then
           call compute_arrays_source(ispec, &
                         xi_source(isource),eta_source(isource),gamma_source(isource),sourcearray, &
                         Mxx(isource),Myy(isource),Mzz(isource),Mxy(isource),Mxz(isource),Myz(isource), &
@@ -563,6 +572,12 @@ subroutine setup_sources_precompute_arrays()
           ! where Mxx=Myy=Mzz, others Mxy,.. = zero, in equivalent elastic media
           ! (and getting rid of 1/sqrt(2) factor from scalar moment tensor definition above)
           factor_source = factor_source * sqrt(2.0) / sqrt(3.0)
+
+          ! source encoding
+          ! determines factor +/-1 depending on sign of moment tensor
+          ! (see e.g. Krebs et al., 2009. Fast full-wavefield seismic inversion using encoded sources,
+          !   Geophysics, 74 (6), WCC177-WCC188.)
+          pm1_source_encoding(isource) = sign(1.0d0,Mxx(isource))
 
           ! source array interpolated on all element gll points (only used for non point sources)
           call compute_arrays_source_acoustic(xi_source(isource),eta_source(isource),gamma_source(isource),&
@@ -690,14 +705,14 @@ subroutine setup_sources_precompute_arrays()
 
   endif
 
-end subroutine setup_sources_precompute_arrays
+  end subroutine setup_sources_precompute_arrays
 
 
 !
 !-------------------------------------------------------------------------------------------------
 !
 
-subroutine setup_receivers_precompute_intp()
+  subroutine setup_receivers_precompute_intp()
 
   use specfem_par
   implicit none
@@ -774,12 +789,13 @@ subroutine setup_receivers_precompute_intp()
   endif
 
 
-end subroutine setup_receivers_precompute_intp
+  end subroutine setup_receivers_precompute_intp
+
 !
 !-------------------------------------------------------------------------------------------------
 !
 
-subroutine setup_sources_receivers_VTKfile()
+  subroutine setup_sources_receivers_VTKfile()
 
   use specfem_par
   implicit none
@@ -947,25 +963,4 @@ subroutine setup_sources_receivers_VTKfile()
   "('awk ',a1,'{if(NR<5) print $0;if(NR==5)print ',a1,'POINTS',i6,' float',a1,';')") &
         "'",'"',NSOURCES,'"'
 
-      !daniel
-      !print*,'command 1:',trim(system_command1)
-
-      write(system_command2, &
-  "('if(NR>5 && NR <6+',i6,')print $0}END{print ',a,'}',a1,' < ',a,' > ',a)") &
-        NSOURCES,'" "',"'",trim(filename),trim(filename_new)
-
-      !print*,'command 2:',trim(system_command2)
-
-      system_command = trim(system_command1)//trim(system_command2)
-
-      !print*,'command:',trim(system_command)
-!daniel:
-! gfortran
-!      call system(trim(system_command),system_command_status)
-! ifort
-!      ret = system(trim(system_command))
-
-    endif
-  endif
-
-end subroutine setup_sources_receivers_VTKfile
+  end subroutine setup_sources_receivers_VTKfile

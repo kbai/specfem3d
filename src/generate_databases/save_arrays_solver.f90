@@ -32,6 +32,8 @@
                     gammaxstore,gammaystore,gammazstore, &
                     jacobianstore, rho_vp,rho_vs,qmu_attenuation_store, &
                     rhostore,kappastore,mustore, &
+                    rhoarraystore,kappaarraystore,etastore,phistore,tortstore,permstore, &
+                    rho_vpI,rho_vpII,rho_vsI, &
                     rmass,rmass_acoustic,rmass_solid_poroelastic,rmass_fluid_poroelastic, &
                     OCEANS,rmass_ocean_load,NGLOB_OCEAN,&
                     ibool, &
@@ -45,6 +47,12 @@
                     coupling_ac_el_normal,coupling_ac_el_jacobian2Dw, &
                     coupling_ac_el_ijk,coupling_ac_el_ispec, &
                     num_coupling_ac_el_faces, &
+                    coupling_ac_po_normal,coupling_ac_po_jacobian2Dw, &
+                    coupling_ac_po_ijk,coupling_ac_po_ispec, &
+                    num_coupling_ac_po_faces, &
+                    coupling_el_po_normal,coupling_el_po_jacobian2Dw, &
+                    coupling_el_po_ijk,coupling_po_el_ijk,coupling_el_po_ispec, &
+                    coupling_po_el_ispec,num_coupling_el_po_faces, &
                     num_interfaces_ext_mesh,my_neighbours_ext_mesh,nibool_interfaces_ext_mesh, &
                     max_interface_size_ext_mesh,ibool_interfaces_ext_mesh, &
                     prname,SAVE_MESH_FILES, &
@@ -54,14 +62,11 @@
                     c34store,c35store,c36store,c44store,c45store,c46store, &
                     c55store,c56store,c66store, &
                     ispec_is_acoustic,ispec_is_elastic,ispec_is_poroelastic, &
-                    ispec_is_inner,nspec_inner_acoustic,nspec_inner_elastic, &
-                    nspec_outer_acoustic,nspec_outer_elastic, &
+                    ispec_is_inner,nspec_inner_acoustic,nspec_inner_elastic,nspec_inner_poroelastic, &
+                    nspec_outer_acoustic,nspec_outer_elastic,nspec_outer_poroelastic, &
                     num_phase_ispec_acoustic,phase_ispec_inner_acoustic, &
                     num_phase_ispec_elastic,phase_ispec_inner_elastic, &
-                    num_colors_outer_acoustic,num_colors_inner_acoustic, &
-                    num_elem_colors_acoustic, &
-                    num_colors_outer_elastic,num_colors_inner_elastic, &
-                    num_elem_colors_elastic)
+                    num_phase_ispec_poroelastic,phase_ispec_inner_poroelastic)
 
   implicit none
 
@@ -79,6 +84,11 @@
 
 ! material
   real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ,nspec) :: rhostore,kappastore,mustore
+  real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ,nspec) :: etastore,phistore,tortstore
+  real(kind=CUSTOM_REAL), dimension(2,NGLLX,NGLLY,NGLLZ,nspec) :: rhoarraystore
+  real(kind=CUSTOM_REAL), dimension(3,NGLLX,NGLLY,NGLLZ,nspec) :: kappaarraystore
+  real(kind=CUSTOM_REAL), dimension(6,NGLLX,NGLLY,NGLLZ,nspec) :: permstore
+  real(kind=CUSTOM_REAL), dimension(NGLLX,NGLLY,NGLLZ,nspec) :: rho_vpI,rho_vpII,rho_vsI
   real(kind=CUSTOM_REAL), dimension(nglob) :: rmass,rmass_acoustic, &
             rmass_solid_poroelastic,rmass_fluid_poroelastic
 ! ocean load
@@ -111,6 +121,22 @@
   integer :: coupling_ac_el_ijk(3,NGLLSQUARE,num_coupling_ac_el_faces)
   integer :: coupling_ac_el_ispec(num_coupling_ac_el_faces)
 
+! acoustic-poroelastic coupling surface
+  integer :: num_coupling_ac_po_faces
+  real(kind=CUSTOM_REAL) :: coupling_ac_po_normal(NDIM,NGLLSQUARE,num_coupling_ac_po_faces)
+  real(kind=CUSTOM_REAL) :: coupling_ac_po_jacobian2Dw(NGLLSQUARE,num_coupling_ac_po_faces)
+  integer :: coupling_ac_po_ijk(3,NGLLSQUARE,num_coupling_ac_po_faces)
+  integer :: coupling_ac_po_ispec(num_coupling_ac_po_faces)
+
+! elastic-poroelastic coupling surface
+  integer :: num_coupling_el_po_faces
+  real(kind=CUSTOM_REAL) :: coupling_el_po_normal(NDIM,NGLLSQUARE,num_coupling_el_po_faces)
+  real(kind=CUSTOM_REAL) :: coupling_el_po_jacobian2Dw(NGLLSQUARE,num_coupling_el_po_faces)
+  integer :: coupling_el_po_ijk(3,NGLLSQUARE,num_coupling_el_po_faces)
+  integer :: coupling_po_el_ijk(3,NGLLSQUARE,num_coupling_el_po_faces)
+  integer :: coupling_el_po_ispec(num_coupling_el_po_faces)
+  integer :: coupling_po_el_ispec(num_coupling_el_po_faces)
+
 ! MPI interfaces
   integer :: num_interfaces_ext_mesh
   integer, dimension(num_interfaces_ext_mesh) :: my_neighbours_ext_mesh
@@ -139,18 +165,16 @@
   logical,dimension(nspec) :: ispec_is_inner
   integer :: nspec_inner_acoustic,nspec_outer_acoustic
   integer :: nspec_inner_elastic,nspec_outer_elastic
+  integer :: nspec_inner_poroelastic,nspec_outer_poroelastic
+
   integer :: num_phase_ispec_acoustic
   integer,dimension(num_phase_ispec_acoustic,2) :: phase_ispec_inner_acoustic
+
   integer :: num_phase_ispec_elastic
   integer,dimension(num_phase_ispec_elastic,2) :: phase_ispec_inner_elastic
 
-  ! mesh coloring
-  integer :: num_colors_outer_acoustic,num_colors_inner_acoustic
-  integer, dimension(num_colors_outer_acoustic + num_colors_inner_acoustic) :: &
-    num_elem_colors_acoustic
-  integer :: num_colors_outer_elastic,num_colors_inner_elastic
-  integer, dimension(num_colors_outer_elastic + num_colors_inner_elastic) :: &
-    num_elem_colors_elastic
+  integer :: num_phase_ispec_poroelastic
+  integer,dimension(num_phase_ispec_poroelastic,2) :: phase_ispec_inner_poroelastic
 
 ! local parameters
   real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: v_tmp
@@ -227,6 +251,15 @@
 
     write(IOUT) rmass_solid_poroelastic
     write(IOUT) rmass_fluid_poroelastic
+    write(IOUT) rhoarraystore
+    write(IOUT) kappaarraystore
+    write(IOUT) etastore
+    write(IOUT) tortstore
+    write(IOUT) permstore
+    write(IOUT) phistore
+    write(IOUT) rho_vpI
+    write(IOUT) rho_vpII
+    write(IOUT) rho_vsI
   endif
 
 ! absorbing boundary surface
@@ -256,8 +289,29 @@
     write(IOUT) coupling_ac_el_normal
   endif
 
-!MPI interfaces
+! acoustic-poroelastic coupling surface
+  write(IOUT) num_coupling_ac_po_faces
+  if( num_coupling_ac_po_faces > 0 ) then
+    write(IOUT) coupling_ac_po_ispec
+    write(IOUT) coupling_ac_po_ijk
+    write(IOUT) coupling_ac_po_jacobian2Dw
+    write(IOUT) coupling_ac_po_normal
+  endif
+
+! elastic-poroelastic coupling surface
+  write(IOUT) num_coupling_el_po_faces
+  if( num_coupling_el_po_faces > 0 ) then
+    write(IOUT) coupling_el_po_ispec
+    write(IOUT) coupling_po_el_ispec
+    write(IOUT) coupling_el_po_ijk
+    write(IOUT) coupling_po_el_ijk
+    write(IOUT) coupling_el_po_jacobian2Dw
+    write(IOUT) coupling_el_po_normal
+  endif
+
+  !MPI interfaces
   max_nibool_interfaces_ext_mesh = maxval(nibool_interfaces_ext_mesh(:))
+
   allocate(ibool_interfaces_ext_mesh_dummy(max_nibool_interfaces_ext_mesh,num_interfaces_ext_mesh),stat=ier)
   if( ier /= 0 ) stop 'error allocating array'
   do i = 1, num_interfaces_ext_mesh
@@ -312,16 +366,10 @@
     if(num_phase_ispec_elastic > 0 ) write(IOUT) phase_ispec_inner_elastic
   endif
 
-! mesh coloring
-  if( USE_MESH_COLORING_GPU ) then
-    if( ACOUSTIC_SIMULATION ) then
-      write(IOUT) num_colors_outer_acoustic,num_colors_inner_acoustic
-      write(IOUT) num_elem_colors_acoustic
-    endif
-    if( ELASTIC_SIMULATION ) then
-      write(IOUT) num_colors_outer_elastic,num_colors_inner_elastic
-      write(IOUT) num_elem_colors_elastic
-    endif
+  if( POROELASTIC_SIMULATION ) then
+    write(IOUT) nspec_inner_poroelastic,nspec_outer_poroelastic
+    write(IOUT) num_phase_ispec_poroelastic
+    if(num_phase_ispec_poroelastic > 0 ) write(IOUT) phase_ispec_inner_poroelastic
   endif
 
   close(IOUT)
@@ -483,8 +531,101 @@
       deallocate(iglob_tmp)
     endif
 
+    ! debug: saves 1. MPI interface
+    !if( num_interfaces_ext_mesh >= 1 ) then
+    !  filename = prname(1:len_trim(prname))//'MPI_1_points'
+    !  call write_VTK_data_points(nglob, &
+    !                    xstore_dummy,ystore_dummy,zstore_dummy, &
+    !                    ibool_interfaces_ext_mesh_dummy(1:nibool_interfaces_ext_mesh(1),1), &
+    !                    nibool_interfaces_ext_mesh(1), &
+    !                    filename)
+    !endif
 
-    !! saves 1. MPI interface
+    ! acoustic-poroelastic domains
+    if( ACOUSTIC_SIMULATION .and. POROELASTIC_SIMULATION ) then
+      ! saves points on acoustic-poroelastic coupling interface
+      allocate( iglob_tmp(NGLLSQUARE*num_coupling_ac_po_faces),stat=ier)
+      if( ier /= 0 ) stop 'error allocating array iglob_tmp'
+      inum = 0
+      iglob_tmp(:) = 0
+      do i=1,num_coupling_ac_po_faces
+        do j=1,NGLLSQUARE
+          inum = inum+1
+          iglob_tmp(inum) = ibool(coupling_ac_po_ijk(1,j,i), &
+                                  coupling_ac_po_ijk(2,j,i), &
+                                  coupling_ac_po_ijk(3,j,i), &
+                                  coupling_ac_po_ispec(i) )
+        enddo
+      enddo
+      filename = prname(1:len_trim(prname))//'coupling_acoustic_poroelastic'
+      call write_VTK_data_points(nglob, &
+                        xstore_dummy,ystore_dummy,zstore_dummy, &
+                        iglob_tmp,NGLLSQUARE*num_coupling_ac_po_faces, &
+                        filename)
+
+      ! saves acoustic/poroelastic flag
+      allocate(v_tmp_i(nspec),stat=ier)
+      if( ier /= 0 ) stop 'error allocating array v_tmp_i'
+      do i=1,nspec
+        if( ispec_is_acoustic(i) ) then
+          v_tmp_i(i) = 1
+        else if( ispec_is_poroelastic(i) ) then
+          v_tmp_i(i) = 2
+        else
+          v_tmp_i(i) = 0
+        endif
+      enddo
+      filename = prname(1:len_trim(prname))//'acoustic_poroelastic_flag'
+      call write_VTK_data_elem_i(nspec,nglob, &
+                        xstore_dummy,ystore_dummy,zstore_dummy,ibool, &
+                        v_tmp_i,filename)
+
+    deallocate(v_tmp_i,iglob_tmp)
+    endif !if( ACOUSTIC_SIMULATION .and. POROELASTIC_SIMULATION )
+
+    ! elastic-poroelastic domains
+    if( ELASTIC_SIMULATION .and. POROELASTIC_SIMULATION ) then
+      ! saves points on elastic-poroelastic coupling interface
+      allocate( iglob_tmp(NGLLSQUARE*num_coupling_el_po_faces),stat=ier)
+      if( ier /= 0 ) stop 'error allocating array iglob_tmp'
+      inum = 0
+      iglob_tmp(:) = 0
+      do i=1,num_coupling_el_po_faces
+        do j=1,NGLLSQUARE
+          inum = inum+1
+          iglob_tmp(inum) = ibool(coupling_el_po_ijk(1,j,i), &
+                                  coupling_el_po_ijk(2,j,i), &
+                                  coupling_el_po_ijk(3,j,i), &
+                                  coupling_el_po_ispec(i) )
+        enddo
+      enddo
+      filename = prname(1:len_trim(prname))//'coupling_elastic_poroelastic'
+      call write_VTK_data_points(nglob, &
+                        xstore_dummy,ystore_dummy,zstore_dummy, &
+                        iglob_tmp,NGLLSQUARE*num_coupling_el_po_faces, &
+                        filename)
+
+      ! saves elastic/poroelastic flag
+      allocate(v_tmp_i(nspec),stat=ier)
+      if( ier /= 0 ) stop 'error allocating array v_tmp_i'
+      do i=1,nspec
+        if( ispec_is_elastic(i) ) then
+          v_tmp_i(i) = 1
+        else if( ispec_is_poroelastic(i) ) then
+          v_tmp_i(i) = 2
+        else
+          v_tmp_i(i) = 0
+        endif
+      enddo
+      filename = prname(1:len_trim(prname))//'elastic_poroelastic_flag'
+      call write_VTK_data_elem_i(nspec,nglob, &
+                        xstore_dummy,ystore_dummy,zstore_dummy,ibool, &
+                        v_tmp_i,filename)
+
+    deallocate(v_tmp_i,iglob_tmp)
+    endif !if( ACOUSTIC_SIMULATION .and. POROELASTIC_SIMULATION
+
+    !debug: saves 1. MPI interface
     if( num_interfaces_ext_mesh >= 1 ) then
       filename = prname(1:len_trim(prname))//'MPI_1_points'
       call write_VTK_data_points(nglob, &

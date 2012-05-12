@@ -38,8 +38,6 @@
 !
 
   double precision function wtime()
-
-  implicit none
   real :: ct
 
   ! note: for simplicity, we take cpu_time which returns the elapsed CPU time in seconds
@@ -47,7 +45,6 @@
   call cpu_time(ct)
 
   wtime = ct
-
   end function wtime
 
 !
@@ -91,6 +88,20 @@
   double precision, dimension(count) :: buffer
 
   end subroutine bcast_all_dp
+
+!
+!----
+!
+
+  subroutine bcast_all_r(buffer, count)
+
+  implicit none
+
+  integer count
+  real, dimension(count) :: buffer
+
+  end subroutine bcast_all_r
+
 
 !
 !----
@@ -667,40 +678,38 @@
 !
 !
 !----
-!
-
+!  the following two subroutines are needed by locate_receivers.f90
   subroutine send_dp(sendbuf, sendcount, dest, sendtag)
 
   implicit none
+  include "constants.h"
 
   integer dest,sendtag
   integer sendcount
-  double precision,dimension(sendcount):: sendbuf
+  real(kind=CUSTOM_REAL),dimension(sendcount):: sendbuf
 
   stop 'send_dp not implemented for serial code'
 
   end subroutine send_dp
-
 !
 !----
 !
-
   subroutine recv_dp(recvbuf, recvcount, dest, recvtag)
 
   implicit none
+  include "constants.h"
 
   integer dest,recvtag
   integer recvcount
-  double precision,dimension(recvcount):: recvbuf
+  real(kind=CUSTOM_REAL),dimension(recvcount):: recvbuf
 
-  stop 'recv_dp not implemented for serial code'
+  stop 'recv_dp not implemented for parallel code'
 
   end subroutine recv_dp
 
 !
 !----
 !
-
 
   subroutine sendv_cr(sendbuf, sendcount, dest, sendtag)
 

@@ -51,7 +51,7 @@
             iglob = ibool(i,j,k,ispec)
 
             ! isotropic adjoint kernels (see e.g. Tromp et al. 2005)
-            rhol = rho_vs(i,j,k,ispec)**2 / mustore(i,j,k,ispec)
+            rhol = rho_vs(i,j,k,ispec)*rho_vs(i,j,k,ispec) / mustore(i,j,k,ispec)
             mul = mustore(i,j,k,ispec)
             kappal = kappastore(i,j,k,ispec)
 
@@ -99,8 +99,9 @@
             ! rho prime kernel
             rhop_ac_kl(i,j,k,ispec) = rho_ac_kl(i,j,k,ispec) + kappa_ac_kl(i,j,k,ispec)
 
-            ! kappa kernel
-            alpha_ac_kl(i,j,k,ispec) = TWO *  kappa_ac_kl(i,j,k,ispec)
+            ! vp kernel
+            alpha_ac_kl(i,j,k,ispec) = 2._CUSTOM_REAL *  kappa_ac_kl(i,j,k,ispec)
+
           enddo
         enddo
       enddo

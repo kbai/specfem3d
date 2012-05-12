@@ -129,7 +129,7 @@
       do isource = 1,NSOURCES
         if( USE_RICKER_IPATI ) then
           stf_pre_compute(isource) = comp_source_time_function_rickr( &
-                                        dble(it-1)*DT-t0-tshift_cmt(isource),hdur(isource))          
+                                        dble(it-1)*DT-t0-tshift_cmt(isource),hdur(isource))
         else
           stf_pre_compute(isource) = comp_source_time_function( &
                                         dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
@@ -188,7 +188,7 @@
                     else
                       stf = comp_source_time_function(dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
                     endif
-                     
+
                     !     distinguish between single and double precision for reals
                     if(CUSTOM_REAL == SIZE_REAL) then
                       stf_used = sngl(stf)
@@ -452,7 +452,7 @@
                        stf = comp_source_time_function( &
                                       dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
                      endif
-                     
+
                      ! distinguish between single and double precision for reals
                      if(CUSTOM_REAL == SIZE_REAL) then
                         stf_used = sngl(stf)

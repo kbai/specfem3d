@@ -104,7 +104,7 @@ void exit_on_cuda_error(char* kernel_name) {
       //free(kernel_name);
 #ifdef WITH_MPI
       MPI_Abort(MPI_COMM_WORLD,1);
-#endif      
+#endif
       exit(EXIT_FAILURE);
     }
 }

@@ -401,7 +401,14 @@
 
 ! check that the code is running with the requested nb of processes
   if(sizeprocs /= NPROC) then
-    print*,'error requested nproc',NPROC,'not equal to size proc',sizeprocs
+    if( myrank == 0 ) then
+      write(IMAIN,*) 'error: number of processors supposed to run on: ',NPROC
+      write(IMAIN,*) 'error: number of MPI processors actually run on: ',sizeprocs
+      print*
+      print*, 'error: number of processors supposed to run on: ',NPROC
+      print*, 'error: number of MPI processors actually run on: ',sizeprocs
+      print*
+    endif
     call exit_MPI(myrank,'wrong number of MPI processes')
   endif
 

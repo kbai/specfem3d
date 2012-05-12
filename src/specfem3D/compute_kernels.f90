@@ -208,7 +208,7 @@
         do j = 1, NGLLY
           do i = 1, NGLLX
             iglob = ibool(i,j,k,ispec)
-            
+
             ! new expression
             ! density kernel
             rhol = rhostore(i,j,k,ispec)

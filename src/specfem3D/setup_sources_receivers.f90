@@ -129,7 +129,7 @@ subroutine setup_sources()
   ! note: an earlier start time also reduces numerical noise due to a
   !          non-zero offset at the beginning of the source time function
   t0 = - 2.0d0 * minval(tshift_cmt(:) - hdur(:))   ! - 1.5d0 * minval(tshift_cmt-hdur)
-  
+
   ! uses an earlier start time if source is acoustic with a gaussian source time function
   t0_acoustic = 0.0d0
   do isource = 1,NSOURCES

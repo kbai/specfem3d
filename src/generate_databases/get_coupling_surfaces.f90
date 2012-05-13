@@ -122,7 +122,7 @@
   integer :: count_elastic,count_acoustic
 
   ! mpi interface communication
-  integer, dimension(:), allocatable :: elastic_flag,acoustic_flag !,test_flag
+  integer, dimension(:), allocatable :: elastic_flag,acoustic_flag,test_flag
   integer, dimension(:,:), allocatable :: ibool_interfaces_ext_mesh_dummy
   integer :: max_nibool_interfaces_ext_mesh
   logical, dimension(:), allocatable :: mask_ibool
@@ -310,30 +310,34 @@
                                                 normal_face(:,i,j) )
                     ! makes sure that it always points away from acoustic element,
                     ! otherwise switch direction
-                    if( ispec_is_elastic(ispec) ) normal_face(:,i,j) = - normal_face(:,i,j)
+                    ! note: this should not happen, since we only loop over acoustic elements
+                    !if( ispec_is_elastic(ispec) ) normal_face(:,i,j) = - normal_face(:,i,j)
+                    if( ispec_is_elastic(ispec) ) stop 'error acoustic-elastic coupling surface'
+
                 enddo
+              enddo
 
-                ! stores informations about this face
-                inum = inum + 1
-                tmp_ispec(inum) = ispec
-                igll = 0
-                do j=1,NGLLY
-                  do i=1,NGLLX
-                    ! adds all gll points on this face
-                    igll = igll + 1
+              ! stores informations about this face
+              inum = inum + 1
+              tmp_ispec(inum) = ispec
+              igll = 0
+              do j=1,NGLLY
+                do i=1,NGLLX
+                  ! adds all gll points on this face
+                  igll = igll + 1
 
-                    ! do we need to store local i,j,k,ispec info? or only global indices iglob?
-                    tmp_ijk(:,igll,inum) = ijk_face(:,i,j)
+                  ! do we need to store local i,j,k,ispec info? or only global indices iglob?
+                  tmp_ijk(:,igll,inum) = ijk_face(:,i,j)
 
-                    ! stores weighted jacobian and normals
-                    tmp_jacobian2Dw(igll,inum) = jacobian2Dw_face(i,j)
-                    tmp_normal(:,igll,inum) = normal_face(:,i,j)
+                  ! stores weighted jacobian and normals
+                  tmp_jacobian2Dw(igll,inum) = jacobian2Dw_face(i,j)
+                  tmp_normal(:,igll,inum) = normal_face(:,i,j)
 
-                    ! masks global points ( to avoid redundant counting of faces)
-                    iglob = ibool(ijk_face(1,i,j),ijk_face(2,i,j),ijk_face(3,i,j),ispec)
-                    mask_ibool(iglob) = .true.
-                  enddo
+                  ! masks global points ( to avoid redundant counting of faces)
+                  iglob = ibool(ijk_face(1,i,j),ijk_face(2,i,j),ijk_face(3,i,j),ispec)
+                  mask_ibool(iglob) = .true.
                 enddo
+              enddo
 
               ! test_flags shouldn't matter, there is only 1 acoustic element touching a coupled surface
               ! which will be considered in the MPI partition which contains it

@@ -84,10 +84,17 @@ subroutine compute_forces_acoustic()
     call acoustic_enforce_free_surf_cuda(Mesh_pointer,SIMULATION_TYPE,ABSORB_FREE_SURFACE)
   endif
 
-  if(PML) then
+  if(ABSORB_USE_PML .and. ABSORBING_CONDITIONS) then
     ! enforces free surface on PML elements
 
-  if(ABSORB_USE_PML .and. ABSORBING_CONDITIONS) then
+    ! note:
+    ! PML routines are not implemented as CUDA kernels, we just transfer the fields
+    ! from the GPU to the CPU and vice versa
+
+    ! transfers potentials to the CPU
+    if(GPU_MODE) call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
+
     call PML_acoustic_enforce_free_srfc(NSPEC_AB,NGLOB_AB, &
                         potential_acoustic,potential_dot_acoustic,potential_dot_dot_acoustic, &
                         ibool,free_surface_ijk,free_surface_ispec, &
@@ -97,11 +104,10 @@ subroutine compute_forces_acoustic()
                         chi1_dot,chi2_t_dot,chi3_dot,chi4_dot,&
                         chi1_dot_dot,chi2_t_dot_dot,&
                         chi3_dot_dot,chi4_dot_dot)
-  endif
 
     ! transfers potentials back to GPU
     if(GPU_MODE) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
-                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
+                            potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
   endif
 
   ! distinguishes two runs: for elements on MPI interfaces, and elements within the partitions
@@ -191,9 +197,13 @@ subroutine compute_forces_acoustic()
                         num_PML_ispec,PML_ispec,ispec_is_PML_inum,&
                         chi1_dot,chi2_t,chi2_t_dot,chi3_dot,chi4_dot,&
                         chi1_dot_dot,chi3_dot_dot,chi4_dot_dot)
+
+          ! transfers potentials back to GPU
+          if(GPU_MODE) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
         endif
       else
-       ! Stacey boundary conditions
+        ! Stacey boundary conditions
         call compute_stacey_acoustic(NSPEC_AB,NGLOB_AB, &
                         potential_dot_dot_acoustic,potential_dot_acoustic, &
                         ibool,ispec_is_inner,phase_is_inner, &
@@ -209,42 +219,42 @@ subroutine compute_forces_acoustic()
     ! elastic coupling
     if(ELASTIC_SIMULATION ) then
       if( num_coupling_ac_el_faces > 0 ) then
-        if( SIMULATION_TYPE == 1 ) then
-          ! forward definition: \bfs=\frac{1}{\rho}\bfnabla\phi
-          call compute_coupling_acoustic_el(NSPEC_AB,NGLOB_AB, &
-                            ibool,displ,potential_dot_dot_acoustic, &
+        if( .NOT. GPU_MODE ) then
+          if( SIMULATION_TYPE == 1 ) then
+            ! forward definition: \bfs=\frac{1}{\rho}\bfnabla\phi
+            call compute_coupling_acoustic_el(NSPEC_AB,NGLOB_AB, &
+                              ibool,displ,potential_dot_dot_acoustic, &
+                              num_coupling_ac_el_faces, &
+                              coupling_ac_el_ispec,coupling_ac_el_ijk, &
+                              coupling_ac_el_normal, &
+                              coupling_ac_el_jacobian2Dw, &
+                              ispec_is_inner,phase_is_inner)
+          else
+            ! handles adjoint runs coupling between adjoint potential and adjoint elastic wavefield
+            ! adjoint definition: \partial_t^2 \bfs^\dagger=-\frac{1}{\rho}\bfnabla\phi^\dagger
+            call compute_coupling_acoustic_el(NSPEC_AB,NGLOB_AB, &
+                              ibool,-accel_adj_coupling,potential_dot_dot_acoustic, &
+                              num_coupling_ac_el_faces, &
+                              coupling_ac_el_ispec,coupling_ac_el_ijk, &
+                              coupling_ac_el_normal, &
+                              coupling_ac_el_jacobian2Dw, &
+                              ispec_is_inner,phase_is_inner)
+          endif
+          ! adjoint/kernel simulations
+          if( SIMULATION_TYPE == 3 ) &
+            call compute_coupling_acoustic_el(NSPEC_ADJOINT,NGLOB_ADJOINT, &
+                            ibool,b_displ,b_potential_dot_dot_acoustic, &
                             num_coupling_ac_el_faces, &
                             coupling_ac_el_ispec,coupling_ac_el_ijk, &
                             coupling_ac_el_normal, &
                             coupling_ac_el_jacobian2Dw, &
                             ispec_is_inner,phase_is_inner)
+
         else
-          ! handles adjoint runs coupling between adjoint potential and adjoint elastic wavefield
-          ! adjoint definition: \partial_t^2 \bfs^\dagger=-\frac{1}{\rho}\bfnabla\phi^\dagger
-          call compute_coupling_acoustic_el(NSPEC_AB,NGLOB_AB, &
-                            ibool,-accel_adj_coupling,potential_dot_dot_acoustic, &
-                            num_coupling_ac_el_faces, &
-                            coupling_ac_el_ispec,coupling_ac_el_ijk, &
-                            coupling_ac_el_normal, &
-                            coupling_ac_el_jacobian2Dw, &
-                            ispec_is_inner,phase_is_inner)
-        endif
-        ! adjoint/kernel simulations
-        if( SIMULATION_TYPE == 3 ) &
-          call compute_coupling_acoustic_el(NSPEC_ADJOINT,NGLOB_ADJOINT, &
-                          ibool,b_displ,b_potential_dot_dot_acoustic, &
-                          num_coupling_ac_el_faces, &
-                          coupling_ac_el_ispec,coupling_ac_el_ijk, &
-                          coupling_ac_el_normal, &
-                          coupling_ac_el_jacobian2Dw, &
-                          ispec_is_inner,phase_is_inner)
-      endif
-      else
-        ! on GPU
-        if( num_coupling_ac_el_faces > 0 ) &
+          ! on GPU
           call compute_coupling_ac_el_cuda(Mesh_pointer,phase_is_inner, &
                                               num_coupling_ac_el_faces,SIMULATION_TYPE)
-
+        endif ! GPU_MODE
       endif
     endif
 
@@ -252,7 +262,7 @@ subroutine compute_forces_acoustic()
     if(POROELASTIC_SIMULATION )  then
       if( num_coupling_ac_po_faces > 0 ) then
         if( SIMULATION_TYPE == 1 ) then
-      call compute_coupling_acoustic_po(NSPEC_AB,NGLOB_AB, &
+          call compute_coupling_acoustic_po(NSPEC_AB,NGLOB_AB, &
                         ibool,displs_poroelastic,displw_poroelastic, &
                         potential_dot_dot_acoustic, &
                         num_coupling_ac_po_faces, &
@@ -261,10 +271,10 @@ subroutine compute_forces_acoustic()
                         coupling_ac_po_jacobian2Dw, &
                         ispec_is_inner,phase_is_inner)
         else
-      stop 'not implemented yet'
+          stop 'not implemented yet'
         endif
         if( SIMULATION_TYPE == 3 ) &
-      stop 'not implemented yet'
+          stop 'not implemented yet'
       endif
     endif
 
@@ -443,6 +453,10 @@ subroutine compute_forces_acoustic()
 
   ! updates potential_dot_acoustic and potential_dot_dot_acoustic inside PML region for plotting seismograms/movies
   if(ABSORB_USE_PML .and. ABSORBING_CONDITIONS) then
+    ! transfers potentials to CPU
+    if(GPU_MODE) call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
+
     call PML_acoustic_update_potentials(NGLOB_AB,NSPEC_AB, &
                         ibool,ispec_is_acoustic, &
                         potential_dot_acoustic,potential_dot_dot_acoustic,&
@@ -454,7 +468,6 @@ subroutine compute_forces_acoustic()
                         chi1,chi2,chi2_t,chi3,&
                         chi1_dot,chi2_t_dot,chi3_dot,chi4_dot,&
                         chi1_dot_dot,chi3_dot_dot,chi4_dot_dot)
-  endif
 
     ! transfers potentials to GPU
     if(GPU_MODE) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
@@ -470,15 +483,15 @@ subroutine compute_forces_acoustic()
                         ibool,free_surface_ijk,free_surface_ispec, &
                         num_free_surface_faces,ispec_is_acoustic)
 
-  if( SIMULATION_TYPE /= 1 ) then
-    potential_acoustic_adj_coupling(:) = potential_acoustic(:) &
+    if( SIMULATION_TYPE /= 1 ) then
+      potential_acoustic_adj_coupling(:) = potential_acoustic(:) &
                             + deltat * potential_dot_acoustic(:) &
                             + deltatsqover2 * potential_dot_dot_acoustic(:)
-  endif
+    endif
 
-  ! adjoint simulations
-  if (SIMULATION_TYPE == 3) &
-    call acoustic_enforce_free_surface(NSPEC_AB,NGLOB_ADJOINT, &
+    ! adjoint simulations
+    if (SIMULATION_TYPE == 3) &
+      call acoustic_enforce_free_surface(NSPEC_AB,NGLOB_ADJOINT, &
                         b_potential_acoustic,b_potential_dot_acoustic,b_potential_dot_dot_acoustic, &
                         ibool,free_surface_ijk,free_surface_ispec, &
                         num_free_surface_faces,ispec_is_acoustic)
@@ -489,6 +502,10 @@ subroutine compute_forces_acoustic()
 
 
   if(ABSORB_USE_PML .and. ABSORBING_CONDITIONS) then
+    ! enforces free surface on PML elements
+    if( GPU_MODE ) call transfer_fields_ac_from_device(NGLOB_AB,potential_acoustic, &
+                              potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)
+
     call PML_acoustic_enforce_free_srfc(NSPEC_AB,NGLOB_AB, &
                         potential_acoustic,potential_dot_acoustic,potential_dot_dot_acoustic, &
                         ibool,free_surface_ijk,free_surface_ispec, &
@@ -499,7 +516,6 @@ subroutine compute_forces_acoustic()
                         chi1_dot,chi2_t_dot,chi3_dot,chi4_dot,&
                         chi1_dot_dot,chi2_t_dot_dot,&
                         chi3_dot_dot,chi4_dot_dot)
-  endif
 
     if( GPU_MODE ) call transfer_fields_ac_to_device(NGLOB_AB,potential_acoustic, &
                               potential_dot_acoustic, potential_dot_dot_acoustic, Mesh_pointer)

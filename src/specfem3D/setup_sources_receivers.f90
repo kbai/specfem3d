@@ -940,12 +940,12 @@
 
     ! creates additional receiver and source files
     if( SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then
-    ! extracts receiver locations
-    filename = trim(OUTPUT_FILES)//'/sr.vtk'
-    filename_new = trim(OUTPUT_FILES)//'/receiver.vtk'
+      ! extracts receiver locations
+      filename = trim(OUTPUT_FILES)//'/sr.vtk'
+      filename_new = trim(OUTPUT_FILES)//'/receiver.vtk'
 
-    ! vtk file for receivers only
-    write(system_command, &
+      ! vtk file for receivers only
+      write(system_command, &
   "('awk ',a1,'{if(NR<5) print $0;if(NR==5)print ',a1,'POINTS',i6,' float',a1,';if(NR>5+',i6,')print $0}',a1,' < ',a,' > ',a)")&
       "'",'"',nrec,'"',NSOURCES,"'",trim(filename),trim(filename_new)
 
@@ -962,5 +962,27 @@
       write(system_command1, &
   "('awk ',a1,'{if(NR<5) print $0;if(NR==5)print ',a1,'POINTS',i6,' float',a1,';')") &
         "'",'"',NSOURCES,'"'
+
+      !daniel
+      !print*,'command 1:',trim(system_command1)
+
+      write(system_command2, &
+  "('if(NR>5 && NR <6+',i6,')print $0}END{print ',a,'}',a1,' < ',a,' > ',a)") &
+        NSOURCES,'" "',"'",trim(filename),trim(filename_new)
+
+      !print*,'command 2:',trim(system_command2)
+
+      system_command = trim(system_command1)//trim(system_command2)
+
+      !print*,'command:',trim(system_command)
+!daniel:
+! gfortran
+!      call system(trim(system_command),system_command_status)
+! ifort
+!      ret = system(trim(system_command))
+
+    endif
+  endif
+
 
   end subroutine setup_sources_receivers_VTKfile

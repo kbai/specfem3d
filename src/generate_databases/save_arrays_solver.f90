@@ -66,7 +66,11 @@
                     nspec_outer_acoustic,nspec_outer_elastic,nspec_outer_poroelastic, &
                     num_phase_ispec_acoustic,phase_ispec_inner_acoustic, &
                     num_phase_ispec_elastic,phase_ispec_inner_elastic, &
-                    num_phase_ispec_poroelastic,phase_ispec_inner_poroelastic)
+                    num_phase_ispec_poroelastic,phase_ispec_inner_poroelastic, &
+                    num_colors_outer_acoustic,num_colors_inner_acoustic, &
+                    num_elem_colors_acoustic, &
+                    num_colors_outer_elastic,num_colors_inner_elastic, &
+                    num_elem_colors_elastic)
 
   implicit none
 
@@ -175,6 +179,14 @@
 
   integer :: num_phase_ispec_poroelastic
   integer,dimension(num_phase_ispec_poroelastic,2) :: phase_ispec_inner_poroelastic
+
+  ! mesh coloring
+  integer :: num_colors_outer_acoustic,num_colors_inner_acoustic
+  integer, dimension(num_colors_outer_acoustic + num_colors_inner_acoustic) :: &
+    num_elem_colors_acoustic
+  integer :: num_colors_outer_elastic,num_colors_inner_elastic
+  integer, dimension(num_colors_outer_elastic + num_colors_inner_elastic) :: &
+    num_elem_colors_elastic
 
 ! local parameters
   real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: v_tmp
@@ -370,6 +382,18 @@
     write(IOUT) nspec_inner_poroelastic,nspec_outer_poroelastic
     write(IOUT) num_phase_ispec_poroelastic
     if(num_phase_ispec_poroelastic > 0 ) write(IOUT) phase_ispec_inner_poroelastic
+  endif
+
+  ! mesh coloring
+  if( USE_MESH_COLORING_GPU ) then
+    if( ACOUSTIC_SIMULATION ) then
+      write(IOUT) num_colors_outer_acoustic,num_colors_inner_acoustic
+      write(IOUT) num_elem_colors_acoustic
+    endif
+    if( ELASTIC_SIMULATION ) then
+      write(IOUT) num_colors_outer_elastic,num_colors_inner_elastic
+      write(IOUT) num_elem_colors_elastic
+    endif
   endif
 
   close(IOUT)

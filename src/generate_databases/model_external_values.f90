@@ -124,7 +124,7 @@
   use create_regions_mesh_ext_par
   implicit none
 
-  ! GLL point 
+  ! GLL point
   double precision, intent(in) :: xmesh,ymesh,zmesh
 
   ! density, Vp and Vs
@@ -168,14 +168,14 @@
   call get_topo_elevation_free_closest(x,y,elevation,distmin, &
                                   nspec,nglob_dummy,ibool,xstore_dummy,ystore_dummy,zstore_dummy, &
                                   num_free_surface_faces,free_surface_ispec,free_surface_ijk)
-                    
+
   ! depth in Z-direction
-  if( distmin < HUGEVAL ) then  
+  if( distmin < HUGEVAL ) then
     depth = elevation - z
   else
     depth = zmax - z
   endif
-  
+
   ! normalizes depth between 0 and 1
   if( abs( zmax - zmin ) > TINYVAL ) depth = depth / (zmax - zmin)
 
@@ -200,6 +200,6 @@
   iflag_aniso = 0
 
   ! elastic material
-  idomain_id = IDOMAIN_ELASTIC  
-  
+  idomain_id = IDOMAIN_ELASTIC
+
   end subroutine model_external_values

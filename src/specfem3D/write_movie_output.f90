@@ -170,7 +170,7 @@
     if (USE_HIGHRES_FOR_MOVIES) then
       do ipoin = 1, NGLLX*NGLLY
         iglob = faces_surface_ext_mesh(ipoin,ispec2D)
-        
+
         ! saves norm of displacement,velocity and acceleration vector
         if( ispec_is_elastic(ispec) ) then
           ! norm of displacement
@@ -310,7 +310,7 @@
   logical :: is_done
 
   is_done = .false.
-  
+
   ! loops over all gll points from this element
   do k=1,NGLLZ
     do j=1,NGLLY
@@ -406,14 +406,6 @@
                           hprime_xx,hprime_yy,hprime_zz, &
                           xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
                           ibool,rhostore,GRAVITY)
-      endif
-      else
-        ! velocity vector
-        call compute_gradient(ispec,NSPEC_AB,NGLOB_AB, &
-                          potential_dot_acoustic, val_element,&
-                          hprime_xx,hprime_yy,hprime_zz, &
-                          xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
-                          ibool,rhostore)
       endif
     endif
 
@@ -972,14 +964,14 @@
 
   ! velocity vector
   is_done = .false.
-    
+
   ! loops over all gll points from this element
   do k=1,NGLLZ
     do j=1,NGLLY
       do i=1,NGLLX
         ! checks if global point is found
         if( iglob == ibool(i,j,k,ispec) ) then
-        
+
           ! horizontal displacement
           store_val_ux_external_mesh(ipoin) = max(store_val_ux_external_mesh(ipoin),&
                                         abs(displ_element(1,i,j,k)),abs(displ_element(2,i,j,k)))

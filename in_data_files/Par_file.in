@@ -15,6 +15,15 @@ NPROC                           = 4
 NSTEP                           = 1000
 DT                              = 0.05d0
 
+# models:
+# available options are:
+#   default (model parameters described by mesh properties)
+# 1D models available are: 
+#   1d_prem,1d_socal,1d_cascadia
+# 3D models available are: 
+#   aniso,external,gll,salton_trough,tomo
+MODEL                           = default
+
 # parameters describing the model
 OCEANS                          = .false.
 TOPOGRAPHY                      = .false.

@@ -144,14 +144,28 @@ subroutine compute_forces_elastic()
 
 ! acoustic coupling
     if( ACOUSTIC_SIMULATION ) then
-      if( .NOT. GPU_MODE ) then
-        call compute_coupling_elastic_ac(NSPEC_AB,NGLOB_AB, &
+      if( num_coupling_ac_el_faces > 0 ) then
+        if( .NOT. GPU_MODE ) then
+          if( SIMULATION_TYPE == 1 ) then
+            ! forward definition: pressure=-potential_dot_dot
+            call compute_coupling_elastic_ac(NSPEC_AB,NGLOB_AB, &
                         ibool,accel,potential_dot_dot_acoustic, &
                         num_coupling_ac_el_faces, &
                         coupling_ac_el_ispec,coupling_ac_el_ijk, &
                         coupling_ac_el_normal, &
                         coupling_ac_el_jacobian2Dw, &
                         ispec_is_inner,phase_is_inner)
+          else
+            ! handles adjoint runs coupling between adjoint potential and adjoint elastic wavefield
+            ! adoint definition: pressure^\dagger=potential^\dagger
+            call compute_coupling_elastic_ac(NSPEC_AB,NGLOB_AB, &
+                              ibool,accel,-potential_acoustic_adj_coupling, &
+                              num_coupling_ac_el_faces, &
+                              coupling_ac_el_ispec,coupling_ac_el_ijk, &
+                              coupling_ac_el_normal, &
+                              coupling_ac_el_jacobian2Dw, &
+                              ispec_is_inner,phase_is_inner)
+          endif
 
         ! adjoint simulations
         if( SIMULATION_TYPE == 3 ) &
@@ -162,20 +176,38 @@ subroutine compute_forces_elastic()
                         coupling_ac_el_normal, &
                         coupling_ac_el_jacobian2Dw, &
                         ispec_is_inner,phase_is_inner)
-      else
-        ! on GPU
-        if( num_coupling_ac_el_faces > 0 ) &
-          call compute_coupling_el_ac_cuda(Mesh_pointer,phase_is_inner, &
-                                              num_coupling_ac_el_faces,SIMULATION_TYPE)
 
-      endif
+        else
+          ! on GPU
+          call compute_coupling_el_ac_cuda(Mesh_pointer,phase_is_inner, &
+                                          num_coupling_ac_el_faces,SIMULATION_TYPE)
+        endif ! GPU_MODE
+      endif ! num_coupling_ac_el_faces
     endif
 
 
 ! poroelastic coupling
-! not implemented yet
-!    if( POROELASTIC_SIMULATION ) &
-!      call compute_coupling_elastic_poro()
+    if( POROELASTIC_SIMULATION ) then
+      call compute_coupling_elastic_po(NSPEC_AB,NGLOB_AB,ibool,&
+                        displs_poroelastic,displw_poroelastic,&
+                        xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
+                        hprime_xx,hprime_yy,hprime_zz,&
+                        kappaarraystore,rhoarraystore,mustore, &
+                        phistore,tortstore,jacobian,&
+                        displ,accel,kappastore, &
+                        ANISOTROPY,NSPEC_ANISO, &
+                        c11store,c12store,c13store,c14store,c15store,c16store,&
+                        c22store,c23store,c24store,c25store,c26store,c33store,&
+                        c34store,c35store,c36store,c44store,c45store,c46store,&
+                        c55store,c56store,c66store, &
+                        SIMULATION_TYPE,NGLOB_ADJOINT,NSPEC_ADJOINT, &
+                        num_coupling_el_po_faces, &
+                        coupling_el_po_ispec,coupling_po_el_ispec, &
+                        coupling_el_po_ijk,coupling_po_el_ijk, &
+                        coupling_el_po_normal, &
+                        coupling_el_po_jacobian2Dw, &
+                        ispec_is_inner,phase_is_inner)
+    endif
 
 ! adds source term (single-force/moment-tensor solution)
     call compute_add_sources_elastic( NSPEC_AB,NGLOB_AB,accel, &
@@ -851,5 +883,4 @@ subroutine compute_forces_elastic_Dev_sim3(iphase)
 
 
 end subroutine compute_forces_elastic_Dev_sim3
-
 

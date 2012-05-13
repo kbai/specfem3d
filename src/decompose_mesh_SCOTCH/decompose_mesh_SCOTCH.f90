@@ -41,7 +41,7 @@ module decompose_mesh_SCOTCH
   integer, dimension(:,:), allocatable  :: elmnts
   integer, dimension(:,:), allocatable  :: mat
   integer, dimension(:), allocatable  :: part
-  
+
   integer :: nnodes
   double precision, dimension(:,:), allocatable  :: nodes_coords
 
@@ -121,7 +121,7 @@ module decompose_mesh_SCOTCH
     character(len=256)  :: line
     logical :: use_poroelastic_file
     integer(long) :: nspec_long
-    
+
   ! sets number of nodes per element
     ngnod = esize
 
@@ -158,10 +158,10 @@ module decompose_mesh_SCOTCH
       print*,'bit size fortran: ',bit_size(nspec)
       stop 'error number of elements too large'
     endif
-    
+
     ! sets number of elements (integer 4-byte)
     nspec = nspec_long
-    
+
     allocate(elmnts(esize,nspec),stat=ier)
     if( ier /= 0 ) stop 'error allocating array elmnts'
     do ispec = 1, nspec
@@ -810,7 +810,7 @@ module decompose_mesh_SCOTCH
     if (ier /= 0) then
        stop 'ERROR : MAIN : Cannot destroy strat'
     endif
-    
+
   ! re-partitioning puts poroelastic-elastic coupled elements into same partition
   !  integer  :: nfaces_coupled
   !  integer, dimension(:,:), pointer  :: faces_coupled
@@ -826,7 +826,7 @@ module decompose_mesh_SCOTCH
                      nspec2D_moho,ibelm_moho,nodes_ibelm_moho )
 
 
-  ! local number of each element for each partition    
+  ! local number of each element for each partition
     call build_glob2loc_elmnts(nspec, part, glob2loc_elmnts,nparts)
 
   ! local number of each node for each partition

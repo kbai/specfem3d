@@ -176,7 +176,8 @@
     if( ier /= 0 ) stop 'error allocating array one_minus_sum_beta etc.'
 
     ! reads mass matrices
-    read(27) rmass
+    read(27,iostat=ier) rmass
+    if( ier /= 0 ) stop 'error reading in array rmass'
 
     if( OCEANS ) then
       ! ocean mass matrix
@@ -227,6 +228,9 @@
   ! poroelastic
   call any_all_l( ANY(ispec_is_poroelastic), POROELASTIC_SIMULATION )
   if( POROELASTIC_SIMULATION ) then
+
+    if( GPU_MODE ) call exit_mpi(myrank,'POROELASTICITY not supported by GPU mode yet...')
+
     ! displacement,velocity,acceleration for the solid (s) & fluid (w) phases
     allocate(displs_poroelastic(NDIM,NGLOB_AB),stat=ier)
     if( ier /= 0 ) stop 'error allocating array displs_poroelastic'
@@ -423,6 +427,42 @@
     allocate( phase_ispec_inner_poroelastic(num_phase_ispec_poroelastic,2),stat=ier)
     if( ier /= 0 ) stop 'error allocating array phase_ispec_inner_poroelastic'
     if(num_phase_ispec_poroelastic > 0 ) read(27) phase_ispec_inner_poroelastic
+  endif
+
+! mesh coloring for GPUs
+  if( USE_MESH_COLORING_GPU ) then
+    ! acoustic domain colors
+    if( ACOUSTIC_SIMULATION ) then
+      read(27) num_colors_outer_acoustic,num_colors_inner_acoustic
+
+      allocate(num_elem_colors_acoustic(num_colors_outer_acoustic + num_colors_inner_acoustic),stat=ier)
+      if( ier /= 0 ) stop 'error allocating num_elem_colors_acoustic array'
+
+      read(27) num_elem_colors_acoustic
+    endif
+    ! elastic domain colors
+    if( ELASTIC_SIMULATION ) then
+      read(27) num_colors_outer_elastic,num_colors_inner_elastic
+
+      allocate(num_elem_colors_elastic(num_colors_outer_elastic + num_colors_inner_elastic),stat=ier)
+      if( ier /= 0 ) stop 'error allocating num_elem_colors_elastic array'
+
+      read(27) num_elem_colors_elastic
+    endif
+  else
+    ! allocates dummy arrays
+    if( ACOUSTIC_SIMULATION ) then
+      num_colors_outer_acoustic = 0
+      num_colors_inner_acoustic = 0
+      allocate(num_elem_colors_acoustic(num_colors_outer_acoustic + num_colors_inner_acoustic),stat=ier)
+      if( ier /= 0 ) stop 'error allocating num_elem_colors_acoustic array'
+    endif
+    if( ELASTIC_SIMULATION ) then
+      num_colors_outer_elastic = 0
+      num_colors_inner_elastic = 0
+      allocate(num_elem_colors_elastic(num_colors_outer_elastic + num_colors_inner_elastic),stat=ier)
+      if( ier /= 0 ) stop 'error allocating num_elem_colors_elastic array'
+    endif
   endif
 
   close(27)

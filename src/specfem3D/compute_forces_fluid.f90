@@ -229,9 +229,9 @@
                 stop 'compute_forces_fluid() : adjoint run not implemented yet'
                 ! to avoid compiler warning
                 l = NGLOB_ADJOINT
-                l = NSPEC_ADJOINT              
+                l = NSPEC_ADJOINT
               endif
-              
+
 ! first double loop over GLL points to compute and store gradients
           do l = 1,NGLLX
                 hp1 = hprime_xx(i,l)

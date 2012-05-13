@@ -450,6 +450,7 @@ void FC_FUNC_(prepare_cuda_device,
   // Gets rank number of MPI process
   int myrank = *myrank_f;
 
+/*
   // cuda initialization (needs -lcuda library)
   // note:   cuInit initializes the driver API.
   //             it is needed for any following CUDA driver API function call (format cuFUNCTION(..) )
@@ -477,12 +478,14 @@ void FC_FUNC_(prepare_cuda_device,
     fprintf(stderr,"Compute capability should be at least 1.3, got: %d.%d \nexiting...\n",major,minor);
     exit_on_error("CUDA Compute capability major number should be at least 1.3\n");
   }
+*/
 
   // note: from here on we use the runtime API  ...
+
   // Gets number of GPU devices
   int device_count = 0;
   cudaGetDeviceCount(&device_count);
-  exit_on_cuda_error("CUDA runtime cudaGetDeviceCount: check if driver and runtime libraries work together\nexiting...\n");
+  exit_on_cuda_error("CUDA runtime error: cudaGetDeviceCount failed\ncheck if driver and runtime libraries work together\nexiting...\n");
 
   // returns device count to fortran
   if (device_count == 0) exit_on_error("CUDA runtime error: there is no device supporting CUDA\n");
@@ -548,16 +551,6 @@ void FC_FUNC_(prepare_cuda_device,
       fprintf(fp,"deviceOverlap: FALSE\n");
     }
 
-    // make sure that the device has compute capability >= 1.3
-    //if (deviceProp.major < 1){
-    //  fprintf(stderr,"Compute capability major number should be at least 1, exiting...\n\n");
-    //  exit_on_error("CUDA Compute capability major number should be at least 1");
-    //}
-    //if (deviceProp.major == 1 && deviceProp.minor < 3){
-    //  fprintf(stderr,"Compute capability should be at least 1.3, exiting...\n");
-    //  exit_on_error("CUDA Compute capability major number should be at least 1.3");
-    //}
-
     // outputs initial memory infos via cudaMemGetInfo()
     double free_db,used_db,total_db;
     get_free_memory(&free_db,&used_db,&total_db);
@@ -566,6 +559,17 @@ void FC_FUNC_(prepare_cuda_device,
 
     fclose(fp);
   }
+
+  // make sure that the device has compute capability >= 1.3
+  if (deviceProp.major < 1){
+    fprintf(stderr,"Compute capability major number should be at least 1, exiting...\n\n");
+    exit_on_error("CUDA Compute capability major number should be at least 1\n");
+  }
+  if (deviceProp.major == 1 && deviceProp.minor < 3){
+    fprintf(stderr,"Compute capability should be at least 1.3, exiting...\n");
+    exit_on_error("CUDA Compute capability major number should be at least 1.3\n");
+  }
+
 }
 
 /* ----------------------------------------------------------------------------------------------- */

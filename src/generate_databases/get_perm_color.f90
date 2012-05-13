@@ -683,6 +683,7 @@
       ! loop on all the colors to determine the color with the smallest number
       ! of elements and for which there is no conflict
       nb_elems_in_color_chosen = 2147000000 ! start with extremely large unrealistic value
+      icolor_chosen = 0
       do icolor = icolormin,icolormax
         if (.not. icolor_conflict_found(icolor) .and. nb_elems_in_this_color(icolor) < nb_elems_in_color_chosen) then
           icolor_chosen = icolor
@@ -868,6 +869,7 @@
         ! loop on all the colors to determine the color with the smallest number of elements
         ! and for which there is no conflict
         nb_elems_in_color_chosen = 2147000000 ! start with extremely large unrealistic value
+        icolor_chosen = 0
         do icolor_target = icolormin,icolormax
           if (.not. icolor_conflict_found(icolor_target) .and. &
              nb_elems_in_this_color(icolor_target) < nb_elems_in_color_chosen) then
@@ -995,6 +997,7 @@
         ! loops on all the colors to determine the color with the smallest number of elements
         ! and for which there is no conflict
         nb_elems_in_color_chosen = 2147000000 ! start with extremely large unrealistic value
+        icolor_chosen = 0
         do icolor_target = icolormin,icolormax
           if (.not. icolor_conflict_found(icolor_target) .and. &
             nb_elems_in_this_color(icolor_target) < nb_elems_in_color_chosen) then

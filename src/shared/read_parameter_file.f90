@@ -50,7 +50,7 @@
   logical ANISOTROPY,SAVE_MESH_FILES,PRINT_SOURCE_TIME_FUNCTION,SUPPRESS_UTM_PROJECTION
 
   character(len=256) LOCAL_PATH,CMTSOLUTION
-  
+
 ! local variables
   integer ::ios,icounter,isource,idummy,nproc_eta_old,nproc_xi_old
   double precision :: hdur,minval_hdur
@@ -101,7 +101,7 @@
   ! define the velocity model
   call read_value_string(MODEL, 'model.MODEL')
   if(err_occurred() /= 0) stop 'an error occurred while reading the parameter file: MODEL'
-  
+
   call read_value_logical(OCEANS, 'model.OCEANS')
   if(err_occurred() /= 0) return
   call read_value_logical(TOPOGRAPHY, 'model.TOPOGRAPHY')
@@ -242,7 +242,7 @@
   case( '1d_cascadia')
     IMODEL = IMODEL_1D_CASCADIA
 
-  ! user models  
+  ! user models
   case( 'salton_trough')
     IMODEL = IMODEL_SALTON_TROUGH
   case( 'tomo' )
@@ -252,14 +252,17 @@
   case( 'aniso' )
     IMODEL = IMODEL_DEFAULT
     ANISOTROPY = .true.
-  case default  
+  case( '1d_prem_pb' )
+    IMODEL = IMODEL_1D_PREM_PB
+
+  case default
     print*
     print*,'********** model not recognized: ',trim(MODEL),' **************'
     print*,'********** using model: default',' **************'
     print*
     IMODEL = IMODEL_DEFAULT
   end select
-  
+
 
   end subroutine read_parameter_file
 

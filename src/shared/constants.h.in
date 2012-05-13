@@ -424,3 +424,4 @@
   integer, parameter :: IMODEL_USER_EXTERNAL    = 6
   integer, parameter :: IMODEL_GLL              = 7
   integer, parameter :: IMODEL_SALTON_TROUGH    = 8
+  integer, parameter :: IMODEL_1D_PREM_PB       = 9

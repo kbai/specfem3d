@@ -115,8 +115,8 @@
     case( IMODEL_USER_EXTERNAL )
     write(IMAIN,'(a)',advance='yes') '  external'
     end select
-    
-    write(IMAIN,*)    
+
+    write(IMAIN,*)
   endif
 
   ! reads in numbers of spectral elements and points for this process' domain
@@ -220,7 +220,7 @@
       write(IMAIN,*) 'error: number of MPI processors actually run on: ',sizeprocs
       print*
       print*, 'error specfem3D: number of processors supposed to run on: ',NPROC
-      print*, 'error specfem3D: number of MPI processors actually run on: ',sizeprocs      
+      print*, 'error specfem3D: number of MPI processors actually run on: ',sizeprocs
       print*
     endif
     call exit_MPI(myrank,'wrong number of MPI processes')

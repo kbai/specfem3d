@@ -166,7 +166,7 @@
            max_interface_size_ext_mesh,nspec2D_xmin,nspec2D_xmax, &
            nspec2D_ymin,nspec2D_ymax,nspec2D_bottom,nspec2D_top
 
-  integer,intent(inout) :: static_memory_size_request
+  double precision,intent(inout) :: static_memory_size_request
 
   ! local parameters
   integer :: static_memory_size

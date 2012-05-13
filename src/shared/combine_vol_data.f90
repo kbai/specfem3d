@@ -98,7 +98,7 @@
   logical :: ANISOTROPY,SAVE_MESH_FILES,PRINT_SOURCE_TIME_FUNCTION
   character(len=256) LOCAL_PATH
   integer :: IMODEL
-  
+
 ! checks given arguments
   print *
   print *,'Recombining ParaView data for slices'

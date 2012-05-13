@@ -41,7 +41,7 @@
   use specfem_par,only: PRINT_SOURCE_TIME_FUNCTION,stf_used_total, &
                         xigll,yigll,zigll,xi_receiver,eta_receiver,gamma_receiver,&
                         station_name,network_name,adj_source_file,nrec_local,number_receiver_global, &
-                        pm1_source_encoding
+                        pm1_source_encoding,nsources_local
   implicit none
 
   include "constants.h"
@@ -173,17 +173,14 @@
                 !  write(IMAIN,*) 'lambda_S at highest significant frequency = ',3000./sqrt(3.)/(2.5*f0)
                 !endif
 
-              ! source encoding
-              stf_used = stf_used * pm1_source_encoding(isource)
-
-              ! beware, for acoustic medium, source is: pressure divided by Kappa of the fluid
-              ! the sign is negative because pressure p = - Chi_dot_dot therefore we need
-              ! to add minus the source to Chi_dot_dot to get plus the source in pressure:
-
                 ! we use nu_source(:,3) here because we want a source normal to the surface.
                 ! This is the expression of a Ricker; should be changed according maybe to the Par_file.
                 stf_used = FACTOR_FORCE_SOURCE * &
                            comp_source_time_function_rickr(dble(it-1)*DT-t0-tshift_cmt(isource),f0)
+
+
+                ! source encoding
+                stf_used = stf_used * pm1_source_encoding(isource)
 
                 ! beware, for acoustic medium, source is: pressure divided by Kappa of the fluid
                 ! the sign is negative because pressure p = - Chi_dot_dot therefore we need
@@ -196,15 +193,6 @@
                                                           nint(eta_source(isource)), &
                                                           nint(gamma_source(isource)),ispec)
 
-              ! quasi-heaviside
-              !stf = comp_source_time_function(dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
-
-              ! source encoding
-              stf = stf * pm1_source_encoding(isource)
-
-              ! distinguishes between single and double precision for reals
-              if(CUSTOM_REAL == SIZE_REAL) then
-                stf_used = sngl(stf)
               else
 
                 if( USE_RICKER_IPATI ) then
@@ -218,6 +206,9 @@
 
                 ! quasi-heaviside
                 !stf = comp_source_time_function(dble(it-1)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+
+                ! source encoding
+                stf = stf * pm1_source_encoding(isource)
 
                 ! distinguishes between single and double precision for reals
                 if(CUSTOM_REAL == SIZE_REAL) then
@@ -247,7 +238,7 @@
 
               stf_used_total = stf_used_total + stf_used
 
-            endif ! ispec_is_elastic
+            endif ! ispec_is_acoustic
           endif ! ispec_is_inner
         endif ! myrank
 
@@ -327,78 +318,42 @@
              endif
            enddo
         else
-           !!! read SU adjoint sources
-           ! range of the block we need to read
-           it_start = NSTEP - it_sub_adj*NTSTEP_BETWEEN_READ_ADJSRC + 1
-           it_end   = it_start + NTSTEP_BETWEEN_READ_ADJSRC - 1
-           write(procname,"(i4)") myrank
-           open(unit=IIN_SU1, &
-                file=trim(adjustl(OUTPUT_FILES_PATH))//'../SEM/'//trim(adjustl(procname))//'_dx_SU.adj', &
-                access='direct',recl=240+4*(NSTEP))
-           do irec_local = 1,nrec_local
-             irec = number_receiver_global(irec_local)
-             read(IIN_SU1,rec=irec_local) r4head, adj_temp
-             adj_src(:,1)=adj_temp(it_start:it_end)
-             adj_src(:,2)=0.0  !TRIVIAL
-             adj_src(:,3)=0.0  !TRIVIAL
-             ! lagrange interpolators for receiver location
-             call lagrange_any(xi_receiver(irec),NGLLX,xigll,hxir,hpxir)
-             call lagrange_any(eta_receiver(irec),NGLLY,yigll,hetar,hpetar)
-             call lagrange_any(gamma_receiver(irec),NGLLZ,zigll,hgammar,hpgammar)
-             ! interpolates adjoint source onto GLL points within this element
-             do k = 1, NGLLZ
-               do j = 1, NGLLY
-                 do i = 1, NGLLX
-                   adj_sourcearray(:,:,i,j,k) = hxir(i) * hetar(j) * hgammar(k) * adj_src(:,:)
-                 enddo
-               enddo
-             enddo
-             do itime = 1,NTSTEP_BETWEEN_READ_ADJSRC
-               adj_sourcearrays(irec_local,itime,:,:,:,:) = adj_sourcearray(itime,:,:,:,:)
-             enddo
-
-           endif
-         enddo
-      else
-         !!! read SU adjoint sources
-         ! range of the block we need to read
-         it_start = NSTEP - it_sub_adj*NTSTEP_BETWEEN_READ_ADJSRC + 1
-         it_end   = it_start + NTSTEP_BETWEEN_READ_ADJSRC - 1
-         write(procname,"(i4)") myrank
-         open(unit=IIN_SU1, file=trim(adjustl(OUTPUT_FILES_PATH))//'../SEM/'//trim(adjustl(procname))//'_dx_SU.adj', &
+          !!! read SU adjoint sources
+          ! range of the block we need to read
+          it_start = NSTEP - it_sub_adj*NTSTEP_BETWEEN_READ_ADJSRC + 1
+          it_end   = it_start + NTSTEP_BETWEEN_READ_ADJSRC - 1
+          write(procname,"(i4)") myrank
+          open(unit=IIN_SU1, file=trim(adjustl(OUTPUT_FILES_PATH))//'../SEM/'//trim(adjustl(procname))//'_dx_SU.adj', &
                             status='old',access='direct',recl=240+4*(NSTEP),iostat = ier)
-         if( ier /= 0 ) call exit_MPI(myrank,'file '//trim(adjustl(OUTPUT_FILES_PATH)) &
+          if( ier /= 0 ) call exit_MPI(myrank,'file '//trim(adjustl(OUTPUT_FILES_PATH)) &
                                     //'../SEM/'//trim(adjustl(procname))//'_dx_SU.adj does not exit')
 
-         do irec_local = 1,nrec_local
-           irec = number_receiver_global(irec_local)
-           read(IIN_SU1,rec=irec_local) r4head, adj_temp
-           adj_src(:,1)=adj_temp(it_start:it_end)
-           adj_src(:,2)=0.0  !TRIVIAL
-           adj_src(:,3)=0.0  !TRIVIAL
-           ! lagrange interpolators for receiver location
-           call lagrange_any(xi_receiver(irec),NGLLX,xigll,hxir,hpxir)
-           call lagrange_any(eta_receiver(irec),NGLLY,yigll,hetar,hpetar)
-           call lagrange_any(gamma_receiver(irec),NGLLZ,zigll,hgammar,hpgammar)
-           ! interpolates adjoint source onto GLL points within this element
-           do k = 1, NGLLZ
-             do j = 1, NGLLY
-               do i = 1, NGLLX
-                 adj_sourcearray(:,:,i,j,k) = hxir(i) * hetar(j) * hgammar(k) * adj_src(:,:)
-               enddo
-             enddo
-           enddo
-           do itime = 1,NTSTEP_BETWEEN_READ_ADJSRC
-             adj_sourcearrays(irec_local,itime,:,:,:,:) = adj_sourcearray(itime,:,:,:,:)
-           enddo
-         enddo
-         close(IIN_SU1)
-      endif !if (.not. SU_FORMAT)
-
-      deallocate(adj_sourcearray)
+          do irec_local = 1,nrec_local
+            irec = number_receiver_global(irec_local)
+            read(IIN_SU1,rec=irec_local) r4head, adj_temp
+            adj_src(:,1)=adj_temp(it_start:it_end)
+            adj_src(:,2)=0.0  !TRIVIAL
+            adj_src(:,3)=0.0  !TRIVIAL
+            ! lagrange interpolators for receiver location
+            call lagrange_any(xi_receiver(irec),NGLLX,xigll,hxir,hpxir)
+            call lagrange_any(eta_receiver(irec),NGLLY,yigll,hetar,hpetar)
+            call lagrange_any(gamma_receiver(irec),NGLLZ,zigll,hgammar,hpgammar)
+            ! interpolates adjoint source onto GLL points within this element
+            do k = 1, NGLLZ
+              do j = 1, NGLLY
+                do i = 1, NGLLX
+                  adj_sourcearray(:,:,i,j,k) = hxir(i) * hetar(j) * hgammar(k) * adj_src(:,:)
+                enddo
+              enddo
+            enddo
+            do itime = 1,NTSTEP_BETWEEN_READ_ADJSRC
+              adj_sourcearrays(irec_local,itime,:,:,:,:) = adj_sourcearray(itime,:,:,:,:)
+            enddo
+          enddo
+          close(IIN_SU1)
+        endif !if (.not. SU_FORMAT)
 
         deallocate(adj_sourcearray)
-
       endif ! if(ibool_read_adj_arrays)
 
       if( it < NSTEP ) then
@@ -506,12 +461,7 @@
                                nint(gamma_source(isource)), &
                                ispec)
 
-              ! source encoding
-              stf_used = stf_used * pm1_source_encoding(isource)
-
-              ! beware, for acoustic medium, source is: pressure divided by Kappa of the fluid
-              ! the sign is negative because pressure p = - Chi_dot_dot therefore we need
-              ! to add minus the source to Chi_dot_dot to get plus the source in pressure:
+                f0 = hdur(isource) !! using hdur as a FREQUENCY just to avoid changing CMTSOLUTION file format
 
                 !if (it == 1 .and. myrank == 0) then
                 !  write(IMAIN,*) 'using a source of dominant frequency ',f0
@@ -527,15 +477,20 @@
                 stf_used = FACTOR_FORCE_SOURCE * comp_source_time_function_rickr( &
                                         dble(NSTEP-it)*DT-t0-tshift_cmt(isource),f0)
 
-              ! quasi-heaviside
-              !stf = comp_source_time_function(dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+                ! source encoding
+                stf_used = stf_used * pm1_source_encoding(isource)
 
-              ! source encoding
-              stf = stf * pm1_source_encoding(isource)
+                ! beware, for acoustic medium, source is: pressure divided by Kappa of the fluid
+                ! the sign is negative because pressure p = - Chi_dot_dot therefore we need
+                ! to add minus the source to Chi_dot_dot to get plus the source in pressure:
 
-              ! distinguishes between single and double precision for reals
-              if(CUSTOM_REAL == SIZE_REAL) then
-                stf_used = sngl(stf)
+                ! acoustic source for pressure gets divided by kappa
+                ! source contribution
+                b_potential_dot_dot_acoustic(iglob) = b_potential_dot_dot_acoustic(iglob) &
+                            - stf_used / kappastore(nint(xi_source(isource)), &
+                                                 nint(eta_source(isource)), &
+                                                 nint(gamma_source(isource)),ispec)
+
               else
 
                 if( USE_RICKER_IPATI ) then
@@ -546,6 +501,12 @@
                   stf = comp_source_time_function_gauss( &
                                   dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
                 endif
+
+                ! quasi-heaviside
+                !stf = comp_source_time_function(dble(NSTEP-it)*DT-t0-tshift_cmt(isource),hdur_gaussian(isource))
+
+                ! source encoding
+                stf = stf * pm1_source_encoding(isource)
 
                 ! distinguishes between single and double precision for reals
                 if(CUSTOM_REAL == SIZE_REAL) then

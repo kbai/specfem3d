@@ -46,6 +46,29 @@ module specfem_par
   integer :: NPROC
   integer :: NSPEC_AB, NGLOB_AB
 
+! mesh parameters
+  integer, dimension(:,:,:,:), allocatable :: ibool
+  real(kind=CUSTOM_REAL), dimension(:), allocatable :: xstore,ystore,zstore
+
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: &
+        xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz,jacobian
+
+! material properties
+  ! isotropic
+  real(kind=CUSTOM_REAL), dimension(:,:,:,:), allocatable :: kappastore,mustore
+
+! CUDA mesh pointer<->integer wrapper
+  integer(kind=8) :: Mesh_pointer
+
+! Global GPU toggle. Set in Par_file
+  logical :: GPU_MODE
+
+! use integer array to store topography values
+  integer :: NX_TOPO,NY_TOPO
+  !double precision :: ORIG_LAT_TOPO,ORIG_LONG_TOPO,DEGREES_PER_CELL_TOPO
+  !character(len=100) :: topo_file
+  integer, dimension(:,:), allocatable :: itopo_bathy
+
 ! absorbing boundary arrays (for all boundaries) - keeps all infos, allowing for irregular surfaces
   real(kind=CUSTOM_REAL), dimension(:,:,:), allocatable :: abs_boundary_normal
   real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: abs_boundary_jacobian2Dw
@@ -137,7 +160,7 @@ module specfem_par
   integer :: SIMULATION_TYPE
   integer :: NTSTEP_BETWEEN_OUTPUT_SEISMOS,NSTEP,UTM_PROJECTION_ZONE
   integer :: IMODEL
-  
+
   double precision :: DT
 
   logical :: ATTENUATION,USE_OLSEN_ATTENUATION, &
@@ -188,13 +211,6 @@ module specfem_par
 
 ! MPI partition surfaces
   logical, dimension(:), allocatable :: ispec_is_inner
-
-! maximum of the norm of the displacement
-  real(kind=CUSTOM_REAL) Usolidnorm,Usolidnorm_all ! elastic
-  real(kind=CUSTOM_REAL) Usolidnormp,Usolidnormp_all ! acoustic
-  real(kind=CUSTOM_REAL) Usolidnorms,Usolidnorms_all ! solid poroelastic
-  real(kind=CUSTOM_REAL) Usolidnormw,Usolidnormw_all ! fluid (w.r.t.s) poroelastic
-  integer:: Usolidnorm_index(1)
 
 ! maximum speed in velocity model
   real(kind=CUSTOM_REAL):: model_speed_max

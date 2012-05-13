@@ -160,7 +160,7 @@
   integer :: ier
 
   real(kind=CUSTOM_REAL) :: xloc,yloc,loc_elevation
-  
+
   ! creates ocean load mass matrix
   if(OCEANS) then
 
@@ -191,17 +191,17 @@
 
           ! compute local height of oceans
           if( TOPOGRAPHY ) then
-          
+
             ! takes elevation from topography file
             xloc = xstore_dummy(iglobnum)
             yloc = ystore_dummy(iglobnum)
-            
+
             call get_topo_bathy_elevation(xloc,yloc,loc_elevation, &
                                         itopo_bathy,NX_TOPO,NY_TOPO, &
                                         UTM_PROJECTION_ZONE,SUPPRESS_UTM_PROJECTION)
-            
+
             elevation = dble(loc_elevation)
-            
+
           else
 
             ! takes elevation from z-coordinate of mesh point

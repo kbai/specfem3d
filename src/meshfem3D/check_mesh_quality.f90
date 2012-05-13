@@ -54,7 +54,7 @@
 
   logical :: CREATE_VTK_FILES
   character(len=256) prname
-  
+
   ! local parameters
   integer :: ispec,ispec_min_edge_length,ispec_max_edge_length,ispec_max_skewness, &
        ispec_max_skewness_MPI,skewness_max_rank,NSPEC_ALL_SLICES
@@ -124,6 +124,7 @@
 
   ispec_min_edge_length = -1
   ispec_max_edge_length = -1
+  ispec_max_skewness = -1
 
   ! debug: for vtk output
   if( CREATE_VTK_FILES ) then
@@ -146,7 +147,7 @@
      if(equiangle_skewness > equiangle_skewness_max) ispec_max_skewness = ispec
 
      if( CREATE_VTK_FILES ) tmp1(ispec) = equiangle_skewness
-     
+
      ! compute minimum and maximum of quality numbers
      equiangle_skewness_min = min(equiangle_skewness_min,equiangle_skewness)
      edge_aspect_ratio_min = min(edge_aspect_ratio_min,edge_aspect_ratio)
@@ -350,8 +351,8 @@
   end if
 
   ! debug: for vtk output
-  if( CREATE_VTK_FILES ) then    
-    ! vtk file output    
+  if( CREATE_VTK_FILES ) then
+    ! vtk file output
     open(66,file=prname(1:len_trim(prname))//'skewness.vtk',status='unknown')
     write(66,'(a)') '# vtk DataFile Version 3.1'
     write(66,'(a)') 'material model VTK file'
@@ -360,7 +361,7 @@
     write(66, '(a,i12,a)') 'POINTS ', nglob, ' float'
     do ipoin = 1,nglob
       write(66,*) sngl(x(ipoin)),sngl(y(ipoin)),sngl(z(ipoin))
-    enddo    
+    enddo
     write(66,*) ""
 
     ! note: indices for vtk start at 0
@@ -384,8 +385,8 @@
       write(66,*) tmp1(ispec)
     enddo
     write(66,*) ""
-    close(66)                               
-                               
+    close(66)
+
     deallocate(tmp1)
   endif
 

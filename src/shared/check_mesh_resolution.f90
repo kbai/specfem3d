@@ -407,9 +407,11 @@
   !real(kind=CUSTOM_REAL),parameter :: NELEM_PER_WAVELENGTH = 1.5
 
   logical :: has_vs_zero,has_vp2_zero
+  real(kind=CUSTOM_REAL),dimension(1) :: tmp_val
 
   ! debug: for vtk output
   real(kind=CUSTOM_REAL),dimension(:),allocatable :: tmp1,tmp2
+
   integer:: ier
   character(len=256) :: filename,prname
 
@@ -685,6 +687,7 @@
 
   ! returns minimum period
   if( myrank == 0 ) min_resolved_period = pmax_glob
+
   tmp_val(1) = min_resolved_period
   call bcast_all_cr(tmp_val,1)
   min_resolved_period = tmp_val(1)

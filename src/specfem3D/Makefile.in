@@ -229,6 +229,17 @@ MODEL_UPD_OBJECTS = \
 	$O/write_VTK_data.shared.o \
 	$(EMPTY_MACRO)
 
+
+SUM_KERNELS_OBJECTS = \
+	$O/sum_kernels.o \
+	$O/read_parameter_file.shared.o \
+	$O/read_value_parameters.shared.o \
+	$O/get_value_parameters.shared.o \
+	$O/param_reader.cc.o \
+	$O/exit_mpi.shared.o \
+	$(EMPTY_MACRO)
+
+
 # objects toggled between the parallel and serial version
 @COND_MPI_TRUE@COND_MPI_OBJECTS = $O/parallel.o
 @COND_MPI_FALSE@COND_MPI_OBJECTS = $O/serial.o
@@ -254,6 +265,7 @@ LIBSPECFEM = $L/libspecfem.a
 @COND_PYRE_FALSE@	combine_surf_data \
 @COND_PYRE_FALSE@	convolve_source_timefunction \
 @COND_PYRE_FALSE@	smooth_vol_data \
+@COND_PYRE_FALSE@	sum_kernels \
 @COND_PYRE_FALSE@	model_update \
 @COND_PYRE_FALSE@	$(EMPTY_MACRO)
 
@@ -280,6 +292,7 @@ create_movie_shakemap_AVS_DX_GMT: xcreate_movie_shakemap_AVS_DX_GMT
 combine_vol_data: xcombine_vol_data
 combine_surf_data: xcombine_surf_data
 smooth_vol_data: xsmooth_vol_data
+sum_kernels: xsum_kernels
 model_update: xmodel_update
 
 xconvolve_source_timefunction: $O/convolve_source_timefunction.shared.o
@@ -297,14 +310,18 @@ xcombine_surf_data: $O/combine_surf_data.shared.o $O/write_c_binary.cc.o $O/para
 xsmooth_vol_data: $O/smooth_vol_data.o $O/read_parameter_file.shared.o $O/read_value_parameters.shared.o $O/get_value_parameters.shared.o $O/param_reader.cc.o $O/gll_library.shared.o $O/exit_mpi.shared.o $(COND_MPI_OBJECTS)
 	${FCLINK} -o  ${E}/xsmooth_vol_data  $O/smooth_vol_data.o $O/read_parameter_file.shared.o $O/read_value_parameters.shared.o $O/get_value_parameters.shared.o $O/param_reader.cc.o $O/gll_library.shared.o $O/exit_mpi.shared.o $(COND_MPI_OBJECTS) $(MPILIBS)
 
-xmodel_update: $(MODEL_UPD_OBJECTS) $(COND_MPI_OBJECTS) 
+xsum_kernels: $(SUM_KERNELS_OBJECTS) $(COND_MPI_OBJECTS)
+	${FCLINK} -o  ${E}/xsum_kernels  $(SUM_KERNELS_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS) 
+
+xmodel_update: $(MODEL_UPD_OBJECTS) $(COND_MPI_OBJECTS)
 	${FCLINK} -o  ${E}/xmodel_update  $(MODEL_UPD_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS)
 
 clean:
 	rm -f $O/* *.o *.gnu *.mod $(OUTPUT)/timestamp* $(OUTPUT)/starttime*txt work.pc* \
         xspecfem3D \
         xconvolve_source_timefunction \
-        xcreate_movie_shakemap_AVS_DX_GMT xcombine_vol_data xcombine_surf_data xsmooth_vol_data xmodel_update
+        xcreate_movie_shakemap_AVS_DX_GMT xcombine_vol_data xcombine_surf_data \
+        xsmooth_vol_data xmodel_update xsum_kernels
 
 ###
 ### rule for the archive library
@@ -377,6 +394,13 @@ $O/smooth_vol_data.o: $(SHARED)constants.h ${SHARED}/smooth_vol_data.f90
 
 
 
+
+##
+## kernel summation
+##
+
+$O/sum_kernels.o: $(SHARED)constants.h ${SHARED}/sum_kernels.f90
+	${MPIFCCOMPILE_NO_CHECK} -c -o $O/sum_kernels.o ${SHARED}/sum_kernels.f90
 
 ##
 ## model update

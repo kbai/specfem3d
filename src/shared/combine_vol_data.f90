@@ -25,8 +25,6 @@
 !=====================================================================
 
   module vtk
-
-
     !-------------------------------------------------------------
     ! USER PARAMETER
 
@@ -35,10 +33,12 @@
 
     !-------------------------------------------------------------
 
-
     ! global point data
     real,dimension(:),allocatable :: total_dat
 
+    ! maximum number of slices
+    integer,parameter :: MAX_NUM_NODES = 600
+    
   end module vtk
 
 !
@@ -73,8 +73,12 @@
 
   integer :: NSPEC_AB, NGLOB_AB
   integer :: numpoin
+
   integer :: i, ios, it, ier
-  integer :: iproc, proc1, proc2, num_node, node_list(600)
+  integer :: iproc, proc1, proc2, num_node
+  
+  integer,dimension(MAX_NUM_NODES) :: node_list
+  
   integer :: np, ne, npp, nee, nelement, njunk
 
   character(len=256) :: sline, arg(6), filename, indir, outdir
@@ -139,6 +143,7 @@
       read(sline,*,iostat=ios) njunk
       if (ios /= 0) exit
       num_node = num_node + 1
+      if( num_node > MAX_NUM_NODES ) stop 'error number of slices exceeds MAX_NUM_NODES...'
       node_list(num_node) = njunk
     enddo
     close(20)
@@ -150,7 +155,9 @@
     read(arg(1),*) proc1
     read(arg(2),*) proc2
     do iproc = proc1, proc2
-      node_list(iproc - proc1 + 1) = iproc
+      it = iproc - proc1 + 1
+      if( it > MAX_NUM_NODES ) stop 'error number of slices exceeds MAX_NUM_NODES...'
+      node_list(it) = iproc
     enddo
     num_node = proc2 - proc1 + 1
     filename = arg(3)
@@ -370,11 +377,14 @@
 ! counts total number of points and elements for external meshes in given slice list
 ! returns: total number of elements (nee) and number of points (npp)
 
+  use vtk
   implicit none
   include 'constants.h'
 
-  integer,intent(in) :: num_node,node_list(300)
+  integer,intent(in) :: num_node
+  integer,dimension(MAX_NUM_NODES),intent(in) :: node_list  
   character(len=256),intent(in) :: LOCAL_PATH
+  
   integer,intent(out) :: npp,nee
   logical,intent(in) :: HIGH_RESOLUTION_MESH
 

@@ -24,7 +24,7 @@
 !
 !=====================================================================
 
-! OpenMP Threaded variant by Max Rietmann and Olaf Schenk
+! OpenMP Threaded variant by John Levesque, Max Rietmann and Olaf Schenk
 
   subroutine compute_forces_elastic_Dev_openmp(iphase ,NSPEC_AB,NGLOB_AB, &
                              displ,accel, &

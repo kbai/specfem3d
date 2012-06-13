@@ -126,7 +126,17 @@ subroutine compute_forces_elastic()
                                       nspec_inner_elastic, &
                                       SIMULATION_TYPE, &
                                       COMPUTE_AND_STORE_STRAIN,ATTENUATION,ANISOTROPY)
-    endif ! GPU_MODE
+
+      if(phase_is_inner .eqv. .true.) then
+         ! while Inner elements compute "Kernel_2", we wait for MPI to
+         ! finish and transfer the boundary terms to the device
+         ! asynchronously
+         call transfer_boundary_to_device(NPROC,Mesh_pointer,buffer_recv_vector_ext_mesh,&
+              num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh,&
+              request_recv_vector_ext_mesh)
+      endif ! inner elements
+      
+   endif ! GPU_MODE
 
 
 ! adds elastic absorbing boundary term to acceleration (Stacey conditions)
@@ -232,16 +242,13 @@ subroutine compute_forces_elastic()
                my_neighbours_ext_mesh, &
                request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
        else ! GPU_MODE==1
-          call transfer_boun_accel_from_device(NGLOB_AB*NDIM, Mesh_pointer, accel,&
-                        buffer_send_vector_ext_mesh,&
-                        num_interfaces_ext_mesh, max_nibool_interfaces_ext_mesh,&
-                        nibool_interfaces_ext_mesh, ibool_interfaces_ext_mesh,1) ! <-- 1 == fwd accel
-          call assemble_MPI_vector_send_cuda(NPROC, &
-               buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
-               num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
-               nibool_interfaces_ext_mesh,&
-               my_neighbours_ext_mesh, &
-               request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
+
+          ! transfers boundary region to host asynchronously. The
+          ! MPI-send is done from within compute_forces_elastic_cuda,
+          ! once the inner element kernels are launched, and the
+          ! memcpy has finished. see compute_forces_elastic_cuda:1655
+          call transfer_boundary_from_device_asynchronously(Mesh_pointer,nspec_outer_elastic)
+                    
        endif ! GPU_MODE
 
        ! adjoint simulations

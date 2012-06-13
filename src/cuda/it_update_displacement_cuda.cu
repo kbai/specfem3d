@@ -111,7 +111,7 @@ TRACE("it_update_displacement_cuda");
 //#endif
 
   //launch kernel
-  UpdateDispVeloc_kernel<<<grid,threads>>>(mp->d_displ,mp->d_veloc,mp->d_accel,
+  UpdateDispVeloc_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_displ,mp->d_veloc,mp->d_accel,
                                            size,deltat,deltatsqover2,deltatover2);
 
   //cudaThreadSynchronize();
@@ -124,7 +124,7 @@ TRACE("it_update_displacement_cuda");
   // kernel for backward fields
   if(*SIMULATION_TYPE == 3) {
 
-    UpdateDispVeloc_kernel<<<grid,threads>>>(mp->d_b_displ,mp->d_b_veloc,mp->d_b_accel,
+    UpdateDispVeloc_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_displ,mp->d_b_veloc,mp->d_b_accel,
                                              size,b_deltat,b_deltatsqover2,b_deltatover2);
 
 //#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
@@ -208,13 +208,13 @@ TRACE("it_update_displacement_ac_cuda");
   dim3 threads(blocksize,1,1);
 
   //launch kernel
-  UpdatePotential_kernel<<<grid,threads>>>(mp->d_potential_acoustic,
+  UpdatePotential_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_potential_acoustic,
                                            mp->d_potential_dot_acoustic,
                                            mp->d_potential_dot_dot_acoustic,
                                            size,deltat,deltatsqover2,deltatover2);
 
   if(*SIMULATION_TYPE == 3) {
-    UpdatePotential_kernel<<<grid,threads>>>(mp->d_b_potential_acoustic,
+    UpdatePotential_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_potential_acoustic,
                                              mp->d_b_potential_dot_acoustic,
                                              mp->d_b_potential_dot_dot_acoustic,
                                              size,b_deltat,b_deltatsqover2,b_deltatover2);

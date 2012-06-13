@@ -45,6 +45,9 @@
   real(kind=CUSTOM_REAL):: stf_deltat
   double precision :: stf
 
+  ! TODO: Test and Fix CUDA seismograms code.
+  logical,parameter :: USE_CUDA_SEISMOGRAMS = .false.
+
   ! gets resulting array values onto CPU
   if(GPU_MODE) then
     if( nrec_local > 0 ) then
@@ -66,18 +69,30 @@
 
       ! this transfers fields only in elements with stations for efficiency
       if( ELASTIC_SIMULATION ) then
-        call transfer_station_el_from_device( &
+         if(USE_CUDA_SEISMOGRAMS) then
+            call transfer_seismograms_el_from_device(&
+                nrec_local,&
+                Mesh_pointer, &
+                SIMULATION_TYPE,&
+                seismograms_d,&
+                seismograms_v,&
+                seismograms_a,&
+                it)
+         else
+            call transfer_station_el_from_device( &
                     displ,veloc,accel, &
                     b_displ,b_veloc,b_accel, &
                     Mesh_pointer,number_receiver_global, &
                     ispec_selected_rec,ispec_selected_source, &
                     ibool,SIMULATION_TYPE)
-
+         endif
         ! alternative: transfers whole fields
         !  call transfer_fields_el_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)
       endif
     endif
   endif
+
+if(.not. GPU_MODE .or. (GPU_MODE .and. (.not. USE_CUDA_SEISMOGRAMS))) then
 
   do irec_local = 1,nrec_local
 
@@ -277,6 +292,7 @@
     if (SIMULATION_TYPE == 2) seismograms_eps(:,:,irec_local,it) = eps_s(:,:)
 
   enddo ! nrec_local
+endif
 
 ! write the current or final seismograms
   if((mod(it,NTSTEP_BETWEEN_OUTPUT_SEISMOS) == 0 .or. it == NSTEP) .and. (.not.SU_FORMAT)) then

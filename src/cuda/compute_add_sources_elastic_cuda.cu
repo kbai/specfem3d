@@ -125,7 +125,7 @@ TRACE("compute_add_sources_el_cuda");
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(5,5,5);
 
-  compute_add_sources_kernel<<<grid,threads>>>(mp->d_accel,
+  compute_add_sources_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel,
                                                mp->d_ibool,
                                                mp->d_ispec_is_inner,
                                                phase_is_inner,
@@ -175,7 +175,7 @@ void FC_FUNC_(compute_add_sources_el_s3_cuda,
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(5,5,5);
 
-  compute_add_sources_kernel<<<grid,threads>>>(mp->d_b_accel,mp->d_ibool,
+  compute_add_sources_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_accel,mp->d_ibool,
                                                mp->d_ispec_is_inner, *phase_is_inner,
                                                mp->d_sourcearrays,
                                                mp->d_stf_pre_compute,
@@ -237,7 +237,7 @@ TRACE("add_source_master_rec_noise_cu");
   dim3 threads(NGLL3,1,1);
 
   if(myrank == islice_selected_rec[irec_master_noise-1]) {
-    add_source_master_rec_noise_cuda_kernel<<<grid,threads>>>(mp->d_ibool,
+    add_source_master_rec_noise_cuda_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_ibool,
                                                               mp->d_ispec_selected_rec,
                                                               irec_master_noise,
                                                               mp->d_accel,
@@ -404,7 +404,7 @@ TRACE("add_sources_el_sim_type_2_or_3");
   // h_pre_comp..), because normally it is in the loop updating accel,
   // and due to how it's incremented, it cannot be parallelized
 
-  add_sources_el_SIM_TYPE_2_OR_3_kernel<<<grid,threads>>>(mp->d_accel,
+  add_sources_el_SIM_TYPE_2_OR_3_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel,
                                                          *nrec,
                                                          mp->d_adj_sourcearrays,
                                                          mp->d_ibool,

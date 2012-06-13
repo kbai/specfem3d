@@ -814,31 +814,36 @@ module decompose_mesh_SCOTCH
   ! re-partitioning puts poroelastic-elastic coupled elements into same partition
   !  integer  :: nfaces_coupled
   !  integer, dimension(:,:), pointer  :: faces_coupled
-    call poro_elastic_repartitioning (nspec, nnodes, elmnts, &
-                     count_def_mat, mat(1,:) , mat_prop, &
-                     sup_neighbour, nsize, &
-                     nparts, part)
-                     !nparts, part, nfaces_coupled, faces_coupled)
 
-  ! re-partitioning puts moho-surface coupled elements into same partition
-    call moho_surface_repartitioning (nspec, nnodes, elmnts, &
-                     sup_neighbour, nsize, nparts, part, &
-                     nspec2D_moho,ibelm_moho,nodes_ibelm_moho )
+    ! TODO: supposed to rebalance, but currently broken
+    ! call poro_elastic_repartitioning (nspec, nnodes, elmnts, &
+    ! count_def_mat, mat(1,:) , mat_prop, &
+    ! sup_neighbour, nsize, &
+    ! nparts, part)
+
+    !nparts, part, nfaces_coupled, faces_coupled)
+
+    ! re-partitioning puts moho-surface coupled elements into same partition
+    ! call moho_surface_repartitioning (nspec, nnodes, elmnts, &
+    ! sup_neighbour, nsize, nparts, part, &
+    ! nspec2D_moho,ibelm_moho,nodes_ibelm_moho )
 
 
   ! local number of each element for each partition
     call build_glob2loc_elmnts(nspec, part, glob2loc_elmnts,nparts)
 
-  ! local number of each node for each partition
+    ! local number of each node for each partition
     call build_glob2loc_nodes(nspec, nnodes,nsize, nnodes_elmnts, nodes_elmnts, part, &
          glob2loc_nodes_nparts, glob2loc_nodes_parts, glob2loc_nodes, nparts)
 
-  ! mpi interfaces
+    ! mpi interfaces
     ! acoustic/elastic/poroelastic boundaries will be split into different MPI partitions
     call build_interfaces(nspec, sup_neighbour, part, elmnts, &
                              xadj, adjncy, tab_interfaces, &
                              tab_size_interfaces, ninterfaces, &
                              nparts)
+
+
 
     !or: uncomment if you want acoustic/elastic boundaries NOT to be separated into different MPI partitions
     !call build_interfaces_no_ac_el_sep(nspec, sup_neighbour, part, elmnts, &
@@ -877,18 +882,22 @@ module decompose_mesh_SCOTCH
        endif
 
        ! gets number of nodes
+
        call write_glob2loc_nodes_database(IIN_database, ipart, nnodes_loc, nodes_coords, &
                                   glob2loc_nodes_nparts, glob2loc_nodes_parts, &
                                   glob2loc_nodes, nnodes, 1)
 
-       ! gets number of spectral elements
+
+
        call write_partition_database(IIN_database, ipart, nspec_local, nspec, elmnts, &
                                   glob2loc_elmnts, glob2loc_nodes_nparts, &
                                   glob2loc_nodes_parts, glob2loc_nodes, part, mat, ngnod, 1)
 
+       print*, ipart,": nspec_local=",nspec_local, " nnodes_local=", nnodes_loc
        ! writes out node coordinate locations
        !write(IIN_database,*) nnodes_loc
        write(IIN_database) nnodes_loc
+
 
        call write_glob2loc_nodes_database(IIN_database, ipart, nnodes_loc, nodes_coords,&
                                   glob2loc_nodes_nparts, glob2loc_nodes_parts, &
@@ -956,4 +965,3 @@ module decompose_mesh_SCOTCH
 !end program pre_meshfem3D
 
 end module decompose_mesh_SCOTCH
-

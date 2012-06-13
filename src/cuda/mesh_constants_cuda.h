@@ -71,7 +71,7 @@
 #endif
 
 // error checking after cuda function calls
-#define ENABLE_VERY_SLOW_ERROR_CHECKING
+/* #define ENABLE_VERY_SLOW_ERROR_CHECKING */
 
 #define MAX(x,y)                    (((x) < (y)) ? (y) : (x))
 
@@ -84,6 +84,8 @@ void pause_for_debugger(int pause);
 void exit_on_cuda_error(char* kernel_name);
 
 void exit_on_error(char* info);
+
+void get_blocks_xy(int num_blocks,int* num_blocks_x,int* num_blocks_y);
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -117,6 +119,15 @@ typedef float reald;
 // (optional) pre-processing directive used in kernels: if defined check that it is also set in src/shared/constants.h:
 // leads up to ~ 5% performance increase
 //#define USE_MESH_COLORING_GPU
+
+// use textures for d_displ and d_accel -- 10% performance boost
+#define USE_TEXTURES_FIELDS
+
+// Using texture memory for the hprime-style constants is slower on
+// Fermi generation hardware, but *may* be faster on Kepler
+// generation.
+/* Use textures for hprime_xx */
+/* #define USE_TEXTURES_CONSTANTS */
 
 // (optional) unrolling loops
 // leads up to ~1% performance increase
@@ -160,6 +171,9 @@ typedef struct mesh_ {
   int NSPEC_AB;
   int NGLOB_AB;
 
+  int myrank;
+  int NPROCS;
+
   // interpolators
   realw* d_xix; realw* d_xiy; realw* d_xiz;
   realw* d_etax; realw* d_etay; realw* d_etaz;
@@ -183,9 +197,35 @@ typedef struct mesh_ {
   realw* d_wgllwgll_xy; realw* d_wgllwgll_xz; realw* d_wgllwgll_yz;
   realw* d_wgll_cube;
 
-  // mpi buffers
+  // A buffer for mpi-send/recv, which is duplicated in fortran but is
+  // allocated with pinned memory to facilitate asynchronus device <->
+  // host memory transfers
+  float* h_send_accel_buffer;
+  float* h_send_b_accel_buffer;
+  float* send_buffer;
+  float* h_recv_accel_buffer;
+  float* h_recv_b_accel_buffer;
+  float* recv_buffer;
+  int size_mpi_send_buffer;
+  int size_mpi_recv_buffer;
+
+
+
+  // buffers and constants for the MPI-send required for async-memcpy
+  // + non-blocking MPI
+  float* buffer_recv_vector_ext_mesh;
   int num_interfaces_ext_mesh;
   int max_nibool_interfaces_ext_mesh;
+  int* nibool_interfaces_ext_mesh;
+  int* my_neighbours_ext_mesh;
+  int* request_send_vector_ext_mesh;
+  int* request_recv_vector_ext_mesh;
+
+
+  // overlapped memcpy streams
+  cudaStream_t compute_stream;
+  cudaStream_t copy_stream;
+  cudaStream_t b_copy_stream;
 
   // ------------------------------------------------------------------ //
   // elastic wavefield parameters
@@ -195,6 +235,10 @@ typedef struct mesh_ {
   realw* d_displ; realw* d_veloc; realw* d_accel;
   // backward/reconstructed elastic wavefield
   realw* d_b_displ; realw* d_b_veloc; realw* d_b_accel;
+
+  // Texture references for fast non-coalesced scattered access
+  const textureReference* d_displ_tex_ref_ptr;
+  const textureReference* d_accel_tex_ref_ptr;
 
   // elastic elements
   int* d_ispec_is_elastic;
@@ -243,6 +287,17 @@ typedef struct mesh_ {
   int nrec_local;
   realw* d_station_seismo_field;
   realw* h_station_seismo_field;
+
+  double* d_hxir, *d_hetar, *d_hgammar;
+  double* d_dxd, *d_dyd, *d_dzd;
+  double* d_vxd, *d_vyd, *d_vzd;
+  double* d_axd, *d_ayd, *d_azd;
+  realw* d_seismograms_d, *d_seismograms_v, *d_seismograms_a;
+  double* d_nu;
+
+  realw* h_seismograms_d_it;
+  realw* h_seismograms_v_it;
+  realw* h_seismograms_a_it;
 
   // adjoint receivers/sources
   int nadj_rec_local;

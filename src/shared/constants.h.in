@@ -266,7 +266,7 @@
   integer, parameter :: MAX_NB_TRIES_OF_DROUX_1993 = 15
 !
 ! postprocess the colors to balance them if Droux (1993) algorithm is not used
-  logical, parameter :: BALANCE_COLORS_SIMPLE_ALGO = .true.
+  logical, parameter :: BALANCE_COLORS_SIMPLE_ALGO = .false.
 
 !------------------------------------------------------
 !----------- do not modify anything below -------------

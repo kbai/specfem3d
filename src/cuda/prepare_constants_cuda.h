@@ -54,43 +54,14 @@ void setConst_wgll_cube(realw* array, Mesh* mp);
 
 /* CUDA specific things from specfem3D_kernels.cu */
 
+// older TEXTURE usage. For now just acoustic simulations. See usage
+// of USE_TEXTURES_FIELDS elsewhere in code for elastic case
 #ifdef USE_TEXTURES
-  // declaration of textures
-  texture<realw, 1, cudaReadModeElementType> tex_displ;
-  texture<realw, 1, cudaReadModeElementType> tex_accel;
 
-  texture<realw, 1, cudaReadModeElementType> tex_potential_acoustic;
-  texture<realw, 1, cudaReadModeElementType> tex_potential_dot_dot_acoustic;
+// declaration of textures
+texture<realw, 1, cudaReadModeElementType> tex_potential_acoustic;
+texture<realw, 1, cudaReadModeElementType> tex_potential_dot_dot_acoustic;
 
-  // for binding the textures
-
-  void bindTexturesDispl(realw* d_displ)
-  {
-    cudaError_t err;
-
-    cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<realw>();
-
-    err = cudaBindTexture(NULL,tex_displ, d_displ, channelDescFloat, NDIM*NGLOB*sizeof(realw));
-    if (err != cudaSuccess)
-    {
-      fprintf(stderr, "Error in bindTexturesDispl for displ: %s\n", cudaGetErrorString(err));
-      exit(1);
-    }
-  }
-
-  void bindTexturesAccel(realw* d_accel)
-  {
-    cudaError_t err;
-
-    cudaChannelFormatDesc channelDescFloat = cudaCreateChannelDesc<realw>();
-
-    err = cudaBindTexture(NULL,tex_accel, d_accel, channelDescFloat, NDIM*NGLOB*sizeof(realw));
-    if (err != cudaSuccess)
-    {
-      fprintf(stderr, "Error in bindTexturesAccel for accel: %s\n", cudaGetErrorString(err));
-      exit(1);
-    }
-  }
 
   void bindTexturesPotential(realw* d_potential_acoustic)
   {

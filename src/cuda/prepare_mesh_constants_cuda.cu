@@ -608,7 +608,12 @@ void FC_FUNC_(prepare_constants_device,
                                         int* nrec_local_f,
                                         int* SIMULATION_TYPE,
                                         int* USE_MESH_COLORING_GPU_f,
-                                        int* nspec_acoustic,int* nspec_elastic) {
+                                        int* nspec_acoustic,int* nspec_elastic,
+                                        int* my_neighbours_ext_mesh,
+                                        int* request_send_vector_ext_mesh,
+                                        int* request_recv_vector_ext_mesh,
+                                        realw* buffer_recv_vector_ext_mesh
+                                        ) {
 
 TRACE("prepare_constants_device");
 
@@ -622,14 +627,25 @@ TRACE("prepare_constants_device");
     exit_on_error("NGLLX must be 5 for CUDA devices");
   }
 
+
+#ifdef WITH_MPI
+  int nproc;
+  MPI_Comm_size(MPI_COMM_WORLD,&nproc);
+  mp->NPROCS=nproc;
+#else
+  mp->NPROCS = 1;
+#endif
+
+
   // sets global parameters
   mp->NSPEC_AB = *NSPEC_AB;
   mp->NGLOB_AB = *NGLOB_AB;
 
   // sets constant arrays
   setConst_hprime_xx(h_hprime_xx,mp);
-  setConst_hprime_yy(h_hprime_yy,mp);
-  setConst_hprime_zz(h_hprime_zz,mp);
+  // only needed if NGLLX != NGLLY != NGLLZ
+  // setConst_hprime_yy(h_hprime_yy,mp);
+  // setConst_hprime_zz(h_hprime_zz,mp);
   setConst_hprimewgll_xx(h_hprimewgll_xx,mp);
   setConst_hprimewgll_yy(h_hprimewgll_yy,mp);
   setConst_hprimewgll_zz(h_hprimewgll_zz,mp);
@@ -637,9 +653,51 @@ TRACE("prepare_constants_device");
   setConst_wgllwgll_xz(h_wgllwgll_xz,mp);
   setConst_wgllwgll_yz(h_wgllwgll_yz,mp);
 
+  // Using texture memory for the hprime-style constants is slower on
+  // Fermi generation hardware, but *may* be faster on Kepler
+  // generation. We will reevaluate this again, so might as well leave
+  // in the code with with #USE_TEXTURES_FIELDS not-defined.
+  #ifdef USE_TEXTURES_CONSTANTS
+  {
+    const textureReference* d_hprime_xx_tex_ptr;
+    print_CUDA_error_if_any(cudaGetTextureReference(&d_hprime_xx_tex_ptr, "d_hprime_xx_tex"), 4101);
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
+    print_CUDA_error_if_any(cudaBindTexture(0, d_hprime_xx_tex_ptr, mp->d_hprime_xx, &channelDesc, sizeof(realw)*(NGLL2)), 4001);
+  }
+  #endif
+
+
+  // Allocate pinned mpi-buffers.
+  // MPI buffers use pinned memory allocated by cudaMallocHost, which
+  // enables the use of asynchronous memory copies from host <->
+  // device
+  int size_mpi_buffer = 3 * (*num_interfaces_ext_mesh) * (*max_nibool_interfaces_ext_mesh);
+  print_CUDA_error_if_any(cudaMallocHost((void**)&(mp->h_send_accel_buffer),sizeof(float)*(size_mpi_buffer)),8004);
+  mp->send_buffer = (float*)malloc((size_mpi_buffer)*sizeof(float));
+  mp->size_mpi_send_buffer = size_mpi_buffer;
+
+  print_CUDA_error_if_any(cudaMallocHost((void**)&(mp->h_recv_accel_buffer),sizeof(float)*(size_mpi_buffer)),8004);
+  mp->recv_buffer = (float*)malloc((size_mpi_buffer)*sizeof(float));
+  mp->size_mpi_recv_buffer = size_mpi_buffer;
+
+  print_CUDA_error_if_any(cudaMallocHost((void**)&(mp->h_send_b_accel_buffer),sizeof(float)*(size_mpi_buffer)),8004);
+  // mp->b_send_buffer = (float*)malloc((size_mpi_buffer)*sizeof(float));
+
+  mp->num_interfaces_ext_mesh = *num_interfaces_ext_mesh;
+  mp->max_nibool_interfaces_ext_mesh = *max_nibool_interfaces_ext_mesh;
+  mp->nibool_interfaces_ext_mesh = h_nibool_interfaces_ext_mesh;
+  mp->my_neighbours_ext_mesh = my_neighbours_ext_mesh;
+  mp->request_send_vector_ext_mesh = request_send_vector_ext_mesh;
+  mp->request_recv_vector_ext_mesh = request_recv_vector_ext_mesh;
+  mp->buffer_recv_vector_ext_mesh = buffer_recv_vector_ext_mesh;
+
+  // setup two streams, one for compute and one for host<->device memory copies
+  cudaStreamCreate(&mp->compute_stream);
+  cudaStreamCreate(&mp->copy_stream);
+  cudaStreamCreate(&mp->b_copy_stream);
+
   /* Assuming NGLLX=5. Padded is then 128 (5^3+3) */
   int size_padded = NGLL3_PADDED * (mp->NSPEC_AB);
-  //int size_nonpadded = NGLL3 * (mp->NSPEC_AB);
 
   // mesh
   print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_xix, size_padded*sizeof(realw)),1001);
@@ -1067,6 +1125,20 @@ TRACE("prepare_fields_elastic_device");
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_displ),sizeof(realw)*(*size)),4001);
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_veloc),sizeof(realw)*(*size)),4002);
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_accel),sizeof(realw)*(*size)),4003);
+
+  #ifdef USE_TEXTURES_FIELDS
+  {
+    print_CUDA_error_if_any(cudaGetTextureReference(&mp->d_displ_tex_ref_ptr, "d_displ_tex"), 4001);
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
+    print_CUDA_error_if_any(cudaBindTexture(0, mp->d_displ_tex_ref_ptr, mp->d_displ, &channelDesc, sizeof(realw)*(*size)), 4001);
+  }
+
+  {
+    print_CUDA_error_if_any(cudaGetTextureReference(&mp->d_accel_tex_ref_ptr, "d_accel_tex"), 4003);
+    cudaChannelFormatDesc channelDesc = cudaCreateChannelDesc<float>();
+    print_CUDA_error_if_any(cudaBindTexture(0, mp->d_accel_tex_ref_ptr, mp->d_accel, &channelDesc, sizeof(realw)*(*size)), 4003);
+  }
+  #endif
 
   // mpi buffer
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_send_accel_buffer),
@@ -1690,6 +1762,32 @@ void FC_FUNC_(prepare_fields_gravity_device,
 
 }
 
+extern "C"
+void FC_FUNC_(prepare_seismogram_fields,
+              PREPARE_SEISMOGRAM_FIELDS)(long* Mesh_pointer,int* nrec_local, double* nu, double* hxir, double* hetar, double* hgammar) {
+
+  TRACE("prepare_constants_device");
+  Mesh* mp = (Mesh*)(*Mesh_pointer);
+
+  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_nu),3*3* *nrec_local*sizeof(double)),8100);
+  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_hxir),5* *nrec_local*sizeof(double)),8100);
+  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_hetar),5* *nrec_local*sizeof(double)),8100);
+  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_hgammar),5* *nrec_local*sizeof(double)),8100);
+
+  print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_seismograms_d,3**nrec_local*sizeof(realw)),8101);
+  print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_seismograms_v,3**nrec_local*sizeof(realw)),8101);
+  print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_seismograms_a,3**nrec_local*sizeof(realw)),8101);
+
+  print_CUDA_error_if_any(cudaMemcpy(mp->d_nu,nu,3*3* *nrec_local*sizeof(double),cudaMemcpyHostToDevice),8101);
+  print_CUDA_error_if_any(cudaMemcpy(mp->d_hxir,hxir,5* *nrec_local*sizeof(double),cudaMemcpyHostToDevice),8101);
+  print_CUDA_error_if_any(cudaMemcpy(mp->d_hetar,hetar,5* *nrec_local*sizeof(double),cudaMemcpyHostToDevice),8101);
+  print_CUDA_error_if_any(cudaMemcpy(mp->d_hgammar,hgammar,5* *nrec_local*sizeof(double),cudaMemcpyHostToDevice),8101);
+
+  cudaMallocHost((void**)&mp->h_seismograms_d_it,3**nrec_local*sizeof(realw));
+  cudaMallocHost((void**)&mp->h_seismograms_v_it,3**nrec_local*sizeof(realw));
+  cudaMallocHost((void**)&mp->h_seismograms_a_it,3**nrec_local*sizeof(realw));
+}
+
 /* ----------------------------------------------------------------------------------------------- */
 
 // cleanup
@@ -1933,4 +2031,3 @@ TRACE("prepare_cleanup_device");
   // mesh pointer - not needed anymore
   free(mp);
 }
-

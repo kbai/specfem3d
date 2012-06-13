@@ -39,19 +39,22 @@
 
 
 //  cuda constant arrays
-__constant__ realw d_hprime_xx[NGLL2];
-__constant__ realw d_hprime_yy[NGLL2];
-__constant__ realw d_hprime_zz[NGLL2];
-__constant__ realw d_hprimewgll_xx[NGLL2];
-__constant__ realw d_hprimewgll_yy[NGLL2];
-__constant__ realw d_hprimewgll_zz[NGLL2];
-__constant__ realw d_wgllwgll_xy[NGLL2];
-__constant__ realw d_wgllwgll_xz[NGLL2];
-__constant__ realw d_wgllwgll_yz[NGLL2];
+__device__ realw d_hprime_xx[NGLL2];
+
+// only needed if NGLLX != NGLLY != NGLLZ
+// __device__ realw d_hprime_yy[NGLL2];
+// __device__ realw d_hprime_zz[NGLL2];
+__device__ realw d_hprimewgll_xx[NGLL2];
+__device__ realw d_hprimewgll_yy[NGLL2];
+__device__ realw d_hprimewgll_zz[NGLL2];
+__device__ realw d_wgllwgll_xy[NGLL2];
+__device__ realw d_wgllwgll_xz[NGLL2];
+__device__ realw d_wgllwgll_yz[NGLL2];
 
 __constant__ realw d_wgll_cube[NGLL3]; // needed only for gravity case
 
-
+// prototype for the fortran function to do non-blocking mpi send
+extern "C" void assemble_mpi_vector_send_cuda_(void*,void*,void*,void*,void*,void*,void*,void*,void*);
 /* ----------------------------------------------------------------------------------------------- */
 
 // prepares a device array with with all inter-element edge-nodes -- this
@@ -116,14 +119,14 @@ TRACE("transfer_boun_accel_from_device");
   // cudaEventCreate(&stop);
   // cudaEventRecord( start, 0 );
   if(*FORWARD_OR_ADJOINT == 1) {
-    prepare_boundary_accel_on_device<<<grid,threads>>>(mp->d_accel,mp->d_send_accel_buffer,
+    prepare_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel,mp->d_send_accel_buffer,
                                                        mp->num_interfaces_ext_mesh,
                                                        mp->max_nibool_interfaces_ext_mesh,
                                                        mp->d_nibool_interfaces_ext_mesh,
                                                        mp->d_ibool_interfaces_ext_mesh);
   }
   else if(*FORWARD_OR_ADJOINT == 3) {
-    prepare_boundary_accel_on_device<<<grid,threads>>>(mp->d_b_accel,mp->d_send_accel_buffer,
+    prepare_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_accel,mp->d_send_accel_buffer,
                                                        mp->num_interfaces_ext_mesh,
                                                        mp->max_nibool_interfaces_ext_mesh,
                                                        mp->d_nibool_interfaces_ext_mesh,
@@ -144,6 +147,41 @@ TRACE("transfer_boun_accel_from_device");
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
   exit_on_cuda_error("transfer_boun_accel_from_device");
 #endif
+}
+
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C" void FC_FUNC_(transfer_boundary_from_device_asynchronously,TRANSFER_BOUNDARY_FROM_DEVICE_ASYNCHRONOUSLY)(long* Mesh_pointer,int* nspec_outer_elastic) {
+
+  TRACE("transfer_boundary_from_device_asynchronously");
+  Mesh* mp = (Mesh*)(*Mesh_pointer); // get Mesh from fortran integer wrapper
+
+  int num_blocks_x = *nspec_outer_elastic;
+  int num_blocks_y = 1;
+  while(num_blocks_x > 65535) {
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
+    num_blocks_y = num_blocks_y*2;
+  }
+
+  int blocksize = NGLL3_PADDED;
+  dim3 grid(num_blocks_x,num_blocks_y);
+  dim3 threads(blocksize,1,1);
+
+  prepare_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel,mp->d_send_accel_buffer,
+                                                                          mp->num_interfaces_ext_mesh,
+                                                                          mp->max_nibool_interfaces_ext_mesh,
+                                                                          mp->d_nibool_interfaces_ext_mesh,
+                                                                          mp->d_ibool_interfaces_ext_mesh);
+  // wait until kernel is finished before starting async memcpy
+  cudaDeviceSynchronize();
+
+  cudaMemcpyAsync(mp->h_send_accel_buffer,mp->d_send_accel_buffer,
+                  3* mp->max_nibool_interfaces_ext_mesh* mp->num_interfaces_ext_mesh*sizeof(realw),
+                  cudaMemcpyDeviceToHost,mp->copy_stream);
+  // cudaMemcpyAsync(mp->h_send_accel_buffer,mp->d_send_accel_buffer,
+  // 3* mp->max_nibool_interfaces_ext_mesh* mp->num_interfaces_ext_mesh*sizeof(realw),
+  // cudaMemcpyDeviceToHost,mp->compute_stream);
+
 }
 
 /* ----------------------------------------------------------------------------------------------- */
@@ -190,6 +228,97 @@ __global__ void assemble_boundary_accel_on_device(realw* d_accel, realw* d_send_
 
 /* ----------------------------------------------------------------------------------------------- */
 
+extern "C"
+void FC_FUNC_(transfer_boundary_to_device_asynchronously,TRANSFER_BOUNDARY_TO_DEVICE_ASYNCHRONOUSLY)(long* Mesh_pointer,
+                                                                           realw* buffer_recv_vector_ext_mesh,
+                                                                           int* num_interfaces_ext_mesh,
+                                                                           int* max_nibool_interfaces_ext_mesh) {
+
+  TRACE("transfer_boundary_to_device_asynchronously");
+
+  Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
+
+  memcpy(mp->h_recv_accel_buffer,buffer_recv_vector_ext_mesh,mp->size_mpi_recv_buffer*sizeof(realw));
+
+  // cudaMemcpyAsync(mp->d_send_accel_buffer, buffer_recv_vector_ext_mesh,
+  // 3*(mp->max_nibool_interfaces_ext_mesh)*(mp->num_interfaces_ext_mesh)*sizeof(realw),
+  // cudaMemcpyHostToDevice,mp->compute_stream);
+  printf("xfer to device\n");
+  cudaMemcpyAsync(mp->d_send_accel_buffer, buffer_recv_vector_ext_mesh,
+                  3*(mp->max_nibool_interfaces_ext_mesh)*(mp->num_interfaces_ext_mesh)*sizeof(realw),
+                  cudaMemcpyHostToDevice,mp->copy_stream);
+
+
+
+
+}
+
+
+extern "C"
+void FC_FUNC_(assemble_accel_on_device,
+              ASSEMBLE_ACCEL_on_DEVICE)(long* Mesh_pointer, realw* accel,
+                                              realw* buffer_recv_vector_ext_mesh,
+                                              int* num_interfaces_ext_mesh,
+                                              int* max_nibool_interfaces_ext_mesh,
+                                              int* nibool_interfaces_ext_mesh,
+                                              int* ibool_interfaces_ext_mesh,
+                                              int* FORWARD_OR_ADJOINT) {
+  TRACE("assemble_accel_on_device");
+
+  Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
+
+  int blocksize = BLOCKSIZE_TRANSFER;
+  int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+  int num_blocks_x = size_padded/blocksize;
+  int num_blocks_y = 1;
+  while(num_blocks_x > 65535) {
+    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
+    num_blocks_y = num_blocks_y*2;
+  }
+
+  //double start_time = get_time();
+  dim3 grid(num_blocks_x,num_blocks_y);
+  dim3 threads(blocksize,1,1);
+  // cudaEvent_t start, stop;
+  // realw time;
+  // cudaEventCreate(&start);
+  // cudaEventCreate(&stop);
+  // cudaEventRecord( start, 0 );
+
+
+  // ***************************************************************************
+  // Wait until previous copy stream finishes. We assemble while other compute kernels execute.
+  cudaStreamSynchronize(mp->copy_stream);
+
+  // Assembling on the copy_stream breaks the solution and it "blows up"
+  if(*FORWARD_OR_ADJOINT == 1) { //assemble forward accel
+    assemble_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel, mp->d_send_accel_buffer,
+                                                                             mp->num_interfaces_ext_mesh,
+                                                                             mp->max_nibool_interfaces_ext_mesh,
+                                                                             mp->d_nibool_interfaces_ext_mesh,
+                                                                             mp->d_ibool_interfaces_ext_mesh);
+  }
+  else if(*FORWARD_OR_ADJOINT == 3) { //assemble adjoint accel
+    assemble_boundary_accel_on_device<<<grid,threads,0,mp->copy_stream>>>(mp->d_b_accel, mp->d_send_accel_buffer,
+                                                        mp->num_interfaces_ext_mesh,
+                                                        mp->max_nibool_interfaces_ext_mesh,
+                                                        mp->d_nibool_interfaces_ext_mesh,
+                                                        mp->d_ibool_interfaces_ext_mesh);
+  }
+
+  // cudaEventRecord( stop, 0 );
+  // cudaEventSynchronize( stop );
+  // cudaEventElapsedTime( &time, start, stop );
+  // cudaEventDestroy( start );
+  // cudaEventDestroy( stop );
+  // printf("Boundary Assemble Kernel Execution Time: %f ms\n",time);
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  //double end_time = get_time();
+  //printf("Elapsed time: %e\n",end_time-start_time);
+  exit_on_cuda_error("transfer_asmbl_accel_to_device");
+#endif
+}
+
 // FORWARD_OR_ADJOINT == 1 for accel, and == 3 for b_accel
 extern "C"
 void FC_FUNC_(transfer_asmbl_accel_to_device,
@@ -225,14 +354,14 @@ TRACE("transfer_asmbl_accel_to_device");
   // cudaEventCreate(&stop);
   // cudaEventRecord( start, 0 );
   if(*FORWARD_OR_ADJOINT == 1) { //assemble forward accel
-    assemble_boundary_accel_on_device<<<grid,threads>>>(mp->d_accel, mp->d_send_accel_buffer,
+    assemble_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel, mp->d_send_accel_buffer,
                                                         mp->num_interfaces_ext_mesh,
                                                         mp->max_nibool_interfaces_ext_mesh,
                                                         mp->d_nibool_interfaces_ext_mesh,
                                                         mp->d_ibool_interfaces_ext_mesh);
   }
   else if(*FORWARD_OR_ADJOINT == 3) { //assemble adjoint accel
-    assemble_boundary_accel_on_device<<<grid,threads>>>(mp->d_b_accel, mp->d_send_accel_buffer,
+    assemble_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_accel, mp->d_send_accel_buffer,
                                                         mp->num_interfaces_ext_mesh,
                                                         mp->max_nibool_interfaces_ext_mesh,
                                                         mp->d_nibool_interfaces_ext_mesh,
@@ -497,6 +626,14 @@ __device__ void compute_element_gravity(int tx,int working_element,
 // double precision temporary variables leads to 10% performance
 // decrease in Kernel_2_impl (not very much..)
 //typedef realw reald;
+#ifdef USE_TEXTURES_FIELDS
+texture<realw, cudaTextureType1D, cudaReadModeElementType> d_displ_tex;
+texture<realw, cudaTextureType1D, cudaReadModeElementType> d_accel_tex;
+#endif
+
+#ifdef USE_TEXTURES_CONSTANTS
+texture<realw, cudaTextureType1D, cudaReadModeElementType> d_hprime_xx_tex;
+#endif
 
 __global__ void Kernel_2_impl(int nb_blocks_to_compute,
                               int NGLOB,
@@ -599,6 +736,8 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
     __shared__ reald s_tempz2[NGLL3];
     __shared__ reald s_tempz3[NGLL3];
 
+    __shared__ reald sh_hprime_xx[NGLL2];
+
 // use only NGLL^3 = 125 active threads, plus 3 inactive/ghost threads,
 // because we used memory padding from NGLL^3 = 125 to 128 to get coalescent memory accesses
     active = (tx < NGLL3 && bx < nb_blocks_to_compute) ? 1:0;
@@ -622,10 +761,10 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
       // iglob = d_ibool[working_element*NGLL3_ALIGN + tx]-1;
       iglob = d_ibool[working_element*NGLL3 + tx]-1;
 
-#ifdef USE_TEXTURES
-      s_dummyx_loc[tx] = tex1Dfetch(tex_displ, iglob);
-      s_dummyy_loc[tx] = tex1Dfetch(tex_displ, iglob + NGLOB);
-      s_dummyz_loc[tx] = tex1Dfetch(tex_displ, iglob + 2*NGLOB);
+#ifdef USE_TEXTURES_FIELDS
+      s_dummyx_loc[tx] = tex1Dfetch(d_displ_tex, iglob*3);
+      s_dummyy_loc[tx] = tex1Dfetch(d_displ_tex, iglob*3 + 1);
+      s_dummyz_loc[tx] = tex1Dfetch(d_displ_tex, iglob*3 + 2);
 #else
       // changing iglob indexing to match fortran row changes fast style
       s_dummyx_loc[tx] = d_displ[iglob*3];
@@ -634,12 +773,18 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
 #endif
     }
 
+    if (tx < NGLL2) {
+      #ifdef USE_TEXTURES_CONSTANTS
+      sh_hprime_xx[tx] = tex1Dfetch(d_hprime_xx_tex,tx);
+      #else
+      sh_hprime_xx[tx] = d_hprime_xx[tx];
+      #endif
+    }
+
 // synchronize all the threads (one thread for each of the NGLL grid points of the
 // current spectral element) because we need the whole element to be ready in order
 // to be able to compute the matrix products along cut planes of the 3D element below
     __syncthreads();
-
-#ifndef MAKE_KERNEL2_BECOME_STUPID_FOR_TESTS
 
     if (active) {
 
@@ -658,19 +803,19 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
       tempz3l = 0.f;
 
       for (l=0;l<NGLLX;l++) {
-          hp1 = d_hprime_xx[l*NGLLX+I];
+          hp1 = sh_hprime_xx[l*NGLLX+I];
           offset = K*NGLL2+J*NGLLX+l;
           tempx1l += s_dummyx_loc[offset]*hp1;
           tempy1l += s_dummyy_loc[offset]*hp1;
           tempz1l += s_dummyz_loc[offset]*hp1;
 
-          hp2 = d_hprime_xx[l*NGLLX+J];
+          hp2 = sh_hprime_xx[l*NGLLX+J];
           offset = K*NGLL2+l*NGLLX+I;
           tempx2l += s_dummyx_loc[offset]*hp2;
           tempy2l += s_dummyy_loc[offset]*hp2;
           tempz2l += s_dummyz_loc[offset]*hp2;
 
-          hp3 = d_hprime_xx[l*NGLLX+K];
+          hp3 = sh_hprime_xx[l*NGLLX+K];
           offset = l*NGLL2+J*NGLLX+I;
           tempx3l += s_dummyx_loc[offset]*hp3;
           tempy3l += s_dummyy_loc[offset]*hp3;
@@ -1008,29 +1153,40 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
         sum_terms3 += rho_s_H3;
       }
 
-#ifdef USE_TEXTURES
-      d_accel[iglob] = tex1Dfetch(tex_accel, iglob) + sum_terms1);
-      d_accel[iglob + NGLOB] = tex1Dfetch(tex_accel, iglob + NGLOB) + sum_terms2);
-      d_accel[iglob + 2*NGLOB] = tex1Dfetch(tex_accel, iglob + 2*NGLOB) + sum_terms3);
-#else
-  /* OLD/To be implemented version that uses coloring to get around race condition. About 1.6x faster */
-
 
 #ifdef USE_MESH_COLORING_GPU
       // no atomic operation needed, colors don't share global points between elements
+
+#ifdef USE_TEXTURES_FIELDS
+      d_accel[iglob*3]     = tex1Dfetch(d_accel_tex, iglob*3) + sum_terms1;
+      d_accel[iglob*3 + 1] = tex1Dfetch(d_accel_tex, iglob*3 + 1) + sum_terms2;
+      d_accel[iglob*3 + 2] = tex1Dfetch(d_accel_tex, iglob*3 + 2) + sum_terms3;
+#else
       d_accel[iglob*3]     += sum_terms1;
       d_accel[iglob*3 + 1] += sum_terms2;
       d_accel[iglob*3 + 2] += sum_terms3;
-#else
+#endif // USE_TEXTURES_FIELDS
+
+#else // MESH_COLORING
       //mesh coloring
       if( use_mesh_coloring_gpu ){
 
-       // no atomic operation needed, colors don't share global points between elements
+        // no atomic operation needed, colors don't share global points between elements
+        // d_accel[iglob*3]     += sum_terms1;
+        // d_accel[iglob*3 + 1] += sum_terms2;
+        // d_accel[iglob*3 + 2] += sum_terms3;
+#ifdef USE_TEXTURES_FIELDS
+        d_accel[iglob*3]     = tex1Dfetch(d_accel_tex, iglob*3) + sum_terms1;
+        d_accel[iglob*3 + 1] = tex1Dfetch(d_accel_tex, iglob*3 + 1) + sum_terms2;
+        d_accel[iglob*3 + 2] = tex1Dfetch(d_accel_tex, iglob*3 + 2) + sum_terms3;
+#else
         d_accel[iglob*3]     += sum_terms1;
         d_accel[iglob*3 + 1] += sum_terms2;
         d_accel[iglob*3 + 2] += sum_terms3;
+#endif // USE_TEXTURES_FIELDS
 
-      }else{
+      }
+      else {
 
         // for testing purposes only: w/out atomic updates
         //d_accel[iglob*3] -= (0.00000001f*tempx1l + 0.00000001f*tempx2l + 0.00000001f*tempx3l);
@@ -1041,10 +1197,10 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
         atomicAdd(&d_accel[iglob*3+1], sum_terms2);
         atomicAdd(&d_accel[iglob*3+2], sum_terms3);
 
-      }
-#endif
+      } // if(use_mesh_coloring_gpu)
 
-#endif
+#endif // MESH_COLORING
+
 
       // update memory variables based upon the Runge-Kutta scheme
       if( ATTENUATION ){
@@ -1068,14 +1224,9 @@ __global__ void Kernel_2_impl(int nb_blocks_to_compute,
         epsilondev_yz[ijk_ispec] = epsilondev_yz_loc;
       }
 
-    }
+    } // if(active)
 
-#else  // of #ifndef MAKE_KERNEL2_BECOME_STUPID_FOR_TESTS
-    d_accel[iglob] -= 0.00000001f;
-    d_accel[iglob + NGLOB] -= 0.00000001f;
-    d_accel[iglob + 2*NGLOB] -= 0.00000001f;
-#endif // of #ifndef MAKE_KERNEL2_BECOME_STUPID_FOR_TESTS
-}
+} // kernel_2_impl()
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -1167,7 +1318,7 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
   // cudaEventCreate(&stop);
   // cudaEventRecord( start, 0 );
 
-  Kernel_2_impl<<<grid,threads>>>(nb_blocks_to_compute,
+  Kernel_2_impl<<<grid,threads,0,mp->compute_stream>>>(nb_blocks_to_compute,
                                   mp->NGLOB_AB,
                                   d_ibool,
                                   mp->d_phase_ispec_inner_elastic,
@@ -1222,7 +1373,7 @@ void Kernel_2(int nb_blocks_to_compute,Mesh* mp,int d_iphase,
 
 
   if(SIMULATION_TYPE == 3) {
-    Kernel_2_impl<<< grid,threads>>>(nb_blocks_to_compute,
+    Kernel_2_impl<<< grid,threads,0,mp->compute_stream>>>(nb_blocks_to_compute,
                                      mp->NGLOB_AB,
                                      d_ibool,
                                      mp->d_phase_ispec_inner_elastic,
@@ -1500,6 +1651,33 @@ void FC_FUNC_(compute_forces_elastic_cuda,
              mp->d_c66store,
              mp->d_rhostore);
   }
+
+  // Wait until async-memcpy of outer elements is finished and start MPI.
+  if(*iphase==2) {
+    cudaStreamSynchronize(mp->copy_stream);
+
+    // There have been problems using the pinned-memory with MPI, so
+    // we copy the buffer into a non-pinned region.
+    memcpy(mp->send_buffer,mp->h_send_accel_buffer,
+           mp->size_mpi_send_buffer*sizeof(float));
+
+    // memory copy is now finished, so non-blocking MPI send can proceed
+    // MPI based halo exchange
+
+    assemble_mpi_vector_send_cuda_(&(mp->NPROCS),
+                                   mp->send_buffer, /* "regular" memory */
+                                   // mp->h_send_accel_buffer, /* pinned memory **CRASH** */
+                                   mp->buffer_recv_vector_ext_mesh,
+                                   &mp->num_interfaces_ext_mesh,
+                                   &mp->max_nibool_interfaces_ext_mesh,
+                                   mp->nibool_interfaces_ext_mesh,
+                                   mp->my_neighbours_ext_mesh,
+                                   mp->request_send_vector_ext_mesh,
+                                   mp->request_recv_vector_ext_mesh);
+
+    // Decided to keep launching kernels and to wait for MPI & do memcpy while other kernels launch.
+    // cudaDeviceSynchronize();
+  }
 }
 
 
@@ -1519,6 +1697,10 @@ __global__ void kernel_3_cuda_device(realw* veloc,
   /* because of block and grid sizing problems, there is a small */
   /* amount of buffer at the end of the calculation */
   if(id < size) {
+    realw new_accel = accel[id] * rmass[id / 3];
+    veloc[id] += deltatover2 * new_accel;
+    accel[id] = new_accel;
+/*
     accel[3*id] = accel[3*id]*rmass[id];
     accel[3*id+1] = accel[3*id+1]*rmass[id];
     accel[3*id+2] = accel[3*id+2]*rmass[id];
@@ -1526,6 +1708,7 @@ __global__ void kernel_3_cuda_device(realw* veloc,
     veloc[3*id] = veloc[3*id] + deltatover2*accel[3*id];
     veloc[3*id+1] = veloc[3*id+1] + deltatover2*accel[3*id+1];
     veloc[3*id+2] = veloc[3*id+2] + deltatover2*accel[3*id+2];
+*/
   }
 }
 
@@ -1539,9 +1722,12 @@ __global__ void kernel_3_accel_cuda_device(realw* accel,
   /* because of block and grid sizing problems, there is a small */
   /* amount of buffer at the end of the calculation */
   if(id < size) {
+    accel[id] *= rmass[id / 3];
+/*
     accel[3*id] = accel[3*id]*rmass[id];
     accel[3*id+1] = accel[3*id+1]*rmass[id];
     accel[3*id+2] = accel[3*id+2]*rmass[id];
+*/
   }
 }
 
@@ -1575,7 +1761,8 @@ void FC_FUNC_(kernel_3_a_cuda,
 TRACE("kernel_3_a_cuda");
 
    Mesh* mp = (Mesh*)(*Mesh_pointer); // get Mesh from fortran integer wrapper
-   int size = *size_F;
+   //int size = *size_F;
+   int size = *size_F * 3;
    int SIMULATION_TYPE = *SIMULATION_TYPE_f;
    realw deltatover2 = *deltatover2_F;
    realw b_deltatover2 = *b_deltatover2_F;
@@ -1596,17 +1783,17 @@ TRACE("kernel_3_a_cuda");
    // check whether we can update accel and veloc, or only accel at this point
    if( *OCEANS == 0 ){
      // updates both, accel and veloc
-     kernel_3_cuda_device<<< grid, threads>>>(mp->d_veloc, mp->d_accel, size, deltatover2, mp->d_rmass);
+     kernel_3_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_veloc, mp->d_accel, size, deltatover2, mp->d_rmass);
 
      if(SIMULATION_TYPE == 3) {
-       kernel_3_cuda_device<<< grid, threads>>>(mp->d_b_veloc, mp->d_b_accel, size, b_deltatover2,mp->d_rmass);
+       kernel_3_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_b_veloc, mp->d_b_accel, size, b_deltatover2,mp->d_rmass);
      }
    }else{
      // updates only accel
-     kernel_3_accel_cuda_device<<< grid, threads>>>(mp->d_accel, size, mp->d_rmass);
+     kernel_3_accel_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_accel, size, mp->d_rmass);
 
      if(SIMULATION_TYPE == 3) {
-       kernel_3_accel_cuda_device<<< grid, threads>>>(mp->d_b_accel, size, mp->d_rmass);
+       kernel_3_accel_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_b_accel, size, mp->d_rmass);
      }
    }
 
@@ -1647,10 +1834,10 @@ void FC_FUNC_(kernel_3_b_cuda,
   dim3 threads(blocksize,1,1);
 
   // updates only veloc at this point
-  kernel_3_veloc_cuda_device<<< grid, threads>>>(mp->d_veloc,mp->d_accel,size,deltatover2);
+  kernel_3_veloc_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_veloc,mp->d_accel,size,deltatover2);
 
   if(SIMULATION_TYPE == 3) {
-    kernel_3_veloc_cuda_device<<< grid, threads>>>(mp->d_b_veloc,mp->d_b_accel,size,b_deltatover2);
+    kernel_3_veloc_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_b_veloc,mp->d_b_accel,size,b_deltatover2);
   }
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
@@ -1760,7 +1947,7 @@ void FC_FUNC_(elastic_ocean_load_cuda,
   exit_on_cuda_error("before kernel elastic_ocean_load_cuda");
 #endif
 
-  elastic_ocean_load_cuda_kernel<<<grid,threads>>>(mp->d_accel,
+  elastic_ocean_load_cuda_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel,
                                                    mp->d_rmass,
                                                    mp->d_rmass_ocean_load,
                                                    mp->num_free_surface_faces,
@@ -1775,7 +1962,7 @@ void FC_FUNC_(elastic_ocean_load_cuda,
     print_CUDA_error_if_any(cudaMemset(mp->d_updated_dof_ocean_load,0,
                                        sizeof(int)*mp->NGLOB_AB),88502);
 
-    elastic_ocean_load_cuda_kernel<<<grid,threads>>>(mp->d_b_accel,
+    elastic_ocean_load_cuda_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_accel,
                                                      mp->d_rmass,
                                                      mp->d_rmass_ocean_load,
                                                      mp->num_free_surface_faces,
@@ -1837,41 +2024,41 @@ void setConst_hprime_xx(realw* array,Mesh* mp)
   }
 }
 
-void setConst_hprime_yy(realw* array,Mesh* mp)
-{
+// void setConst_hprime_yy(realw* array,Mesh* mp)
+// {
 
-  cudaError_t err = cudaMemcpyToSymbol(d_hprime_yy, array, NGLL2*sizeof(realw));
-  if (err != cudaSuccess)
-  {
-    fprintf(stderr, "Error in setConst_hprime_yy: %s\n", cudaGetErrorString(err));
-    fprintf(stderr, "The problem is maybe -arch sm_13 instead of -arch sm_11 in the Makefile, please doublecheck\n");
-    exit(1);
-  }
+//   cudaError_t err = cudaMemcpyToSymbol(d_hprime_yy, array, NGLL2*sizeof(realw));
+//   if (err != cudaSuccess)
+//   {
+//     fprintf(stderr, "Error in setConst_hprime_yy: %s\n", cudaGetErrorString(err));
+//     fprintf(stderr, "The problem is maybe -arch sm_13 instead of -arch sm_11 in the Makefile, please doublecheck\n");
+//     exit(1);
+//   }
 
-  err = cudaGetSymbolAddress((void**)&(mp->d_hprime_yy),"d_hprime_yy");
-  if(err != cudaSuccess) {
-    fprintf(stderr, "Error with d_hprime_yy: %s\n", cudaGetErrorString(err));
-    exit(1);
-  }
-}
+//   err = cudaGetSymbolAddress((void**)&(mp->d_hprime_yy),"d_hprime_yy");
+//   if(err != cudaSuccess) {
+//     fprintf(stderr, "Error with d_hprime_yy: %s\n", cudaGetErrorString(err));
+//     exit(1);
+//   }
+// }
 
-void setConst_hprime_zz(realw* array,Mesh* mp)
-{
+// void setConst_hprime_zz(realw* array,Mesh* mp)
+// {
 
-  cudaError_t err = cudaMemcpyToSymbol(d_hprime_zz, array, NGLL2*sizeof(realw));
-  if (err != cudaSuccess)
-  {
-    fprintf(stderr, "Error in setConst_hprime_zz: %s\n", cudaGetErrorString(err));
-    fprintf(stderr, "The problem is maybe -arch sm_13 instead of -arch sm_11 in the Makefile, please doublecheck\n");
-    exit(1);
-  }
+//   cudaError_t err = cudaMemcpyToSymbol(d_hprime_zz, array, NGLL2*sizeof(realw));
+//   if (err != cudaSuccess)
+//   {
+//     fprintf(stderr, "Error in setConst_hprime_zz: %s\n", cudaGetErrorString(err));
+//     fprintf(stderr, "The problem is maybe -arch sm_13 instead of -arch sm_11 in the Makefile, please doublecheck\n");
+//     exit(1);
+//   }
 
-  err = cudaGetSymbolAddress((void**)&(mp->d_hprime_zz),"d_hprime_zz");
-  if(err != cudaSuccess) {
-    fprintf(stderr, "Error with d_hprime_zz: %s\n", cudaGetErrorString(err));
-    exit(1);
-  }
-}
+//   err = cudaGetSymbolAddress((void**)&(mp->d_hprime_zz),"d_hprime_zz");
+//   if(err != cudaSuccess) {
+//     fprintf(stderr, "Error with d_hprime_zz: %s\n", cudaGetErrorString(err));
+//     exit(1);
+//   }
+// }
 
 
 void setConst_hprimewgll_xx(realw* array,Mesh* mp)
@@ -1989,4 +2176,3 @@ void setConst_wgll_cube(realw* array,Mesh* mp)
   }
 
 }
-

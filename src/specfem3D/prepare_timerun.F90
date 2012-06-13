@@ -884,7 +884,7 @@
   endif
 
   ! initializes GPU and outputs info to files for all processes
-  call prepare_cuda_device(myrank,ncuda_devices)
+  call prepare_cuda_device(myrank,NPROC,ncuda_devices)
 
   ! collects min/max of local devices found for statistics
   call sync_all()
@@ -913,7 +913,11 @@
                                   nrec, nrec_local, &
                                   SIMULATION_TYPE, &
                                   USE_MESH_COLORING_GPU, &
-                                  nspec_acoustic,nspec_elastic)
+                                  nspec_acoustic,nspec_elastic,&
+                                  my_neighbours_ext_mesh,&
+                                  request_send_vector_ext_mesh,&
+                                  request_recv_vector_ext_mesh,&
+                                  buffer_recv_vector_ext_mesh)
 
 
   ! prepares fields on GPU for acoustic simulations

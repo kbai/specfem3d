@@ -120,14 +120,23 @@ typedef float reald;
 // leads up to ~ 5% performance increase
 //#define USE_MESH_COLORING_GPU
 
-// use textures for d_displ and d_accel -- 10% performance boost
+// Texture memory usage:
+// requires CUDA version >= 4.0, see check below
+// Use textures for d_displ and d_accel -- 10% performance boost
 #define USE_TEXTURES_FIELDS
-
+//
 // Using texture memory for the hprime-style constants is slower on
 // Fermi generation hardware, but *may* be faster on Kepler
 // generation.
-/* Use textures for hprime_xx */
-/* #define USE_TEXTURES_CONSTANTS */
+// Use textures for hprime_xx
+//#define USE_TEXTURES_CONSTANTS
+
+// CUDA version >= 4.0 needed for cudaTextureType1D and cudaDeviceSynchronize()
+#if CUDA_VERSION < 4000
+#undef USE_TEXTURES_FIELDS
+#undef USE_TEXTURES_CONSTANTS
+#endif
+
 
 // (optional) unrolling loops
 // leads up to ~1% performance increase

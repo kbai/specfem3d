@@ -874,22 +874,13 @@
 
   implicit none
   real :: free_mb,used_mb,total_mb
-  integer :: ncuda_devices,ncuda_devices_min,ncuda_devices_max
 
   ! GPU_MODE now defined in Par_file
   if(myrank == 0 ) then
     write(IMAIN,*)
-    write(IMAIN,*) "GPU_MODE Active. Preparing Fields and Constants on Device."
+    write(IMAIN,*) "GPU Preparing Fields and Constants on Device."
     write(IMAIN,*)
   endif
-
-  ! initializes GPU and outputs info to files for all processes
-  call prepare_cuda_device(myrank,NPROC,ncuda_devices)
-
-  ! collects min/max of local devices found for statistics
-  call sync_all()
-  call min_all_i(ncuda_devices,ncuda_devices_min)
-  call max_all_i(ncuda_devices,ncuda_devices_max)
 
   ! prepares general fields on GPU
   call prepare_constants_device(Mesh_pointer, &
@@ -985,6 +976,11 @@
 
   endif
 
+  ! prepares fields on GPU for poroelastic simulations
+  if( POROELASTIC_SIMULATION ) then
+    stop 'todo poroelastic simulations on GPU'
+  endif
+
   ! prepares needed receiver array for adjoint runs
   if( SIMULATION_TYPE == 2 .or. SIMULATION_TYPE == 3 ) &
     call prepare_sim2_or_3_const_device(Mesh_pointer, &
@@ -1038,11 +1034,8 @@
 
   ! outputs usage for main process
   if( myrank == 0 ) then
-    write(IMAIN,*)"  GPU number of devices per node: min =",ncuda_devices_min
-    write(IMAIN,*)"                                  max =",ncuda_devices_max
-    write(IMAIN,*)
-
     call get_free_device_memory(free_mb,used_mb,total_mb)
+    write(IMAIN,*)
     write(IMAIN,*)"  GPU usage: free  =",free_mb," MB",nint(free_mb/total_mb*100.0),"%"
     write(IMAIN,*)"             used  =",used_mb," MB",nint(used_mb/total_mb*100.0),"%"
     write(IMAIN,*)"             total =",total_mb," MB",nint(total_mb/total_mb*100.0),"%"

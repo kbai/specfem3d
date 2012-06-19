@@ -437,6 +437,8 @@
     write(IMAIN,'(a)',advance='yes') '  tomo'
     case( IMODEL_USER_EXTERNAL )
     write(IMAIN,'(a)',advance='yes') '  external'
+    case( IMODEL_IPATI )
+    write(IMAIN,'(a)',advance='yes') '  ipati'
     end select
 
     write(IMAIN,*)

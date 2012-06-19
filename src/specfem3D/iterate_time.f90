@@ -187,6 +187,12 @@
   ! norm of the backward displacement
   real(kind=CUSTOM_REAL) b_Usolidnorm, b_Usolidnorm_all
 
+  ! initializes
+  Usolidnorm_all = 0.0_CUSTOM_REAL
+  Usolidnormp_all = 0.0_CUSTOM_REAL
+  Usolidnorms_all = 0.0_CUSTOM_REAL
+  Usolidnormw_all = 0.0_CUSTOM_REAL
+
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 !chris: Rewrite to get norm for each material when coupled simulations
 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
@@ -199,6 +205,15 @@
     else
       Usolidnorm = maxval(sqrt(displ(1,:)**2 + displ(2,:)**2 + displ(3,:)**2))
     endif
+
+    ! check stability of the code, exit if unstable
+    ! negative values can occur with some compilers when the unstable value is greater
+    ! than the greatest possible floating-point number of the machine
+    if(Usolidnorm > STABILITY_THRESHOLD .or. Usolidnorm < 0) &
+      call exit_MPI(myrank,'forward simulation became unstable and blew up')
+
+    ! compute the maximum of the maxima for all the slices using an MPI reduction
+    call max_all_cr(Usolidnorm,Usolidnorm_all)
   endif
 
   if( ACOUSTIC_SIMULATION ) then
@@ -208,6 +223,9 @@
     else
       Usolidnormp = maxval(abs(potential_dot_dot_acoustic(:)))
     endif
+
+    ! compute the maximum of the maxima for all the slices using an MPI reduction
+    call max_all_cr(Usolidnormp,Usolidnormp_all)
   endif
 
   if( POROELASTIC_SIMULATION ) then
@@ -215,18 +233,12 @@
                              displs_poroelastic(3,:)**2))
     Usolidnormw = maxval(sqrt(displw_poroelastic(1,:)**2 + displw_poroelastic(2,:)**2 + &
                              displw_poroelastic(3,:)**2))
-  endif
-  ! check stability of the code, exit if unstable
-  ! negative values can occur with some compilers when the unstable value is greater
-  ! than the greatest possible floating-point number of the machine
-  if(Usolidnorm > STABILITY_THRESHOLD .or. Usolidnorm < 0) &
-    call exit_MPI(myrank,'forward simulation became unstable and blew up')
 
-  ! compute the maximum of the maxima for all the slices using an MPI reduction
-  call max_all_cr(Usolidnorm,Usolidnorm_all)
-  call max_all_cr(Usolidnormp,Usolidnormp_all)
-  call max_all_cr(Usolidnorms,Usolidnorms_all)
-  call max_all_cr(Usolidnormw,Usolidnormw_all)
+    ! compute the maximum of the maxima for all the slices using an MPI reduction
+    call max_all_cr(Usolidnorms,Usolidnorms_all)
+    call max_all_cr(Usolidnormw,Usolidnormw_all)
+  endif
+
 
   ! adjoint simulations
   if( SIMULATION_TYPE == 3 ) then
@@ -353,14 +365,14 @@
     ! check stability of the code, exit if unstable
     ! negative values can occur with some compilers when the unstable value is greater
     ! than the greatest possible floating-point number of the machine
-    if(Usolidnorm_all > STABILITY_THRESHOLD .or. Usolidnorm_all < 0 &
-     .or. Usolidnormp_all > STABILITY_THRESHOLD .or. Usolidnormp_all < 0 &
-     .or. Usolidnorms_all > STABILITY_THRESHOLD .or. Usolidnorms_all < 0 &
-     .or. Usolidnormw_all > STABILITY_THRESHOLD .or. Usolidnormw_all < 0) &
+    if(Usolidnorm_all > STABILITY_THRESHOLD .or. Usolidnorm_all < 0.0 &
+     .or. Usolidnormp_all > STABILITY_THRESHOLD .or. Usolidnormp_all < 0.0 &
+     .or. Usolidnorms_all > STABILITY_THRESHOLD .or. Usolidnorms_all < 0.0 &
+     .or. Usolidnormw_all > STABILITY_THRESHOLD .or. Usolidnormw_all < 0.0) &
         call exit_MPI(myrank,'forward simulation became unstable and blew up')
     ! adjoint simulations
     if(SIMULATION_TYPE == 3 .and. (b_Usolidnorm_all > STABILITY_THRESHOLD &
-      .or. b_Usolidnorm_all < 0)) &
+      .or. b_Usolidnorm_all < 0.0)) &
         call exit_MPI(myrank,'backward simulation became unstable and blew up')
 
   endif ! myrank

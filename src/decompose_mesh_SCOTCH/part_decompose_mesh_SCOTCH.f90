@@ -1385,12 +1385,11 @@ contains
                         nb_materials, num_material, mat_prop, &
                         sup_neighbour, nsize, &
                         nproc, part)
-                        !nproc, part, nfaces_coupled, faces_coupled)
 
     implicit none
 
-    integer,intent(in) :: nspec
-    integer, intent(in)  :: nnodes, nproc, nb_materials
+    integer, intent(in) :: nspec
+    integer, intent(in) :: nnodes, nproc, nb_materials
     integer, intent(in) :: sup_neighbour
     integer, intent(in) :: nsize
 
@@ -1401,10 +1400,9 @@ contains
     integer, dimension(0:nspec-1)  :: part
     integer, dimension(0:esize*nspec-1)  :: elmnts
 
+    ! local parameters
     integer  :: nfaces_coupled
-    !integer, intent(out)  :: nfaces_coupled
     integer, dimension(:,:), pointer  :: faces_coupled
-
 
     logical, dimension(nb_materials)  :: is_poroelastic, is_elastic
 
@@ -1432,8 +1430,8 @@ contains
     enddo
 
     ! checks if any poroelastic/elastic elements are set
-    !if( .not. any(is_poroelastic) ) return
-    !if( .not. any(is_elastic) ) return
+    if( .not. any(is_poroelastic) ) return
+    if( .not. any(is_elastic) ) return
 
     ! gets neighbors by 4 common nodes (face)
     allocate(xadj(0:nspec),stat=ier)
@@ -1464,6 +1462,7 @@ contains
     ! coupled elements
     allocate(faces_coupled(2,nfaces_coupled),stat=ier)
     if( ier /= 0 ) stop 'error allocating array faces_coupled'
+    faces_coupled(:,:) = -1
 
     ! stores elements indices
     nfaces_coupled = 0
@@ -1497,7 +1496,10 @@ contains
        endif
     enddo
 
- end subroutine poro_elastic_repartitioning
+    deallocate(xadj,adjncy,nnodes_elmnts,nodes_elmnts)
+    deallocate(faces_coupled)
+
+  end subroutine poro_elastic_repartitioning
 
   !--------------------------------------------------
   ! Repartitioning : two coupled moho surface elements are transfered to the same partition
@@ -1627,6 +1629,7 @@ contains
     ! coupled elements
     allocate(faces_coupled(2,nfaces_coupled),stat=ier)
     if( ier /= 0 ) stop 'error allocating array faces_coupled'
+    faces_coupled(:,:) = -1
 
     ! stores elements indices
     nfaces_coupled = 0
@@ -1660,6 +1663,10 @@ contains
           exit
        endif
     enddo
+
+    deallocate(is_moho,node_is_moho)
+    deallocate(xadj,adjncy,nnodes_elmnts,nodes_elmnts)
+    deallocate(faces_coupled)
 
  end subroutine moho_surface_repartitioning
 

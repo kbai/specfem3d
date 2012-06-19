@@ -77,8 +77,9 @@
 !!-----------------------------------------------------------
 ! ouput format of seismograms, ASCII or binary
   logical, parameter :: SEISMOGRAMS_BINARY = .false.
+
 ! output format of seismograms, Seismic Unix (binary with 240-byte-headers)
-  logical, parameter :: SU_FORMAT=.false.
+  logical, parameter :: SU_FORMAT = .false.
 
 ! input, output and main MPI I/O files
   integer, parameter :: ISTANDARD_OUTPUT = 6
@@ -256,7 +257,7 @@
 
 ! add mesh coloring for the GPU + MPI implementation
   logical, parameter :: USE_MESH_COLORING_GPU = .false.
-  integer, parameter :: MAX_NUMBER_OF_COLORS = 10000
+  integer, parameter :: MAX_NUMBER_OF_COLORS = 1000
 
 ! enhanced coloring:
 !
@@ -425,3 +426,4 @@
   integer, parameter :: IMODEL_GLL              = 7
   integer, parameter :: IMODEL_SALTON_TROUGH    = 8
   integer, parameter :: IMODEL_1D_PREM_PB       = 9
+  integer, parameter :: IMODEL_IPATI            = 10

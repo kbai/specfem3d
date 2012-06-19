@@ -243,17 +243,21 @@
     IMODEL = IMODEL_1D_CASCADIA
 
   ! user models
+  case( '1d_prem_pb' )
+    IMODEL = IMODEL_1D_PREM_PB
+  case( 'aniso' )
+    IMODEL = IMODEL_DEFAULT
+    ANISOTROPY = .true.
+  case( 'external' )
+    IMODEL = IMODEL_USER_EXTERNAL
+  case( 'ipati' )
+    IMODEL = IMODEL_IPATI
+  case( 'gll' )
+    IMODEL = IMODEL_GLL
   case( 'salton_trough')
     IMODEL = IMODEL_SALTON_TROUGH
   case( 'tomo' )
     IMODEL = IMODEL_TOMO
-  case( 'external' )
-    IMODEL = IMODEL_USER_EXTERNAL
-  case( 'aniso' )
-    IMODEL = IMODEL_DEFAULT
-    ANISOTROPY = .true.
-  case( '1d_prem_pb' )
-    IMODEL = IMODEL_1D_PREM_PB
 
   case default
     print*
@@ -263,6 +267,10 @@
     IMODEL = IMODEL_DEFAULT
   end select
 
+  ! check
+  if( IMODEL == IMODEL_IPATI ) then
+    if( USE_RICKER_IPATI .eqv. .false. ) stop 'please set USE_RICKER_IPATI to true in shared/constants.h and recompile'
+  endif
 
   end subroutine read_parameter_file
 

@@ -683,11 +683,12 @@
       model_speed_max = vsmax_glob
     endif
   endif
-  call bcast_all_cr(model_speed_max,1)
+  tmp_val(1) = model_speed_max
+  call bcast_all_cr(tmp_val,1)
+  model_speed_max = tmp_val(1)
 
   ! returns minimum period
   if( myrank == 0 ) min_resolved_period = pmax_glob
-
   tmp_val(1) = min_resolved_period
   call bcast_all_cr(tmp_val,1)
   min_resolved_period = tmp_val(1)

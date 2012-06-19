@@ -99,6 +99,7 @@ libgendatabases_a_OBJECTS = \
 	$O/model_aniso.o \
 	$O/model_default.o \
 	$O/model_external_values.o \
+	$O/model_ipati.o \
 	$O/model_gll.o \
 	$O/model_salton_trough.o \
 	$O/model_tomography.o \
@@ -227,6 +228,9 @@ $O/model_default.o:  ${SHARED}/constants.h model_default.f90
 
 $O/model_external_values.o:  ${SHARED}/constants.h model_external_values.f90
 	${FCCOMPILE_CHECK} -c -o $O/model_external_values.o model_external_values.f90
+
+$O/model_ipati.o:  ${SHARED}/constants.h model_ipati.f90
+	${FCCOMPILE_CHECK} -c -o $O/model_ipati.o model_ipati.f90
 
 $O/model_gll.o:  ${SHARED}/constants.h model_gll.f90
 	${FCCOMPILE_CHECK} -c -o $O/model_gll.o model_gll.f90

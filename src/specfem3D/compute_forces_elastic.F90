@@ -135,7 +135,7 @@ subroutine compute_forces_elastic()
               num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh,&
               request_recv_vector_ext_mesh)
       endif ! inner elements
-      
+
    endif ! GPU_MODE
 
 
@@ -247,8 +247,8 @@ subroutine compute_forces_elastic()
           ! MPI-send is done from within compute_forces_elastic_cuda,
           ! once the inner element kernels are launched, and the
           ! memcpy has finished. see compute_forces_elastic_cuda:1655
-          call transfer_boundary_from_device_asynchronously(Mesh_pointer,nspec_outer_elastic)
-                    
+          call transfer_boundary_from_device_a(Mesh_pointer,nspec_outer_elastic)
+
        endif ! GPU_MODE
 
        ! adjoint simulations

@@ -172,7 +172,7 @@
                                   nspec,nglob_dummy,ibool,xstore_dummy,ystore_dummy,zstore_dummy, &
                                   num_free_surface_faces,free_surface_ispec,free_surface_ijk)
 
-                    
+
   ! depth in Z-direction
   if( distmin < HUGEVAL ) then
     depth = elevation - z

@@ -499,6 +499,7 @@
       ! end of loop on all the spectral elements in current slice
       enddo
     else
+      ! SeismicUnix format
       ispec_selected_rec(irec) = 0
       ix_initial_guess(irec) = 0
       iy_initial_guess(irec) = 0

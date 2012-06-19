@@ -37,7 +37,6 @@
 #include "mesh_constants_cuda.h"
 // #include "epik_user.h"
 
-
 //  cuda constant arrays
 __device__ realw d_hprime_xx[NGLL2];
 
@@ -54,11 +53,14 @@ __device__ realw d_wgllwgll_yz[NGLL2];
 __constant__ realw d_wgll_cube[NGLL3]; // needed only for gravity case
 
 // prototype for the fortran function to do non-blocking mpi send
-extern "C" void assemble_mpi_vector_send_cuda_(void*,void*,void*,void*,void*,void*,void*,void*,void*);
+void FC_FUNC_(assemble_mpi_vector_send_cuda,
+              ASSEMBLE_MPI_VECTOR_SEND_CUDA)(void*,void*,void*,void*,void*,void*,void*,void*,void*);
+
 /* ----------------------------------------------------------------------------------------------- */
 
 // prepares a device array with with all inter-element edge-nodes -- this
 // is followed by a memcpy and MPI operations
+
 __global__ void prepare_boundary_accel_on_device(realw* d_accel, realw* d_send_accel_buffer,
                                                  int num_interfaces_ext_mesh,
                                                  int max_nibool_interfaces_ext_mesh,
@@ -151,9 +153,15 @@ TRACE("transfer_boun_accel_from_device");
 
 /* ----------------------------------------------------------------------------------------------- */
 
-extern "C" void FC_FUNC_(transfer_boundary_from_device_asynchronously,TRANSFER_BOUNDARY_FROM_DEVICE_ASYNCHRONOUSLY)(long* Mesh_pointer,int* nspec_outer_elastic) {
+extern "C"
+void FC_FUNC_(transfer_boundary_from_device_a,
+              TRANSFER_BOUNDARY_FROM_DEVICE_A)(long* Mesh_pointer,
+                                               int* nspec_outer_elastic) {
 
-  TRACE("transfer_boundary_from_device_asynchronously");
+// asynchronous transfer from device to host
+
+  TRACE("transfer_boundary_from_device_a");
+
   Mesh* mp = (Mesh*)(*Mesh_pointer); // get Mesh from fortran integer wrapper
 
   int num_blocks_x = *nspec_outer_elastic;
@@ -173,7 +181,11 @@ extern "C" void FC_FUNC_(transfer_boundary_from_device_asynchronously,TRANSFER_B
                                                                           mp->d_nibool_interfaces_ext_mesh,
                                                                           mp->d_ibool_interfaces_ext_mesh);
   // wait until kernel is finished before starting async memcpy
+#if CUDA_VERSION >= 4000
   cudaDeviceSynchronize();
+#else
+  cudaThreadSynchronize();
+#endif
 
   cudaMemcpyAsync(mp->h_send_accel_buffer,mp->d_send_accel_buffer,
                   3* mp->max_nibool_interfaces_ext_mesh* mp->num_interfaces_ext_mesh*sizeof(realw),
@@ -229,12 +241,15 @@ __global__ void assemble_boundary_accel_on_device(realw* d_accel, realw* d_send_
 /* ----------------------------------------------------------------------------------------------- */
 
 extern "C"
-void FC_FUNC_(transfer_boundary_to_device_asynchronously,TRANSFER_BOUNDARY_TO_DEVICE_ASYNCHRONOUSLY)(long* Mesh_pointer,
-                                                                           realw* buffer_recv_vector_ext_mesh,
-                                                                           int* num_interfaces_ext_mesh,
-                                                                           int* max_nibool_interfaces_ext_mesh) {
+void FC_FUNC_(transfer_boundary_to_device_a,
+              TRANSFER_BOUNDARY_TO_DEVICE_A)(long* Mesh_pointer,
+                                             realw* buffer_recv_vector_ext_mesh,
+                                             int* num_interfaces_ext_mesh,
+                                             int* max_nibool_interfaces_ext_mesh) {
 
-  TRACE("transfer_boundary_to_device_asynchronously");
+// asynchronous transfer from host to device
+
+  TRACE("transfer_boundary_to_device_a");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
 
@@ -1664,7 +1679,7 @@ void FC_FUNC_(compute_forces_elastic_cuda,
     // memory copy is now finished, so non-blocking MPI send can proceed
     // MPI based halo exchange
 
-    assemble_mpi_vector_send_cuda_(&(mp->NPROCS),
+    assemble_mpi_vector_send_cuda(&(mp->NPROCS),
                                    mp->send_buffer, /* "regular" memory */
                                    // mp->h_send_accel_buffer, /* pinned memory **CRASH** */
                                    mp->buffer_recv_vector_ext_mesh,

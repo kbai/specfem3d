@@ -114,6 +114,8 @@
     write(IMAIN,'(a)',advance='yes') '  tomo'
     case( IMODEL_USER_EXTERNAL )
     write(IMAIN,'(a)',advance='yes') '  external'
+    case( IMODEL_IPATI )
+    write(IMAIN,'(a)',advance='yes') '  ipati'
     end select
 
     write(IMAIN,*)
@@ -191,6 +193,9 @@
   ! initializes adjoint simulations
   call initialize_simulation_adjoint()
 
+  ! initializes GPU cards
+  if( GPU_MODE ) call initialize_GPU()
+
   end subroutine initialize_simulation
 
 !
@@ -239,22 +244,9 @@
       stop 'Deville et al. (2002) routines can only be used if NGLLX = NGLLY = NGLLZ is in [5-10]'
   endif
 
-  ! check for GPU runs
-  if( GPU_MODE ) then
-    if( NGLLX /= 5 .or. NGLLY /= 5 .or. NGLLZ /= 5 ) &
-      stop 'GPU mode can only be used if NGLLX == NGLLY == NGLLZ == 5'
-    if( CUSTOM_REAL /= 4 ) &
-      stop 'GPU mode runs only with CUSTOM_REAL == 4'
-    if( SAVE_MOHO_MESH ) &
-      stop 'GPU mode does not support SAVE_MOHO_MESH yet'
-    if( ATTENUATION ) then
-      if( N_SLS /= 3 ) &
-        stop 'GPU mode does not support N_SLS /= 3 yet'
-    endif
-  endif
+  ! gravity only on GPU supported
   if( .not. GPU_MODE .and. GRAVITY ) &
     stop 'GRAVITY only supported in GPU mode'
-
 
   ! absorbing surfaces
   if( ABSORBING_CONDITIONS ) then
@@ -301,6 +293,7 @@
   endif
 
   end subroutine initialize_simulation_check
+
 !
 !-------------------------------------------------------------------------------------------------
 !
@@ -341,3 +334,55 @@
   endif
 
   end subroutine initialize_simulation_adjoint
+
+!
+!-------------------------------------------------------------------------------------------------
+!
+
+  subroutine initialize_GPU()
+
+! initialization for GPU cards
+
+  use specfem_par
+  use specfem_par_elastic
+  use specfem_par_acoustic
+  use specfem_par_poroelastic
+  implicit none
+  integer :: ncuda_devices,ncuda_devices_min,ncuda_devices_max
+
+  ! GPU_MODE now defined in Par_file
+  if(myrank == 0 ) then
+    write(IMAIN,*)
+    write(IMAIN,*) "GPU_MODE Active."
+  endif
+
+  ! check for GPU runs
+  if( NGLLX /= 5 .or. NGLLY /= 5 .or. NGLLZ /= 5 ) &
+    stop 'GPU mode can only be used if NGLLX == NGLLY == NGLLZ == 5'
+  if( CUSTOM_REAL /= 4 ) &
+    stop 'GPU mode runs only with CUSTOM_REAL == 4'
+  if( SAVE_MOHO_MESH ) &
+    stop 'GPU mode does not support SAVE_MOHO_MESH yet'
+  if( ATTENUATION ) then
+    if( N_SLS /= 3 ) &
+      stop 'GPU mode does not support N_SLS /= 3 yet'
+  endif
+  if( POROELASTIC_SIMULATION ) then
+    stop 'poroelastic simulations on GPU not supported yet'
+  endif
+
+  ! initializes GPU and outputs info to files for all processes
+  call prepare_cuda_device(myrank,ncuda_devices)
+
+  ! collects min/max of local devices found for statistics
+  call sync_all()
+  call min_all_i(ncuda_devices,ncuda_devices_min)
+  call max_all_i(ncuda_devices,ncuda_devices_max)
+
+  if( myrank == 0 ) then
+    write(IMAIN,*)"  GPU number of devices per node: min =",ncuda_devices_min
+    write(IMAIN,*)"                                  max =",ncuda_devices_max
+    write(IMAIN,*)
+  endif
+
+  end subroutine initialize_GPU

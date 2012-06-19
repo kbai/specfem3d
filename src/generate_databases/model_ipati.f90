@@ -27,15 +27,13 @@
 
 !--------------------------------------------------------------------------------------------------
 !
-! GLL
+! IPATI
 !
-! based on modified GLL mesh output from mesher
-!
-! used for iterative inversion procedures
+! based on given rho and vp structure for GLL files
 !
 !--------------------------------------------------------------------------------------------------
 
-  subroutine model_gll(myrank,nspec,LOCAL_PATH)
+  subroutine model_ipati(myrank,nspec,LOCAL_PATH)
 
   use create_regions_mesh_ext_par
   implicit none
@@ -48,12 +46,24 @@
   integer :: ier
   character(len=256) :: prname_lp,filename
 
+  ! -----------------------------------------------------------------------------
+
+  ! note: vp not vs structure is available (as is often the case in exploration seismology),
+  ! scaling factor
+  real, parameter :: SCALING_FACTOR = 1.0/1.8
+
+  ! -----------------------------------------------------------------------------
+
+  ! user output
+  if (myrank==0) then
+    write(IMAIN,*)
+    write(IMAIN,*) 'using external IPATI model from:',trim(LOCAL_PATH)
+    write(IMAIN,*) 'scaling factor: ',SCALING_FACTOR
+    write(IMAIN,*)
+  endif
+
   ! processors name
   write(prname_lp,'(a,i6.6,a)') trim(LOCAL_PATH)//'proc',myrank,'_'
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!! if only vp structure is available (as is often the case in exploration seismology),
-  !!! use lines for vp only
 
   ! density
   allocate( rho_read(NGLLX,NGLLY,NGLLZ,nspec),stat=ier)
@@ -83,43 +93,14 @@
   read(28) vp_read
   close(28)
 
-  ! vs
+  ! vs scaled from vp
   allocate( vs_read(NGLLX,NGLLY,NGLLZ,nspec),stat=ier)
   if( ier /= 0 ) stop 'error allocating array vs_read'
 
-  filename = prname_lp(1:len_trim(prname_lp))//'vs.bin'
-  open(unit=28,file=trim(filename),status='old',action='read',form='unformatted',iostat=ier)
-  if( ier /= 0 ) then
-    print*,'error opening file: ',trim(filename)
-    stop 'error reading vs.bin file'
-  endif
+  ! scaling
+  vs_read = vp_read * SCALING_FACTOR
 
-  read(28) vs_read
-  close(28)
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!! in cases where density structure is not given
-  !!! modify according to your desire
-
-  !  rho_read = 1000.0
-  !  where ( mustore > 100.0 )  &
-  !           rho_read = (1.6612 * (vp_read / 1000.0)     &
-  !                      -0.4720 * (vp_read / 1000.0)**2  &
-  !                      +0.0671 * (vp_read / 1000.0)**3  &
-  !                      -0.0043 * (vp_read / 1000.0)**4  &
-  !                      +0.000106*(vp_read / 1000.0)**5 )*1000.0
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!! in cases where shear wavespeed structure is not given
-  !!! modify according to your desire
-
-  !   vs_read = 0.0
-  !   where ( mustore > 100.0 )       vs_read = vp_read / sqrt(3.0)
-
-  !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  !!! update arrays that will be saved and used in the solver xspecfem3D
-  !!! the following part is neccessary if you uncommented something above
-
+  ! isotropic model parameters
   rhostore    = rho_read
   kappastore  = rhostore * ( vp_read * vp_read - FOUR_THIRDS * vs_read * vs_read )
   mustore     = rhostore * vs_read * vs_read
@@ -129,4 +110,4 @@
   ! free memory
   deallocate( rho_read,vp_read,vs_read)
 
-  end subroutine model_gll
+  end subroutine model_ipati

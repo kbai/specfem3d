@@ -172,6 +172,7 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/compute_forces_acoustic_PML.o \
 	$O/compute_forces_elastic.o \
 	$O/compute_forces_elastic_Dev.o \
+	$O/compute_forces_elastic_Dev2.o \
 	$O/compute_forces_elastic_noDev.o \
 	$O/compute_forces_poroelastic.o \
 	$O/compute_forces_solid.o \

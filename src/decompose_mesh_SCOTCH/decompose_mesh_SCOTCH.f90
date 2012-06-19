@@ -683,6 +683,7 @@ module decompose_mesh_SCOTCH
     integer, dimension(:),allocatable  :: num_material
     integer :: ier
 
+    ! starts from 0
     elmnts(:,:) = elmnts(:,:) - 1
 
     ! determines maximum neighbors based on 1 common node
@@ -725,7 +726,7 @@ module decompose_mesh_SCOTCH
     call acoustic_elastic_poro_load(elmnts_load,nspec,count_def_mat,count_undef_mat, &
                                   num_material,mat_prop,undef_mat_prop)
 
-    deallocate(num_material)
+
 
     ! SCOTCH partitioning
 
@@ -811,25 +812,24 @@ module decompose_mesh_SCOTCH
        stop 'ERROR : MAIN : Cannot destroy strat'
     endif
 
-  ! re-partitioning puts poroelastic-elastic coupled elements into same partition
-  !  integer  :: nfaces_coupled
-  !  integer, dimension(:,:), pointer  :: faces_coupled
+    ! re-partitioning puts poroelastic-elastic coupled elements into same partition
+    !  integer  :: nfaces_coupled
+    !  integer, dimension(:,:), pointer  :: faces_coupled
 
     ! TODO: supposed to rebalance, but currently broken
-    ! call poro_elastic_repartitioning (nspec, nnodes, elmnts, &
-    ! count_def_mat, mat(1,:) , mat_prop, &
-    ! sup_neighbour, nsize, &
-    ! nparts, part)
+    call poro_elastic_repartitioning (nspec, nnodes, elmnts, &
+                     count_def_mat, num_material , mat_prop, &
+                     sup_neighbour, nsize, &
+                     nparts, part)
 
-    !nparts, part, nfaces_coupled, faces_coupled)
+    deallocate(num_material)
 
     ! re-partitioning puts moho-surface coupled elements into same partition
-    ! call moho_surface_repartitioning (nspec, nnodes, elmnts, &
-    ! sup_neighbour, nsize, nparts, part, &
-    ! nspec2D_moho,ibelm_moho,nodes_ibelm_moho )
+    call moho_surface_repartitioning (nspec, nnodes, elmnts, &
+                     sup_neighbour, nsize, nparts, part, &
+                     nspec2D_moho,ibelm_moho,nodes_ibelm_moho )
 
-
-  ! local number of each element for each partition
+    ! local number of each element for each partition
     call build_glob2loc_elmnts(nspec, part, glob2loc_elmnts,nparts)
 
     ! local number of each node for each partition
@@ -887,13 +887,13 @@ module decompose_mesh_SCOTCH
                                   glob2loc_nodes_nparts, glob2loc_nodes_parts, &
                                   glob2loc_nodes, nnodes, 1)
 
-
-
        call write_partition_database(IIN_database, ipart, nspec_local, nspec, elmnts, &
                                   glob2loc_elmnts, glob2loc_nodes_nparts, &
                                   glob2loc_nodes_parts, glob2loc_nodes, part, mat, ngnod, 1)
 
-       print*, ipart,": nspec_local=",nspec_local, " nnodes_local=", nnodes_loc
+       !debug
+       !print*, ipart,": nspec_local=",nspec_local, " nnodes_local=", nnodes_loc
+
        ! writes out node coordinate locations
        !write(IIN_database,*) nnodes_loc
        write(IIN_database) nnodes_loc

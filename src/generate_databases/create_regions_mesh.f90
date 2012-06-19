@@ -201,26 +201,6 @@
 !  integer,dimension(:),allocatable :: itest_flag
 !  integer, dimension(:), allocatable :: elem_flag
 
-! For Piero Basini :
-! integer :: doubling_value_found_for_Piero
-!   double precision :: xmesh,ymesh,zmesh
-!   double precision :: rho,vp,vs
-
-!   integer,dimension(nspec) ::  idoubling
-!   integer :: doubling_value_found_for_Piero
-!   integer, parameter :: NUMBER_OF_STATIONS = 6
-!   double precision, parameter :: RADIUS_TO_EXCLUDE = 250.d0
-!   double precision, dimension(NUMBER_OF_STATIONS) :: utm_x_station,utm_y_station
-
-!   logical :: is_around_a_station
-!   integer :: istation
-
-! ! store bedrock values
-!   integer ::  icornerlat,icornerlong
-!   double precision ::  lat,long,elevation_bedrock
-!   double precision ::  lat_corner,long_corner,ratio_xi,ratio_eta
-!real(kind=CUSTOM_REAL), dimension(:,:), allocatable :: ibedrock
-
 ! initializes arrays
   call sync_all()
   if( myrank == 0) then
@@ -230,7 +210,6 @@
   call crm_ext_allocate_arrays(nspec,LOCAL_PATH,myrank, &
                         nspec2D_xmin,nspec2D_xmax,nspec2D_ymin,nspec2D_ymax, &
                         nspec2D_bottom,nspec2D_top,ANISOTROPY)
-
 
 ! fills location and weights for Gauss-Lobatto-Legendre points, shape and derivations,
 ! returns jacobianstore,xixstore,...gammazstore
@@ -266,7 +245,6 @@
                         num_interfaces_ext_mesh,max_interface_size_ext_mesh,&
                         my_neighbours_ext_mesh,NPROC)
 
-
 ! sets up absorbing/free surface boundaries
   call sync_all()
   if( myrank == 0) then
@@ -280,28 +258,6 @@
                             nspec2D_xmin,nspec2D_xmax,nspec2D_ymin,nspec2D_ymax, &
                             nspec2D_bottom,nspec2D_top)
 
-! sets material velocities
-  call sync_all()
-  if( myrank == 0) then
-    write(IMAIN,*) '  ...determining velocity model'
-  endif
-  call get_model(myrank,nspec,ibool,mat_ext_mesh,nelmnts_ext_mesh, &
-                        materials_ext_mesh,nmat_ext_mesh, &
-                        undef_mat_prop,nundefMat_ext_mesh, &
-                        ANISOTROPY,LOCAL_PATH)
-
-
-! sets up acoustic-elastic-poroelastic coupling surfaces
-  call sync_all()
-  if( myrank == 0) then
-    write(IMAIN,*) '  ...detecting acoustic-elastic-poroelastic surfaces '
-  endif
-  call get_coupling_surfaces(myrank, &
-                        nspec,ibool,NPROC, &
-                        nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,&
-                        num_interfaces_ext_mesh,max_interface_size_ext_mesh, &
-                        my_neighbours_ext_mesh)
-
 ! sets up up Moho surface
   NSPEC2D_MOHO = 0
   if( SAVE_MOHO_MESH ) then
@@ -314,21 +270,26 @@
                       nodes_coords_ext_mesh,nnodes_ext_mesh,ibool )
   endif
 
-! creates mass matrix
+! sets material velocities
   call sync_all()
   if( myrank == 0) then
-    write(IMAIN,*) '  ...creating mass matrix '
+    write(IMAIN,*) '  ...determining velocity model'
   endif
-  call create_mass_matrices(nglob_dummy,nspec,ibool)
+  call get_model(myrank,nspec,ibool,mat_ext_mesh,nelmnts_ext_mesh, &
+                        materials_ext_mesh,nmat_ext_mesh, &
+                        undef_mat_prop,nundefMat_ext_mesh, &
+                        ANISOTROPY)
 
-! creates ocean load mass matrix
+! sets up acoustic-elastic-poroelastic coupling surfaces
   call sync_all()
   if( myrank == 0) then
-    write(IMAIN,*) '  ...creating ocean load mass matrix '
+    write(IMAIN,*) '  ...detecting acoustic-elastic-poroelastic surfaces '
   endif
-  call create_mass_matrices_ocean_load(nglob_dummy,nspec,ibool,OCEANS,TOPOGRAPHY, &
-                                      UTM_PROJECTION_ZONE,SUPPRESS_UTM_PROJECTION, &
-                                      NX_TOPO,NY_TOPO,itopo_bathy)
+  call get_coupling_surfaces(myrank, &
+                        nspec,ibool,NPROC, &
+                        nibool_interfaces_ext_mesh,ibool_interfaces_ext_mesh,&
+                        num_interfaces_ext_mesh,max_interface_size_ext_mesh, &
+                        my_neighbours_ext_mesh)
 
 ! locates inner and outer elements
   call sync_all()
@@ -347,6 +308,26 @@
   endif
   call crm_setup_color_perm(myrank,nspec,nglob,ibool,ANISOTROPY,SAVE_MESH_FILES)
 
+! overwrites material parameters from external binary files
+  call sync_all()
+  call get_model_binaries(myrank,nspec,LOCAL_PATH)
+
+! creates mass matrix
+  call sync_all()
+  if( myrank == 0) then
+    write(IMAIN,*) '  ...creating mass matrix '
+  endif
+  call create_mass_matrices(nglob_dummy,nspec,ibool)
+
+! creates ocean load mass matrix
+  call sync_all()
+  if( myrank == 0) then
+    write(IMAIN,*) '  ...creating ocean load mass matrix '
+  endif
+  call create_mass_matrices_ocean_load(nglob_dummy,nspec,ibool,OCEANS,TOPOGRAPHY, &
+                                      UTM_PROJECTION_ZONE,SUPPRESS_UTM_PROJECTION, &
+                                      NX_TOPO,NY_TOPO,itopo_bathy)
+
 ! saves the binary mesh files
   call sync_all()
   if( myrank == 0) then
@@ -354,48 +335,52 @@
   endif
   !call create_name_database(prname,myrank,LOCAL_PATH)
   call save_arrays_solver_ext_mesh(nspec,nglob_dummy, &
-                        xixstore,xiystore,xizstore,etaxstore,etaystore,etazstore,&
-                        gammaxstore,gammaystore,gammazstore, &
-                        jacobianstore, rho_vp,rho_vs,qmu_attenuation_store, &
-                        rhostore,kappastore,mustore, &
-                        rhoarraystore,kappaarraystore,etastore,phistore,tortstore,permstore, &
-                        rho_vpI,rho_vpII,rho_vsI, &
-                        rmass,rmass_acoustic,rmass_solid_poroelastic,rmass_fluid_poroelastic, &
-                        OCEANS,rmass_ocean_load,NGLOB_OCEAN, &
+!                        xixstore,xiystore,xizstore,etaxstore,etaystore,etazstore,&
+!                        gammaxstore,gammaystore,gammazstore, &
+!                        jacobianstore, rho_vp,rho_vs,qmu_attenuation_store, &
+!                        rhostore,kappastore,mustore, &
+!                        rhoarraystore,kappaarraystore,etastore,phistore,tortstore,permstore, &
+!                        rho_vpI,rho_vpII,rho_vsI, &
+!                        rmass,rmass_acoustic,rmass_solid_poroelastic,rmass_fluid_poroelastic, &
+                        OCEANS, &
+!                        rmass_ocean_load,NGLOB_OCEAN, &
                         ibool, &
-                        xstore_dummy,ystore_dummy,zstore_dummy, &
-                        abs_boundary_normal,abs_boundary_jacobian2Dw, &
-                        abs_boundary_ijk,abs_boundary_ispec,num_abs_boundary_faces, &
-                        free_surface_normal,free_surface_jacobian2Dw, &
-                        free_surface_ijk,free_surface_ispec, &
-                        num_free_surface_faces, &
-                        coupling_ac_el_normal,coupling_ac_el_jacobian2Dw, &
-                        coupling_ac_el_ijk,coupling_ac_el_ispec, &
-                        num_coupling_ac_el_faces, &
-                        coupling_ac_po_normal,coupling_ac_po_jacobian2Dw, &
-                        coupling_ac_po_ijk,coupling_ac_po_ispec, &
-                        num_coupling_ac_po_faces, &
-                        coupling_el_po_normal,coupling_el_po_jacobian2Dw, &
-                        coupling_el_po_ijk,coupling_po_el_ijk,coupling_el_po_ispec, &
-                        coupling_po_el_ispec,num_coupling_el_po_faces, &
+!                        xstore_dummy,ystore_dummy,zstore_dummy, &
+!                        abs_boundary_normal,abs_boundary_jacobian2Dw, &
+!                        abs_boundary_ijk,abs_boundary_ispec,num_abs_boundary_faces, &
+!                        free_surface_normal,free_surface_jacobian2Dw, &
+!                        free_surface_ijk,free_surface_ispec, &
+!                        num_free_surface_faces, &
+!                        coupling_ac_el_normal,coupling_ac_el_jacobian2Dw, &
+!                        coupling_ac_el_ijk,coupling_ac_el_ispec, &
+!                        num_coupling_ac_el_faces, &
+!                        coupling_ac_po_normal,coupling_ac_po_jacobian2Dw, &
+!                        coupling_ac_po_ijk,coupling_ac_po_ispec, &
+!                        num_coupling_ac_po_faces, &
+!                        coupling_el_po_normal,coupling_el_po_jacobian2Dw, &
+!                        coupling_el_po_ijk,coupling_po_el_ijk,coupling_el_po_ispec, &
+!                        coupling_po_el_ispec,num_coupling_el_po_faces, &
                         num_interfaces_ext_mesh,my_neighbours_ext_mesh,nibool_interfaces_ext_mesh, &
                         max_interface_size_ext_mesh,ibool_interfaces_ext_mesh, &
-                        prname,SAVE_MESH_FILES, &
-                        ANISOTROPY,NSPEC_ANISO, &
-                        c11store,c12store,c13store,c14store,c15store,c16store, &
-                        c22store,c23store,c24store,c25store,c26store,c33store, &
-                        c34store,c35store,c36store,c44store,c45store,c46store, &
-                        c55store,c56store,c66store, &
-                        ispec_is_acoustic,ispec_is_elastic,ispec_is_poroelastic, &
-                        ispec_is_inner,nspec_inner_acoustic,nspec_inner_elastic,nspec_inner_poroelastic, &
-                        nspec_outer_acoustic,nspec_outer_elastic,nspec_outer_poroelastic, &
-                        num_phase_ispec_acoustic,phase_ispec_inner_acoustic, &
-                        num_phase_ispec_elastic,phase_ispec_inner_elastic, &
-                        num_phase_ispec_poroelastic,phase_ispec_inner_poroelastic, &
-                        num_colors_outer_acoustic,num_colors_inner_acoustic, &
-                        num_elem_colors_acoustic, &
-                        num_colors_outer_elastic,num_colors_inner_elastic, &
-                        num_elem_colors_elastic)
+!                        prname, &
+                        SAVE_MESH_FILES, &
+                        ANISOTROPY &
+!                        NSPEC_ANISO, &
+!                        c11store,c12store,c13store,c14store,c15store,c16store, &
+!                        c22store,c23store,c24store,c25store,c26store,c33store, &
+!                        c34store,c35store,c36store,c44store,c45store,c46store, &
+!                        c55store,c56store,c66store, &
+!                        ispec_is_acoustic,ispec_is_elastic,ispec_is_poroelastic, &
+!                        ispec_is_inner,nspec_inner_acoustic,nspec_inner_elastic,nspec_inner_poroelastic, &
+!                        nspec_outer_acoustic,nspec_outer_elastic,nspec_outer_poroelastic, &
+!                        num_phase_ispec_acoustic,phase_ispec_inner_acoustic, &
+!                        num_phase_ispec_elastic,phase_ispec_inner_elastic, &
+!                        num_phase_ispec_poroelastic,phase_ispec_inner_poroelastic, &
+!                        num_colors_outer_acoustic,num_colors_inner_acoustic, &
+!                        num_elem_colors_acoustic, &
+!                        num_colors_outer_elastic,num_colors_inner_elastic, &
+!                        num_elem_colors_elastic, &
+                      )
 
 ! saves moho surface
   if( SAVE_MOHO_MESH ) then
@@ -410,12 +395,21 @@
 
 ! checks the mesh, stability and resolved period
   call sync_all()
-!chris: check for poro: At the moment cpI & cpII are for eta=0
-  call check_mesh_resolution_poro(myrank,nspec,nglob_dummy,ibool,&
+
+  if( POROELASTIC_SIMULATION ) then
+    !chris: check for poro: At the moment cpI & cpII are for eta=0
+    call check_mesh_resolution_poro(myrank,nspec,nglob_dummy,ibool,&
                             xstore_dummy,ystore_dummy,zstore_dummy, &
                             -1.0d0, model_speed_max,min_resolved_period, &
                             phistore,tortstore,rhoarraystore,rho_vpI,rho_vpII,rho_vsI, &
                             LOCAL_PATH,SAVE_MESH_FILES )
+  else
+    call check_mesh_resolution(myrank,nspec,nglob_dummy, &
+                              ibool,xstore_dummy,ystore_dummy,zstore_dummy, &
+                              kappastore,mustore,rho_vp,rho_vs, &
+                              -1.0d0,model_speed_max,min_resolved_period, &
+                              LOCAL_PATH,SAVE_MESH_FILES)
+  endif
 
 ! saves binary mesh files for attenuation
   if( ATTENUATION ) then
@@ -1188,6 +1182,8 @@ subroutine crm_ext_setup_indexing(ibool, &
   character(len=256) :: filename
   logical,dimension(:),allocatable :: iglob_is_inner
 
+  logical,parameter :: DEBUG = .false.
+
   ! allocates arrays
   allocate(ispec_is_inner(nspec),stat=ier)
   if( ier /= 0 ) stop 'error allocating array ispec_is_inner'
@@ -1221,7 +1217,7 @@ subroutine crm_ext_setup_indexing(ibool, &
   ! frees temporary array
   deallocate( iglob_is_inner )
 
-  if( SAVE_MESH_FILES ) then
+  if( SAVE_MESH_FILES .and. DEBUG ) then
     filename = prname(1:len_trim(prname))//'ispec_is_inner'
     call write_VTK_data_elem_l(nspec,nglob_dummy, &
                         xstore_dummy,ystore_dummy,zstore_dummy,ibool, &
@@ -1513,6 +1509,8 @@ subroutine crm_ext_setup_indexing(ibool, &
   character(len=2),dimension(2) :: str_domain = (/ "ac", "el" /)
   character(len=256) :: filename
 
+  logical, parameter :: DEBUG = .false.
+
   !!!! David Michea: detection of the edges, coloring and permutation separately
 
   ! implement mesh coloring for GPUs if needed, to create subsets of disconnected elements
@@ -1576,7 +1574,7 @@ subroutine crm_ext_setup_indexing(ibool, &
   endif
 
   ! debug: file output
-  if( SAVE_MESH_FILES ) then
+  if( SAVE_MESH_FILES .and. DEBUG ) then
     filename = prname(1:len_trim(prname))//'color_'//str_domain(idomain)
     call write_VTK_data_elem_i(nspec,nglob, &
                               xstore_dummy,ystore_dummy,zstore_dummy,ibool, &
@@ -1588,7 +1586,7 @@ subroutine crm_ext_setup_indexing(ibool, &
   deallocate(color)
 
   ! debug: no mesh coloring, only creates dummy coloring arrays
-  if( .false. ) then
+  if( DEBUG ) then
     nb_colors_outer_elements = 0
     nb_colors_inner_elements = 0
     ispec_counter = 0
@@ -1631,7 +1629,7 @@ subroutine crm_ext_setup_indexing(ibool, &
   endif ! debug
 
   ! debug: saves mesh coloring numbers into files
-  if( SAVE_MESH_FILES ) then
+  if( DEBUG ) then
     ! debug file output
     filename = prname(1:len_trim(prname))//'num_of_elems_in_this_color_'//str_domain(idomain)//'.dat'
     open(unit=99,file=trim(filename),status='unknown',iostat=ier)
@@ -1732,12 +1730,12 @@ subroutine crm_ext_setup_indexing(ibool, &
   endif
 
   ! debug: outputs permutation array as vtk file
-  !if( SAVE_MESH_FILES ) then
-  !  filename = prname(1:len_trim(prname))//'perm_'//str_domain(idomain)
-  !  call write_VTK_data_elem_i(nspec,nglob, &
-  !                      xstore_dummy,ystore_dummy,zstore_dummy,ibool, &
-  !                      perm,filename)
-  !endif
+  if( DEBUG ) then
+    filename = prname(1:len_trim(prname))//'perm_'//str_domain(idomain)
+    call write_VTK_data_elem_i(nspec,nglob, &
+                        xstore_dummy,ystore_dummy,zstore_dummy,ibool, &
+                        perm,filename)
+  endif
 
   deallocate(num_of_elems_in_this_color)
 
@@ -1775,6 +1773,8 @@ subroutine crm_ext_setup_indexing(ibool, &
   integer :: iface,old_ispec,new_ispec
 
   character(len=256) :: filename
+
+  logical,parameter :: DEBUG = .false.
 
   ! sorts array according to permutation
   allocate(temp_perm_global(nspec),stat=ier)
@@ -1894,7 +1894,7 @@ subroutine crm_ext_setup_indexing(ibool, &
   endif
 
   ! outputs permutation array as vtk file
-  if( SAVE_MESH_FILES ) then
+  if( SAVE_MESH_FILES .and. DEBUG ) then
     filename = prname(1:len_trim(prname))//'perm_global'
     call write_VTK_data_elem_i(nspec,nglob, &
                         xstore_dummy,ystore_dummy,zstore_dummy,ibool, &
@@ -1933,6 +1933,7 @@ subroutine crm_ext_setup_indexing(ibool, &
   call permute_elements_real(gammazstore,temp_array_real,perm,nspec)
   call permute_elements_real(jacobianstore,temp_array_real,perm,nspec)
 
+  ! material parameters
   call permute_elements_real(kappastore,temp_array_real,perm,nspec)
   call permute_elements_real(mustore,temp_array_real,perm,nspec)
 
@@ -1970,6 +1971,11 @@ subroutine crm_ext_setup_indexing(ibool, &
   endif
   deallocate(temp_array_real)
 
+  ! poroelastic arrays
+  if( POROELASTIC_SIMULATION ) then
+    stop 'mesh permutation for poroelastic simulations not supported yet'
+  endif
+
   ! boundary surface
   if( num_abs_boundary_faces > 0 ) then
     do iface = 1,num_abs_boundary_faces
@@ -1994,6 +2000,25 @@ subroutine crm_ext_setup_indexing(ibool, &
       old_ispec = coupling_ac_el_ispec(iface)
       new_ispec = perm(old_ispec)
       coupling_ac_el_ispec(iface) = new_ispec
+    enddo
+  endif
+  if( num_coupling_ac_po_faces > 0 ) then
+    do iface = 1,num_coupling_ac_po_faces
+      old_ispec = coupling_ac_po_ispec(iface)
+      new_ispec = perm(old_ispec)
+      coupling_ac_po_ispec(iface) = new_ispec
+    enddo
+  endif
+  if( num_coupling_el_po_faces > 0 ) then
+    do iface = 1,num_coupling_el_po_faces
+      ! elastic-poroelastic
+      old_ispec = coupling_el_po_ispec(iface)
+      new_ispec = perm(old_ispec)
+      coupling_el_po_ispec(iface) = new_ispec
+      ! poroelastic-elastic
+      old_ispec = coupling_po_el_ispec(iface)
+      new_ispec = perm(old_ispec)
+      coupling_po_el_ispec(iface) = new_ispec
     enddo
   endif
 

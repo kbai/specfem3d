@@ -28,7 +28,7 @@
   subroutine get_model(myrank,nspec,ibool,mat_ext_mesh,nelmnts_ext_mesh, &
                         materials_ext_mesh,nmat_ext_mesh, &
                         undef_mat_prop,nundefMat_ext_mesh, &
-                        ANISOTROPY,LOCAL_PATH)
+                        ANISOTROPY)
 
   use generate_databases_par,only: IMODEL
   use create_regions_mesh_ext_par
@@ -51,8 +51,6 @@
   ! anisotropy
   logical :: ANISOTROPY
 
-  character(len=256) LOCAL_PATH
-
   ! local parameters
   real(kind=CUSTOM_REAL) :: vp,vs,rho,qmu_atten
   real(kind=CUSTOM_REAL) :: c11,c12,c13,c14,c15,c16,c22,c23,c24,c25, &
@@ -73,12 +71,18 @@
   double precision :: xmesh,ymesh,zmesh
   integer :: iglob
 
+  ! timing
+  double precision, external :: wtime
+  double precision :: time_start,tCPU
+
   ! initializes element domain flags
   ispec_is_acoustic(:) = .false.
   ispec_is_elastic(:) = .false.
   ispec_is_poroelastic(:) = .false.
 
-  print*,"nundefMat_ext_mesh:",nundefMat_ext_mesh
+  !debug
+  !print*,"nundefMat_ext_mesh:",nundefMat_ext_mesh
+
 ! prepares tomography model if needed for elements with undefined material definitions
   ! TODO: Max -- somehow this code is breaking when I try to run
   ! Piero's PREM
@@ -98,6 +102,8 @@
 ! in case, see file model_interface_bedrock.f90:
 !  call model_bedrock_broadcast(myrank)
 
+  ! get MPI starting time
+  time_start = wtime()
 
   ! material properties on all GLL points: taken from material values defined for
   ! each spectral element in input mesh
@@ -296,6 +302,17 @@
         enddo
       enddo
     enddo
+
+    ! user output
+    if(myrank == 0 ) then
+      if( mod(ispec,nspec/10) == 0 ) then
+        tCPU = wtime() - time_start
+        ! remaining
+        tCPU = (10.0-ispec/(nspec/10.0))/ispec/(nspec/10.0)*tCPU
+        write(IMAIN,*) "    ",ispec/(nspec/10) * 10," %", &
+                      " time remaining:", tCPU,"s"
+      endif
+    endif
   enddo
 
   ! checks material domains
@@ -323,16 +340,6 @@
       stop 'error material domain index element'
     endif
   enddo
-
-  ! GLL model
-  ! variables for importing models from files in SPECFEM format, e.g.,  proc000000_vp.bin etc.
-  ! can be used for importing updated model in iterative inversions
-  if( IMODEL == IMODEL_GLL ) then
-    ! note:
-    ! import the model from files in SPECFEM format
-    ! note that those those files should be saved in LOCAL_PATH
-    call model_gll(myrank,nspec,LOCAL_PATH)
-  endif
 
   end subroutine get_model
 
@@ -393,7 +400,7 @@
   ! selects chosen velocity model
   select case( IMODEL )
 
-  case( IMODEL_DEFAULT, IMODEL_GLL )
+  case( IMODEL_DEFAULT,IMODEL_GLL,IMODEL_IPATI )
     ! material values determined by mesh properties
     call model_default(materials_ext_mesh,nmat_ext_mesh, &
                           undef_mat_prop,nundefMat_ext_mesh, &
@@ -459,3 +466,39 @@
   endif
 
   end subroutine get_model_values
+
+!
+!-------------------------------------------------------------------------------------------------
+!
+
+  subroutine get_model_binaries(myrank,nspec,LOCAL_PATH)
+
+! reads in material parameters from external binary files
+
+  use generate_databases_par,only: IMODEL
+  use create_regions_mesh_ext_par
+  implicit none
+
+  ! number of spectral elements in each block
+  integer :: myrank,nspec
+  character(len=256) :: LOCAL_PATH
+
+  ! external GLL models
+  ! variables for importing models from files in SPECFEM format, e.g.,  proc000000_vp.bin etc.
+  ! can be used for importing updated model in iterative inversions
+
+  ! note: we read in these binary files after mesh coloring, since mesh coloring is permuting arrays.
+  !          here, the ordering in **_vp.bin etc. can be permuted as they are outputted when saving mesh files
+
+  select case( IMODEL )
+  case( IMODEL_GLL )
+    ! note:
+    ! import the model from files in SPECFEM format
+    ! note that those those files should be saved in LOCAL_PATH
+    call model_gll(myrank,nspec,LOCAL_PATH)
+  case( IMODEL_IPATI )
+    ! import the model from modified files in SPECFEM format
+    call model_ipati(myrank,nspec,LOCAL_PATH)
+  end select
+
+  end subroutine get_model_binaries

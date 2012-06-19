@@ -70,21 +70,16 @@
       ! this transfers fields only in elements with stations for efficiency
       if( ELASTIC_SIMULATION ) then
          if(USE_CUDA_SEISMOGRAMS) then
-            call transfer_seismograms_el_from_device(&
-                nrec_local,&
-                Mesh_pointer, &
-                SIMULATION_TYPE,&
-                seismograms_d,&
-                seismograms_v,&
-                seismograms_a,&
-                it)
+            call transfer_seismograms_el_from_d(nrec_local,Mesh_pointer, &
+                                               SIMULATION_TYPE,&
+                                               seismograms_d,seismograms_v,seismograms_a,&
+                                               it)
          else
-            call transfer_station_el_from_device( &
-                    displ,veloc,accel, &
-                    b_displ,b_veloc,b_accel, &
-                    Mesh_pointer,number_receiver_global, &
-                    ispec_selected_rec,ispec_selected_source, &
-                    ibool,SIMULATION_TYPE)
+            call transfer_station_el_from_device(displ,veloc,accel, &
+                                                b_displ,b_veloc,b_accel, &
+                                                Mesh_pointer,number_receiver_global, &
+                                                ispec_selected_rec,ispec_selected_source, &
+                                                ibool,SIMULATION_TYPE)
          endif
         ! alternative: transfers whole fields
         !  call transfer_fields_el_from_device(NDIM*NGLOB_AB,displ,veloc, accel, Mesh_pointer)

@@ -314,8 +314,8 @@ xsmooth_vol_data: $O/smooth_vol_data.o $O/read_parameter_file.shared.o $O/read_v
 xsum_kernels: $(SUM_KERNELS_OBJECTS) $(COND_MPI_OBJECTS)
 	${FCLINK} -o  ${E}/xsum_kernels  $(SUM_KERNELS_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS) 
 
-xmodel_update: $(MODEL_UPD_OBJECTS) $(COND_MPI_OBJECTS)
-	${FCLINK} -o  ${E}/xmodel_update  $(MODEL_UPD_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS)
+xmodel_update: $(MODEL_UPD_OBJECTS) $(COND_MPI_OBJECTS) $(CUDA_STUBS)
+	${FCLINK} -o  ${E}/xmodel_update  $(MODEL_UPD_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS) $(CUDA_STUBS)
 
 clean:
 	rm -f $O/* *.o *.gnu *.mod $(OUTPUT)/timestamp* $(OUTPUT)/starttime*txt work.pc* \
@@ -370,28 +370,28 @@ $O/%.cuda.o: ${CUDAD}%.cu ../../config.h $(CUDAD)mesh_constants_cuda.h $(CUDAD)p
 ###
 ### C compilation
 ###
-force_ftz.o: ${SHARED}/force_ftz.c ../../config.h
-	${CC} -c $(CPPFLAGS) $(CFLAGS) -I../.. -o $O/force_ftz.o ${SHARED}/force_ftz.c
+force_ftz.o: ${SHARED}force_ftz.c ../../config.h
+	${CC} -c $(CPPFLAGS) $(CFLAGS) -I../.. -o $O/force_ftz.o ${SHARED}force_ftz.c
 
-$O/%.cc.o: ${SHARED}/%.c ../../config.h
-	${CC} -c $(CFLAGS) $(MPI_INC) -o $@ ${SHARED}/$< -I../../
+$O/%.cc.o: ${SHARED}%.c ../../config.h
+	${CC} -c $(CFLAGS) $(MPI_INC) -o $@ ${SHARED}$< -I../../
 
-$O/%.cudacc.o: ${CUDAD}/%.c ../../config.h
-	${CC} -c $(CFLAGS) $(MPI_INC) -o $@ ${CUDAD}/$< -I../../
+$O/%.cudacc.o: ${CUDAD}%.c ../../config.h
+	${CC} -c $(CFLAGS) $(MPI_INC) -o $@ ${CUDAD}$< -I../../
 
 
 ###
 ### MPI compilation without optimization
 ###
 
-$O/parallel.o: $(SHARED)constants.h ${SHARED}/parallel.f90
-	${MPIFCCOMPILE_CHECK} -c -o $O/parallel.o ${SHARED}/parallel.f90
+$O/parallel.o: $(SHARED)constants.h $(SHARED)parallel.f90
+	${MPIFCCOMPILE_CHECK} -c -o $O/parallel.o $(SHARED)parallel.f90
 
-$O/serial.o: $(SHARED)constants.h ${SHARED}/serial.f90
-	${FCCOMPILE_CHECK} -c -o $O/serial.o ${SHARED}/serial.f90
+$O/serial.o: $(SHARED)constants.h $(SHARED)serial.f90
+	${FCCOMPILE_CHECK} -c -o $O/serial.o $(SHARED)serial.f90
   
-$O/smooth_vol_data.o: $(SHARED)constants.h ${SHARED}/smooth_vol_data.f90
-	${MPIFCCOMPILE_NO_CHECK} -c -o $O/smooth_vol_data.o ${SHARED}/smooth_vol_data.f90
+$O/smooth_vol_data.o: $(SHARED)constants.h $(SHARED)smooth_vol_data.f90
+	${MPIFCCOMPILE_NO_CHECK} -c -o $O/smooth_vol_data.o $(SHARED)smooth_vol_data.f90
 
 
 
@@ -400,8 +400,8 @@ $O/smooth_vol_data.o: $(SHARED)constants.h ${SHARED}/smooth_vol_data.f90
 ## kernel summation
 ##
 
-$O/sum_kernels.o: $(SHARED)constants.h ${SHARED}/sum_kernels.f90
-	${MPIFCCOMPILE_NO_CHECK} -c -o $O/sum_kernels.o ${SHARED}/sum_kernels.f90
+$O/sum_kernels.o: $(SHARED)constants.h $(SHARED)sum_kernels.f90
+	${MPIFCCOMPILE_NO_CHECK} -c -o $O/sum_kernels.o $(SHARED)sum_kernels.f90
 
 ##
 ## model update
@@ -410,6 +410,6 @@ $O/sum_kernels.o: $(SHARED)constants.h ${SHARED}/sum_kernels.f90
 $O/model_update.o: $(SHARED)constants.h model_update.f90
 	${MPIFCCOMPILE_NO_CHECK} -c -o $O/model_update.o model_update.f90
 
-$O/save_external_bin_m_up.o:  ${SHARED}/constants.h save_external_bin_m_up.f90
+$O/save_external_bin_m_up.o:  $(SHARED)constants.h save_external_bin_m_up.f90
 	${FCCOMPILE_CHECK} -c -o $O/save_external_bin_m_up.o save_external_bin_m_up.f90
 

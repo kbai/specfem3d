@@ -380,8 +380,8 @@
   call max_all_i(ncuda_devices,ncuda_devices_max)
 
   if( myrank == 0 ) then
-    write(IMAIN,*)"  GPU number of devices per node: min =",ncuda_devices_min
-    write(IMAIN,*)"                                  max =",ncuda_devices_max
+    write(IMAIN,*) "GPU number of devices per node: min =",ncuda_devices_min
+    write(IMAIN,*) "                                max =",ncuda_devices_max
     write(IMAIN,*)
   endif
 

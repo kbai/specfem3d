@@ -2,15 +2,13 @@ dnl                                               -*- Autoconf -*-
 dnl
 dnl Process this file with autoconf to produce the 'configure' script:
 dnl
-dnl ACLOCAL="aclocal -I m4" autoreconf
+dnl autoreconf -I m4
 dnl
 dnl You must have recent versions of Autoconf and Automake installed.
 
-# $Id: configure.ac,v 1.1 2005/08/24 22:45:51 leif Exp $
-
 
 AC_PREREQ(2.61)
-AC_INIT([Specfem 3D], [2], [jtromp AT princeton.edu], [Specfem3D])
+AC_INIT([Specfem 3D], [2.0.2], [jtromp AT princeton.edu], [Specfem3D])
 AC_CONFIG_SRCDIR([README])
 AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIR([m4])
@@ -49,7 +47,7 @@ AC_SUBST([CUSTOM_MPI_TYPE])
 
 AC_ARG_WITH([cuda],
     [AC_HELP_STRING([--with-cuda],
-        [build cuda GPU enabled version @<:@default=no@:>@])],
+        [build CUDA GPU enabled version @<:@default=no@:>@])],
     [want_cuda="$withval"],
     [want_cuda=no])
 AM_CONDITIONAL([COND_CUDA], [test "$want_cuda" = yes])
@@ -446,8 +444,26 @@ fi
 
 # Checks for library functions.
 
-AC_CONFIG_FILES([Makefile src/meshfem3D/Makefile src/meshfem3D/constants.h src/meshfem3D/precision.h  src/decompose_mesh_SCOTCH/Makefile src/specfem3D/Makefile src/generate_databases/Makefile src/shared/constants.h src/shared/precision.h src/decompose_mesh_SCOTCH/scotch_5.1.11/src/Makefile.inc src/check_mesh_quality_CUBIT_Abaqus/Makefile])
+AC_CONFIG_FILES([
+	Makefile
+	src/meshfem3D/Makefile
+	src/meshfem3D/constants.h
+	src/meshfem3D/precision.h
+	src/decompose_mesh_SCOTCH/Makefile
+	src/specfem3D/Makefile
+	src/generate_databases/Makefile
+	src/shared/constants.h
+	src/shared/precision.h
+	src/decompose_mesh_SCOTCH/scotch_5.1.11/src/Makefile.inc
+	src/check_mesh_quality_CUBIT_Abaqus/Makefile
+])
 AC_OUTPUT
 
+#daniel: adding custom lines to config.h.in through autoheader
+AH_BOTTOM([
+/* Uncomment and define to select optimized file i/o for regional simulations */
+/* map fails when output files are > 4GB, which is often the case for GPU simulations */
+// #define USE_MAP_FUNCTION
+])
 
 dnl end of configure.ac

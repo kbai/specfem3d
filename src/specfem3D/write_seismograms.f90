@@ -87,7 +87,7 @@
     endif
   endif
 
-if(.not. GPU_MODE .or. (GPU_MODE .and. (.not. USE_CUDA_SEISMOGRAMS))) then
+  if(.not. GPU_MODE .or. (GPU_MODE .and. (.not. USE_CUDA_SEISMOGRAMS))) then
 
   do irec_local = 1,nrec_local
 
@@ -271,8 +271,8 @@ if(.not. GPU_MODE .or. (GPU_MODE .and. (.not. USE_CUDA_SEISMOGRAMS))) then
 
     end select ! SIMULATION_TYPE
 
-! store North, East and Vertical components
-! distinguish between single and double precision for reals
+    ! store North, East and Vertical components
+    ! distinguish between single and double precision for reals
     if(CUSTOM_REAL == SIZE_REAL) then
       seismograms_d(:,irec_local,it) = sngl((nu(:,1,irec)*dxd + nu(:,2,irec)*dyd + nu(:,3,irec)*dzd))
       seismograms_v(:,irec_local,it) = sngl((nu(:,1,irec)*vxd + nu(:,2,irec)*vyd + nu(:,3,irec)*vzd))
@@ -287,9 +287,10 @@ if(.not. GPU_MODE .or. (GPU_MODE .and. (.not. USE_CUDA_SEISMOGRAMS))) then
     if (SIMULATION_TYPE == 2) seismograms_eps(:,:,irec_local,it) = eps_s(:,:)
 
   enddo ! nrec_local
-endif
 
-! write the current or final seismograms
+  endif
+
+  ! write the current or final seismograms
   if((mod(it,NTSTEP_BETWEEN_OUTPUT_SEISMOS) == 0 .or. it == NSTEP) .and. (.not.SU_FORMAT)) then
     if (SIMULATION_TYPE == 1 .or. SIMULATION_TYPE == 3) then
       call write_seismograms_to_file(seismograms_d,1)
@@ -301,8 +302,8 @@ endif
     endif
   endif
 
-! write ONE binary file for all receivers (nrec_local) within one proc
-! SU format, with 240-byte-header for each trace
+  ! write ONE binary file for all receivers (nrec_local) within one proc
+  ! SU format, with 240-byte-header for each trace
   if ((mod(it,NTSTEP_BETWEEN_OUTPUT_SEISMOS) == 0 .or. it==NSTEP) .and. SU_FORMAT) &
      call write_output_SU()
 

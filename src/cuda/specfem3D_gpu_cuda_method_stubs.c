@@ -228,6 +228,8 @@ void FC_FUNC_(acoustic_enforce_free_surf_cuda,
 // src/cuda/compute_forces_elastic_cuda.cu
 //
 
+//void assemble_mpi_vector_send_cuda_(void*,void*,void*,void*,void*,void*,void*,void*,void*); // {};} 
+
 void FC_FUNC_(transfer_boun_accel_from_device,
               TRANSFER_BOUN_ACCEL_FROM_DEVICE)(int* size, long* Mesh_pointer_f, realw* accel,
                                                     realw* send_accel_buffer,
@@ -247,14 +249,14 @@ void FC_FUNC_(transfer_boundary_to_device_a,
                                              int* num_interfaces_ext_mesh,
                                              int* max_nibool_interfaces_ext_mesh) {} 
 
-void FC_FUNC_(assemble_accel_on_device,
-              ASSEMBLE_ACCEL_on_DEVICE)(long* Mesh_pointer, realw* accel,
-                                              realw* buffer_recv_vector_ext_mesh,
-                                              int* num_interfaces_ext_mesh,
-                                              int* max_nibool_interfaces_ext_mesh,
-                                              int* nibool_interfaces_ext_mesh,
-                                              int* ibool_interfaces_ext_mesh,
-                                              int* FORWARD_OR_ADJOINT) {} 
+//void FC_FUNC_(assemble_accel_on_device,
+//              ASSEMBLE_ACCEL_on_DEVICE)(long* Mesh_pointer, realw* accel,
+//                                              realw* buffer_recv_vector_ext_mesh,
+//                                              int* num_interfaces_ext_mesh,
+//                                              int* max_nibool_interfaces_ext_mesh,
+//                                              int* nibool_interfaces_ext_mesh,
+//                                              int* ibool_interfaces_ext_mesh,
+//                                              int* FORWARD_OR_ADJOINT) {} 
 
 void FC_FUNC_(transfer_asmbl_accel_to_device,
               TRANSFER_ASMBL_ACCEL_TO_DEVICE)(long* Mesh_pointer, realw* accel,
@@ -274,6 +276,11 @@ void FC_FUNC_(compute_forces_elastic_cuda,
                                            int* COMPUTE_AND_STORE_STRAIN,
                                            int* ATTENUATION,
                                            int* ANISOTROPY) {} 
+
+void FC_FUNC_(sync_copy_from_device,
+              SYNC_copy_FROM_DEVICE)(long* Mesh_pointer_f,
+                                     int* iphase,
+                                     realw* send_buffer) {} 
 
 void FC_FUNC_(kernel_3_a_cuda,
               KERNEL_3_A_CUDA)(long* Mesh_pointer,

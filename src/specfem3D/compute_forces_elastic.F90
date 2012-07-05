@@ -131,9 +131,22 @@ subroutine compute_forces_elastic()
          ! while Inner elements compute "Kernel_2", we wait for MPI to
          ! finish and transfer the boundary terms to the device
          ! asynchronously
+
+         !daniel: todo - this avoids calling the fortran vector send from CUDA routine
+         ! wait for asynchronous copy to finish
+         call sync_copy_from_device(Mesh_pointer,iphase,buffer_send_vector_ext_mesh)
+         ! sends mpi buffers
+         call assemble_MPI_vector_send_cuda(NPROC, &
+                  buffer_send_vector_ext_mesh,buffer_recv_vector_ext_mesh, &
+                  num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh, &
+                  nibool_interfaces_ext_mesh,&
+                  my_neighbours_ext_mesh, &
+                  request_send_vector_ext_mesh,request_recv_vector_ext_mesh)
+
+         ! transfers mpi buffers onto GPU
          call transfer_boundary_to_device(NPROC,Mesh_pointer,buffer_recv_vector_ext_mesh,&
-              num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh,&
-              request_recv_vector_ext_mesh)
+                  num_interfaces_ext_mesh,max_nibool_interfaces_ext_mesh,&
+                  request_recv_vector_ext_mesh)
       endif ! inner elements
 
    endif ! GPU_MODE

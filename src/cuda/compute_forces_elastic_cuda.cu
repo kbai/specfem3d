@@ -52,9 +52,11 @@ __device__ realw d_wgllwgll_yz[NGLL2];
 
 __constant__ realw d_wgll_cube[NGLL3]; // needed only for gravity case
 
+//daniel: todo - check if necessary...
 // prototype for the fortran function to do non-blocking mpi send
-void FC_FUNC_(assemble_mpi_vector_send_cuda,
-              ASSEMBLE_MPI_VECTOR_SEND_CUDA)(void*,void*,void*,void*,void*,void*,void*,void*,void*);
+//extern "C"
+//void assemble_mpi_vector_send_cuda_(void*,void*,void*,void*,void*,void*,void*,void*,void*); // {};
+
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -164,6 +166,20 @@ void FC_FUNC_(transfer_boundary_from_device_a,
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); // get Mesh from fortran integer wrapper
 
+//daniel: todo - check below with this...
+ int blocksize = BLOCKSIZE_TRANSFER;
+ int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+ int num_blocks_x = size_padded/blocksize;
+ int num_blocks_y = 1;
+ while(num_blocks_x > 65535) {
+ num_blocks_x = (int) ceil(num_blocks_x*0.5f);
+ num_blocks_y = num_blocks_y*2;
+ }
+ dim3 grid(num_blocks_x,num_blocks_y);
+ dim3 threads(blocksize,1,1);
+
+/*
+//daniel: todo - check originally used...
   int num_blocks_x = *nspec_outer_elastic;
   int num_blocks_y = 1;
   while(num_blocks_x > 65535) {
@@ -174,6 +190,7 @@ void FC_FUNC_(transfer_boundary_from_device_a,
   int blocksize = NGLL3_PADDED;
   dim3 grid(num_blocks_x,num_blocks_y);
   dim3 threads(blocksize,1,1);
+*/
 
   prepare_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel,mp->d_send_accel_buffer,
                                                                           mp->num_interfaces_ext_mesh,
@@ -258,7 +275,7 @@ void FC_FUNC_(transfer_boundary_to_device_a,
   // cudaMemcpyAsync(mp->d_send_accel_buffer, buffer_recv_vector_ext_mesh,
   // 3*(mp->max_nibool_interfaces_ext_mesh)*(mp->num_interfaces_ext_mesh)*sizeof(realw),
   // cudaMemcpyHostToDevice,mp->compute_stream);
-  printf("xfer to device\n");
+  //printf("xfer to device\n");
   cudaMemcpyAsync(mp->d_send_accel_buffer, buffer_recv_vector_ext_mesh,
                   3*(mp->max_nibool_interfaces_ext_mesh)*(mp->num_interfaces_ext_mesh)*sizeof(realw),
                   cudaMemcpyHostToDevice,mp->copy_stream);
@@ -268,71 +285,76 @@ void FC_FUNC_(transfer_boundary_to_device_a,
 
 }
 
+/* ----------------------------------------------------------------------------------------------- */
 
-extern "C"
-void FC_FUNC_(assemble_accel_on_device,
-              ASSEMBLE_ACCEL_on_DEVICE)(long* Mesh_pointer, realw* accel,
-                                              realw* buffer_recv_vector_ext_mesh,
-                                              int* num_interfaces_ext_mesh,
-                                              int* max_nibool_interfaces_ext_mesh,
-                                              int* nibool_interfaces_ext_mesh,
-                                              int* ibool_interfaces_ext_mesh,
-                                              int* FORWARD_OR_ADJOINT) {
-  TRACE("assemble_accel_on_device");
+//daniel: not used ...
+//
+//extern "C"
+//void FC_FUNC_(assemble_accel_on_device,
+//              ASSEMBLE_ACCEL_on_DEVICE)(long* Mesh_pointer, realw* accel,
+//                                              realw* buffer_recv_vector_ext_mesh,
+//                                              int* num_interfaces_ext_mesh,
+//                                              int* max_nibool_interfaces_ext_mesh,
+//                                              int* nibool_interfaces_ext_mesh,
+//                                              int* ibool_interfaces_ext_mesh,
+//                                              int* FORWARD_OR_ADJOINT) {
+//  TRACE("assemble_accel_on_device");
+//
+//  Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
+//
+//  int blocksize = BLOCKSIZE_TRANSFER;
+//  int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+//  int num_blocks_x = size_padded/blocksize;
+//  int num_blocks_y = 1;
+//  while(num_blocks_x > 65535) {
+//    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
+//    num_blocks_y = num_blocks_y*2;
+//  }
+//
+//  //double start_time = get_time();
+//  dim3 grid(num_blocks_x,num_blocks_y);
+//  dim3 threads(blocksize,1,1);
+//  // cudaEvent_t start, stop;
+//  // realw time;
+//  // cudaEventCreate(&start);
+//  // cudaEventCreate(&stop);
+//  // cudaEventRecord( start, 0 );
+//
+//
+//  // ***************************************************************************
+//  // Wait until previous copy stream finishes. We assemble while other compute kernels execute.
+//  cudaStreamSynchronize(mp->copy_stream);
+//
+//  // Assembling on the copy_stream breaks the solution and it "blows up"
+//  if(*FORWARD_OR_ADJOINT == 1) { //assemble forward accel
+//    assemble_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel, mp->d_send_accel_buffer,
+//                                                                             mp->num_interfaces_ext_mesh,
+//                                                                             mp->max_nibool_interfaces_ext_mesh,
+//                                                                             mp->d_nibool_interfaces_ext_mesh,
+//                                                                             mp->d_ibool_interfaces_ext_mesh);
+//  }
+//  else if(*FORWARD_OR_ADJOINT == 3) { //assemble adjoint accel
+//    assemble_boundary_accel_on_device<<<grid,threads,0,mp->copy_stream>>>(mp->d_b_accel, mp->d_send_accel_buffer,
+//                                                        mp->num_interfaces_ext_mesh,
+//                                                        mp->max_nibool_interfaces_ext_mesh,
+//                                                        mp->d_nibool_interfaces_ext_mesh,
+//                                                        mp->d_ibool_interfaces_ext_mesh);
+//  }
+//
+//  // cudaEventRecord( stop, 0 );
+//  // cudaEventSynchronize( stop );
+//  // cudaEventElapsedTime( &time, start, stop );
+//  // cudaEventDestroy( start );
+//  // cudaEventDestroy( stop );
+//  // printf("Boundary Assemble Kernel Execution Time: %f ms\n",time);
+//#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+//  //double end_time = get_time();
+//  //printf("Elapsed time: %e\n",end_time-start_time);
+//  exit_on_cuda_error("transfer_asmbl_accel_to_device");
+//#endif
+//}
 
-  Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
-
-  int blocksize = BLOCKSIZE_TRANSFER;
-  int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
-  int num_blocks_x = size_padded/blocksize;
-  int num_blocks_y = 1;
-  while(num_blocks_x > 65535) {
-    num_blocks_x = (int) ceil(num_blocks_x*0.5f);
-    num_blocks_y = num_blocks_y*2;
-  }
-
-  //double start_time = get_time();
-  dim3 grid(num_blocks_x,num_blocks_y);
-  dim3 threads(blocksize,1,1);
-  // cudaEvent_t start, stop;
-  // realw time;
-  // cudaEventCreate(&start);
-  // cudaEventCreate(&stop);
-  // cudaEventRecord( start, 0 );
-
-
-  // ***************************************************************************
-  // Wait until previous copy stream finishes. We assemble while other compute kernels execute.
-  cudaStreamSynchronize(mp->copy_stream);
-
-  // Assembling on the copy_stream breaks the solution and it "blows up"
-  if(*FORWARD_OR_ADJOINT == 1) { //assemble forward accel
-    assemble_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel, mp->d_send_accel_buffer,
-                                                                             mp->num_interfaces_ext_mesh,
-                                                                             mp->max_nibool_interfaces_ext_mesh,
-                                                                             mp->d_nibool_interfaces_ext_mesh,
-                                                                             mp->d_ibool_interfaces_ext_mesh);
-  }
-  else if(*FORWARD_OR_ADJOINT == 3) { //assemble adjoint accel
-    assemble_boundary_accel_on_device<<<grid,threads,0,mp->copy_stream>>>(mp->d_b_accel, mp->d_send_accel_buffer,
-                                                        mp->num_interfaces_ext_mesh,
-                                                        mp->max_nibool_interfaces_ext_mesh,
-                                                        mp->d_nibool_interfaces_ext_mesh,
-                                                        mp->d_ibool_interfaces_ext_mesh);
-  }
-
-  // cudaEventRecord( stop, 0 );
-  // cudaEventSynchronize( stop );
-  // cudaEventElapsedTime( &time, start, stop );
-  // cudaEventDestroy( start );
-  // cudaEventDestroy( stop );
-  // printf("Boundary Assemble Kernel Execution Time: %f ms\n",time);
-#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
-  //double end_time = get_time();
-  //printf("Elapsed time: %e\n",end_time-start_time);
-  exit_on_cuda_error("transfer_asmbl_accel_to_device");
-#endif
-}
+/* ----------------------------------------------------------------------------------------------- */
 
 // FORWARD_OR_ADJOINT == 1 for accel, and == 3 for b_accel
 extern "C"
@@ -348,8 +370,15 @@ TRACE("transfer_asmbl_accel_to_device");
 
   Mesh* mp = (Mesh*)(*Mesh_pointer); //get mesh pointer out of fortran integer container
 
-  cudaMemcpy(mp->d_send_accel_buffer, buffer_recv_vector_ext_mesh,
+  //daniel: todo - check if this copy is only needed for adjoint simulation, otherwise it is called asynchronously?
+  if(*FORWARD_OR_ADJOINT == 1 ){
+    // Wait until previous copy stream finishes. We assemble while other compute kernels execute.
+    cudaStreamSynchronize(mp->copy_stream);
+  }
+  else if(*FORWARD_OR_ADJOINT == 3 ){
+    cudaMemcpy(mp->d_send_accel_buffer, buffer_recv_vector_ext_mesh,
              3*(mp->max_nibool_interfaces_ext_mesh)*(mp->num_interfaces_ext_mesh)*sizeof(realw),cudaMemcpyHostToDevice);
+  }
 
   int blocksize = BLOCKSIZE_TRANSFER;
   int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
@@ -1667,35 +1696,66 @@ void FC_FUNC_(compute_forces_elastic_cuda,
              mp->d_rhostore);
   }
 
-  // Wait until async-memcpy of outer elements is finished and start MPI.
-  if(*iphase==2) {
-    cudaStreamSynchronize(mp->copy_stream);
+  //daniel: todo - check with routine sync_copy_from_device below...
+//  // Wait until async-memcpy of outer elements is finished and start MPI.
+//  if(*iphase==2) {
+//    cudaStreamSynchronize(mp->copy_stream);
+//
+//    // There have been problems using the pinned-memory with MPI, so
+//    // we copy the buffer into a non-pinned region.
+//    memcpy(mp->send_buffer,mp->h_send_accel_buffer,
+//           mp->size_mpi_send_buffer*sizeof(float));
+//
+//    // memory copy is now finished, so non-blocking MPI send can proceed
+//    // MPI based halo exchange
+//
+//    assemble_mpi_vector_send_cuda_(&(mp->NPROCS),
+//                                   mp->send_buffer, /* "regular" memory */
+//                                   // mp->h_send_accel_buffer, /* pinned memory **CRASH** */
+//                                   mp->buffer_recv_vector_ext_mesh,
+//                                   &mp->num_interfaces_ext_mesh,
+//                                   &mp->max_nibool_interfaces_ext_mesh,
+//                                   mp->nibool_interfaces_ext_mesh,
+//                                   mp->my_neighbours_ext_mesh,
+//                                   mp->request_send_vector_ext_mesh,
+//                                   mp->request_recv_vector_ext_mesh);
+//
+//    // Decided to keep launching kernels and to wait for MPI & do memcpy while other kernels launch.
+//    // cudaDeviceSynchronize();
+//  }
 
-    // There have been problems using the pinned-memory with MPI, so
-    // we copy the buffer into a non-pinned region.
-    memcpy(mp->send_buffer,mp->h_send_accel_buffer,
-           mp->size_mpi_send_buffer*sizeof(float));
-
-    // memory copy is now finished, so non-blocking MPI send can proceed
-    // MPI based halo exchange
-
-    assemble_mpi_vector_send_cuda(&(mp->NPROCS),
-                                   mp->send_buffer, /* "regular" memory */
-                                   // mp->h_send_accel_buffer, /* pinned memory **CRASH** */
-                                   mp->buffer_recv_vector_ext_mesh,
-                                   &mp->num_interfaces_ext_mesh,
-                                   &mp->max_nibool_interfaces_ext_mesh,
-                                   mp->nibool_interfaces_ext_mesh,
-                                   mp->my_neighbours_ext_mesh,
-                                   mp->request_send_vector_ext_mesh,
-                                   mp->request_recv_vector_ext_mesh);
-
-    // Decided to keep launching kernels and to wait for MPI & do memcpy while other kernels launch.
-    // cudaDeviceSynchronize();
-  }
 }
 
+/* ----------------------------------------------------------------------------------------------- */
 
+//daniel: todo - use this instead above call to fortran routine to avoid compilation problems
+extern "C"
+void FC_FUNC_(sync_copy_from_device,
+              SYNC_copy_FROM_DEVICE)(long* Mesh_pointer_f,
+                                     int* iphase,
+                                     realw* send_buffer) {
+
+  TRACE("sync_copy_from_device");
+
+  Mesh* mp = (Mesh*)(*Mesh_pointer_f); // get Mesh from fortran integer wrapper
+
+  // Wait until async-memcpy of outer elements is finished and start MPI.
+  if( *iphase != 2 ){ exit_on_cuda_error("sync_copy_from_device must be called for iphase == 2"); }
+
+  //if(*iphase==2) {
+
+  // waits for asynchronous copy to finish
+  cudaStreamSynchronize(mp->copy_stream);
+
+  // There have been problems using the pinned-memory with MPI, so
+  // we copy the buffer into a non-pinned region.
+  memcpy(send_buffer,mp->h_send_accel_buffer,
+         mp->size_mpi_send_buffer*sizeof(float));
+
+  // memory copy is now finished, so non-blocking MPI send can proceed
+
+  //}
+}
 
 /* ----------------------------------------------------------------------------------------------- */
 

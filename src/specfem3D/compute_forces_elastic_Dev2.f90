@@ -27,7 +27,7 @@
 
 ! higher-order Deville routines (NGLL == 6 to NGLL == 10 )
 !
-! note: put these routines into this extra file to avoid reaching internal threshold 
+! note: put these routines into this extra file to avoid reaching internal threshold
 !          for vectorizations when compiling
 
 subroutine compute_forces_elastic_Dev_6p( iphase ,NSPEC_AB,NGLOB_AB, &

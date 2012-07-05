@@ -70,9 +70,9 @@ __global__ void prepare_boundary_accel_on_device(realw* d_accel, realw* d_send_a
                                                  int* d_ibool_interfaces_ext_mesh) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
-  int iinterface=0;
+  //int iinterface=0;
 
-  for( iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
+  for( int iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
     if(id<d_nibool_interfaces_ext_mesh[iinterface]) {
       d_send_accel_buffer[3*(id + max_nibool_interfaces_ext_mesh*iinterface)] =
         d_accel[3*(d_ibool_interfaces_ext_mesh[id+max_nibool_interfaces_ext_mesh*iinterface]-1)];
@@ -139,7 +139,8 @@ TRACE("transfer_boun_accel_from_device");
 
 
   cudaMemcpy(send_accel_buffer,mp->d_send_accel_buffer,
-             3*mp->max_nibool_interfaces_ext_mesh*mp->num_interfaces_ext_mesh*sizeof(realw),cudaMemcpyDeviceToHost);
+             3*mp->max_nibool_interfaces_ext_mesh*mp->num_interfaces_ext_mesh*sizeof(realw),
+             cudaMemcpyDeviceToHost);
 
   // finish timing of kernel+memcpy
   // cudaEventRecord( stop, 0 );
@@ -224,9 +225,9 @@ __global__ void assemble_boundary_accel_on_device(realw* d_accel, realw* d_send_
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
   //int bx = blockIdx.y*gridDim.x+blockIdx.x;
   //int tx = threadIdx.x;
-  int iinterface=0;
+  //int iinterface=0;
 
-  for( iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
+  for( int iinterface=0; iinterface < num_interfaces_ext_mesh; iinterface++) {
     if(id < d_nibool_interfaces_ext_mesh[iinterface]) {
 
       // for testing atomic operations against not atomic operations (0.1ms vs. 0.04 ms)
@@ -377,7 +378,8 @@ TRACE("transfer_asmbl_accel_to_device");
   }
   else if(*FORWARD_OR_ADJOINT == 3 ){
     cudaMemcpy(mp->d_send_accel_buffer, buffer_recv_vector_ext_mesh,
-             3*(mp->max_nibool_interfaces_ext_mesh)*(mp->num_interfaces_ext_mesh)*sizeof(realw),cudaMemcpyHostToDevice);
+             3*(mp->max_nibool_interfaces_ext_mesh)*(mp->num_interfaces_ext_mesh)*sizeof(realw),
+             cudaMemcpyHostToDevice);
   }
 
   int blocksize = BLOCKSIZE_TRANSFER;

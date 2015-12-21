@@ -123,6 +123,7 @@ libspecfem_a_OBJECTS = \
 	$O/create_name_database.shared.o \
 	$O/create_serial_name_database.shared.o \
 	$O/define_derivation_matrices.shared.o \
+	$O/define_derivation_matrices2.shared.o \
 	$O/detect_surface.shared.o \
 	$O/exit_mpi.shared.o \
 	$O/force_ftz.cc.o \
@@ -190,11 +191,17 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/fault_solver_common.o \
 	$O/fault_solver_dynamic.o \
 	$O/fault_solver_kinematic.o \
+	$O/fault_solver_qd.o \
+	$O/conjugate_gradient_method.o \
 	$O/gravity_perturbation.o \
 	$O/compute_add_sources_acoustic.o \
 	$O/compute_add_sources_viscoelastic.o \
 	$O/compute_add_sources_poroelastic.o \
 	$O/compute_boundary_kernel.o \
+	$O/compute_Diagonal.o \
+	$O/compute_diagonal_K.o \
+	$O/compute_diagonal_K2.o \
+	$O/compute_Diagonal2.o \
 	$O/compute_coupling_acoustic_el.o \
 	$O/compute_coupling_acoustic_po.o \
 	$O/compute_coupling_viscoelastic_ac.o \
@@ -213,6 +220,13 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/compute_gradient.o \
 	$O/compute_interpolated_dva.o \
 	$O/compute_kernels.o \
+	$O/compute_forces_viscoelastic_noDev2.o \
+        $O/compute_AX.o \
+        $O/compute_AX2.o \
+        $O/restriction.o \
+        $O/restriction_call.o \
+        $O/restriction2.o \
+        $O/smoother.o \
 	$O/compute_stacey_acoustic.o \
 	$O/compute_stacey_viscoelastic.o \
 	$O/compute_stacey_poroelastic.o \
@@ -222,6 +236,7 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/finalize_simulation.o \
 	$O/initialize_simulation.o \
 	$O/iterate_time.o \
+	$O/iterate_time_static_solver2.o \
 	$O/make_gravity.o \
 	$O/noise_tomography.o \
 	$O/pml_allocate_arrays.o \
@@ -233,6 +248,7 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/read_mesh_databases.o \
 	$O/save_adjoint_kernels.o \
 	$O/setup_GLL_points.o \
+	$O/setup_GLL_points2.o \
 	$O/setup_movie_meshes.o \
 	$O/setup_sources_receivers.o \
 	$O/specfem3D.o \

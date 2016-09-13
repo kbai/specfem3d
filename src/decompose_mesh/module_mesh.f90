@@ -730,6 +730,7 @@ contains
 
     call read_fault_files(localpath_name)
     if (ANY_FAULT) then
+       call close_faults_additional(nodes_coords, nnodes)
        call save_nodes_coords(nodes_coords,nnodes)
        call close_faults(nodes_coords,nnodes)
     endif

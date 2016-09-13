@@ -27,7 +27,7 @@
 
 ! subroutines to sort indexing arrays based on geometrical coordinates instead of based on topology (because that is much faster)
 
-  subroutine sort_array_coordinates(npointot,x,y,z,ibool,iglob,locval,ifseg,nglob,ninseg,xtol)
+  subroutine sort_array_coordinates(npointot,x,y,z,ibool,iglob,locval,ifseg,nglob,ninseg,xtol,flag)
 
 ! this routine MUST be in double precision to avoid sensitivity
 ! to roundoff errors in the coordinates of the points
@@ -38,7 +38,7 @@
 
   implicit none
 
-  integer, intent(in) :: npointot
+  integer, intent(in) :: npointot,flag
   double precision, dimension(npointot), intent(inout) :: x, y, z
   integer, dimension(npointot), intent(inout) :: ibool
   integer, dimension(npointot), intent(out) :: iglob, locval, ninseg
@@ -110,6 +110,12 @@
   do i=1,npointot
     ! eliminate the multiples by using a single (new) point number for all the points that have the same X Y Z after sorting
     if (ifseg(i)) ig = ig + 1
+    if ((flag .eq. 1).and. (i .eq. 5716)) then  
+        write(*,*) i
+        write(*,*) x(i),y(i),z(i)
+        write(*,*) x(i-1),y(i-1),z(i-1)
+    endif
+
     iglob(locval(i)) = ig
   enddo
 

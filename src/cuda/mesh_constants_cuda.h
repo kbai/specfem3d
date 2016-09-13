@@ -357,7 +357,7 @@ typedef struct mesh_ {
   // ------------------------------------------------------------------ //
 
   // displacement, velocity, acceleration
-  realw* d_displ; realw* d_veloc; realw* d_accel;
+  realw* d_displ; realw* d_veloc; realw* d_accel; realw* d_veloc_alpha; realw* d_displ_alpha;
   // backward/reconstructed elastic wavefield
   realw* d_b_displ; realw* d_b_veloc; realw* d_b_accel;
 

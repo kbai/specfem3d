@@ -636,6 +636,9 @@ void FC_FUNC_(prepare_fields_elastic_device,
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_displ),sizeof(realw)*size),4001);
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_veloc),sizeof(realw)*size),4002);
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_accel),sizeof(realw)*size),4003);
+  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_displ_alpha),sizeof(realw)*size),4004);
+  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_veloc_alpha),sizeof(realw)*size),4005);
+
   // initializes values to zero
   //print_CUDA_error_if_any(cudaMemset(mp->d_displ,0,sizeof(realw)*size),4007);
   //print_CUDA_error_if_any(cudaMemset(mp->d_veloc,0,sizeof(realw)*size),4007);

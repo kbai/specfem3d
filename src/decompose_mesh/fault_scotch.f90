@@ -54,7 +54,7 @@ module fault_scotch
                               ! must be larger than the fault offset in the mesh,
                               ! but smaller than the smallest element size
 
-  public :: read_fault_files, fault_repartition, close_faults, write_fault_database, &
+  public :: read_fault_files, fault_repartition, close_faults, close_faults_additional, write_fault_database, &
             save_nodes_coords, nodes_coords_open, ANY_FAULT
 
 CONTAINS
@@ -170,6 +170,77 @@ CONTAINS
   enddo
 
   end subroutine close_faults
+
+  subroutine close_faults_additional(nodes_coords,nnodes)
+
+  integer, intent(in) :: nnodes
+  double precision, dimension(3,nnodes), intent(inout) :: nodes_coords
+
+  integer  :: i
+
+    write(*,*) "specially for Gorkha simulation"
+  do i=1,size(faults)
+    call close_fault_single_additional(faults(i),nodes_coords,nnodes)
+  enddo
+
+  end subroutine close_faults_additional
+
+
+  subroutine close_fault_single_additional(f,nodes_coords,nnodes)
+
+  type(fault_type), intent(in) :: f
+  integer, intent(in)  :: nnodes
+  double precision, dimension(3,nnodes), intent(inout) :: nodes_coords
+
+  double precision, dimension(3) :: xyz_1, xyz_2, xyz
+
+  double precision :: dist
+  integer :: iglob1, iglob2, i, j, k1, k2
+  logical :: found_it
+
+  do i = 1,f%nspec
+    do k2=1,NGNOD2D
+      iglob2 = f%inodes2(k2,i)
+      found_it = .false.
+      xyz_2 = nodes_coords(:,iglob2)
+
+      do j = 1,f%nspec
+        do k1=1,NGNOD2D
+          iglob1 = f%inodes1(k1,j)
+          xyz_1 = nodes_coords(:,iglob1)
+          xyz = xyz_2-xyz_1
+          dist = sqrt(xyz(1)*xyz(1) + xyz(2)*xyz(2) + xyz(3)*xyz(3))
+
+         !jpa: Closing nodes that are already closed is not a problem
+         !jpa: I process them again to leave the loop as early as possible
+         !jpa: and to test if a facing node was found (see below).
+
+          if (dist <= 0.01 ) then
+              if(xyz_1(1)< -75000.0 .or. xyz_1(1)>115000.0) then
+                xyz =  (xyz_1 + xyz_2)*0.5d0
+                nodes_coords(:,iglob2) = xyz
+                nodes_coords(:,iglob1) = xyz
+              else 
+                  xyz_1 = xyz_1 - 100.0*xyz
+                  xyz_2 = xyz_2 + 100.0*xyz
+                  nodes_coords(:,iglob1) = xyz_1
+                  nodes_coords(:,iglob2) = xyz_2
+              endif
+              found_it = .true.
+            exit
+          endif
+
+        enddo
+        if (found_it) exit
+      enddo
+
+      ! jpa: If the two fault sides have been meshed independently they might not match. Test it here:
+
+    enddo
+  enddo
+
+  end subroutine close_fault_single_additional
+
 
 ! ---------------------------------------------------------------------------------------------------
 !jpa: to do this much faster:
@@ -311,7 +382,7 @@ CONTAINS
   xtol = 1.d-10 * maxval( maxval(xyz_c,2) - minval(xyz_c,2) )
 
   call sort_array_coordinates(nspec,xp,yp,zp,ibool,iglob,locval,ifseg, &
-                              nglob,ninseg,xtol)
+                              nglob,ninseg,xtol,0)
 
   end subroutine lex_order
 

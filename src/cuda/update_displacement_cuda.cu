@@ -28,6 +28,9 @@
  */
 
 #include "mesh_constants_cuda.h"
+#define BETA 0.4259259259259
+#define ALPHA 0.5
+#define GAMMA 1.0
 
 /* ----------------------------------------------------------------------------------------------- */
 
@@ -39,6 +42,8 @@
 __global__ void UpdateDispVeloc_kernel(realw* displ,
                                        realw* veloc,
                                        realw* accel,
+									   realw* displ_alpha,
+									   realw* veloc_alpha,
                                        int size,
                                        realw deltat,
                                        realw deltatsqover2,
@@ -50,8 +55,11 @@ __global__ void UpdateDispVeloc_kernel(realw* displ,
   // because of block and grid sizing problems, there is a small
   // amount of buffer at the end of the calculation
   if (id < size) {
-    displ[id] = displ[id] + deltat*veloc[id] + deltatsqover2*accel[id];
-    veloc[id] = veloc[id] + deltatover2*accel[id];
+    displ_alpha[id] = displ[id] + deltat*veloc[id] + deltat*deltat*(0.5-BETA)*accel[id];
+    veloc_alpha[id] = veloc[id] + (1.0-GAMMA)*deltat*accel[id];
+	displ[id] = (1.0-ALPHA)*displ[id] + ALPHA*displ_alpha[id];
+	veloc[id] = (1.0-ALPHA)*veloc[id] + ALPHA*veloc_alpha[id];
+    //displ[id] = displ[id] + deltat*veloc[id] + deltatsqover2*accel[id];
     accel[id] = 0.0f; // can do this using memset...not sure if faster,probably not
   }
 
@@ -111,6 +119,7 @@ void FC_FUNC_(update_displacement_cuda,
 
   //launch kernel
   UpdateDispVeloc_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_displ,mp->d_veloc,mp->d_accel,
+																mp->d_displ_alpha, mp->d_veloc_alpha,
                                                                 size,deltat,deltatsqover2,deltatover2);
 
   // kernel for backward fields
@@ -119,8 +128,8 @@ void FC_FUNC_(update_displacement_cuda,
     realw b_deltatsqover2 = *b_deltatsqover2_F;
     realw b_deltatover2 = *b_deltatover2_F;
 
-    UpdateDispVeloc_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_displ,mp->d_b_veloc,mp->d_b_accel,
-                                                                  size,b_deltat,b_deltatsqover2,b_deltatover2);
+//    UpdateDispVeloc_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_displ,mp->d_b_veloc,mp->d_b_accel,
+//                                                                  size,b_deltat,b_deltatsqover2,b_deltatover2);
   }
 
   // Cuda timing
@@ -270,10 +279,13 @@ void FC_FUNC_(it_update_displacement_ac_cuda,
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void kernel_3_cuda_device(realw* veloc,
+__global__ void kernel_3_cuda_device(realw* displ,
+									 realw* veloc,
                                      realw* accel,
+									 realw* displ_alpha,
+									 realw* veloc_alpha,
                                      int size,
-                                     realw deltatover2,
+                                     realw deltat,
                                      realw* rmassx,
                                      realw* rmassy,
                                      realw* rmassz) {
@@ -287,9 +299,12 @@ __global__ void kernel_3_cuda_device(realw* veloc,
     accel[3*id+1] = accel[3*id+1]*rmassy[id];
     accel[3*id+2] = accel[3*id+2]*rmassz[id];
 
-    veloc[3*id] = veloc[3*id] + deltatover2*accel[3*id];
-    veloc[3*id+1] = veloc[3*id+1] + deltatover2*accel[3*id+1];
-    veloc[3*id+2] = veloc[3*id+2] + deltatover2*accel[3*id+2];
+    veloc[3*id]   = veloc_alpha[3*id]   + GAMMA*deltat*accel[3*id];
+    veloc[3*id+1] = veloc_alpha[3*id+1] + GAMMA*deltat*accel[3*id+1];
+    veloc[3*id+2] = veloc_alpha[3*id+2] + GAMMA*deltat*accel[3*id+2];
+	displ[3*id]   = displ_alpha[3*id]   + BETA*deltat*deltat*accel[3*id];
+	displ[3*id+1] = displ_alpha[3*id+1] + BETA*deltat*deltat*accel[3*id+1];
+	displ[3*id+2] = displ_alpha[3*id+2] + BETA*deltat*deltat*accel[3*id+2];
   }
 
 // -----------------
@@ -322,19 +337,31 @@ __global__ void kernel_3_accel_cuda_device(realw* accel,
 
 /* ----------------------------------------------------------------------------------------------- */
 
-__global__ void kernel_3_veloc_cuda_device(realw* veloc,
+__global__ void kernel_3_veloc_cuda_device(realw* displ,
+										   realw* veloc,
                                            realw* accel,
+										   realw* displ_alpha,
+										   realw* veloc_alpha,
                                            int size,
-                                           realw deltatover2) {
+                                           realw deltat) {
 
   int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
 
   // because of block and grid sizing problems, there is a small
   // amount of buffer at the end of the calculation
   if (id < size) {
-    veloc[3*id] = veloc[3*id] + deltatover2*accel[3*id];
-    veloc[3*id+1] = veloc[3*id+1] + deltatover2*accel[3*id+1];
-    veloc[3*id+2] = veloc[3*id+2] + deltatover2*accel[3*id+2];
+//    veloc[3*id] = veloc[3*id] + deltatover2*accel[3*id];
+//    veloc[3*id+1] = veloc[3*id+1] + deltatover2*accel[3*id+1];
+//    veloc[3*id+2] = veloc[3*id+2] + deltatover2*accel[3*id+2];
+    veloc[3*id]   = veloc_alpha[3*id]   + GAMMA*deltat*accel[3*id];
+    veloc[3*id+1] = veloc_alpha[3*id+1] + GAMMA*deltat*accel[3*id+1];
+    veloc[3*id+2] = veloc_alpha[3*id+2] + GAMMA*deltat*accel[3*id+2];
+	displ[3*id]   = displ_alpha[3*id]   + BETA*deltat*deltat*accel[3*id];
+	displ[3*id+1] = displ_alpha[3*id+1] + BETA*deltat*deltat*accel[3*id+1];
+	displ[3*id+2] = displ_alpha[3*id+2] + BETA*deltat*deltat*accel[3*id+2];
+
+
+
   }
 }
 
@@ -367,16 +394,19 @@ void FC_FUNC_(kernel_3_a_cuda,
    realw deltatover2 = *deltatover2_F;
 
    // updates both, accel and veloc
-   kernel_3_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_veloc,
+   kernel_3_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_displ,
+																 mp->d_veloc,
                                                                  mp->d_accel,
-                                                                 size, deltatover2,
+																 mp->d_displ_alpha,
+																 mp->d_veloc_alpha,
+                                                                 size, deltatover2*2.0,
                                                                  mp->d_rmassx,mp->d_rmassy,mp->d_rmassz);
    if (mp->simulation_type == 3) {
      realw b_deltatover2 = *b_deltatover2_F;
-     kernel_3_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_b_veloc,
-                                                                   mp->d_b_accel,
-                                                                   size, b_deltatover2,
-                                                                   mp->d_rmassx,mp->d_rmassy,mp->d_rmassz);
+//     kernel_3_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_b_veloc,
+//                                                                   mp->d_b_accel,
+//                                                                   size, b_deltatover2,
+//                                                                   mp->d_rmassx,mp->d_rmassy,mp->d_rmassz);
    }
   }else{
    // updates only accel
@@ -425,15 +455,18 @@ void FC_FUNC_(kernel_3_b_cuda,
 
   realw deltatover2 = *deltatover2_F;
   // updates only veloc at this point
-  kernel_3_veloc_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_veloc,
+  kernel_3_veloc_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_displ,
+																      mp->d_veloc,
                                                                       mp->d_accel,
-                                                                      size,deltatover2);
+																	  mp->d_displ_alpha,
+																	  mp->d_veloc_alpha,
+                                                                      size,deltatover2*2.0);
 
   if (mp->simulation_type == 3) {
     realw b_deltatover2 = *b_deltatover2_F;
-    kernel_3_veloc_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_b_veloc,
-                                                                        mp->d_b_accel,
-                                                                        size,b_deltatover2);
+   // kernel_3_veloc_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_b_veloc,
+  //                                                                      mp->d_b_accel,
+  //                                                                      size,b_deltatover2);
   }
 
 #ifdef ENABLE_VERY_SLOW_ERROR_CHECKING

@@ -217,7 +217,7 @@ subroutine init_one_fault(bc,IIN_BIN,IIN_PAR,dt,NT,iflt,myrank)
 
   real(kind=CUSTOM_REAL) :: S1,S2,S3,Sigma(6)
   integer :: n1,n2,n3
-  logical :: LOAD_STRESSDROP = .false.
+  logical :: LOAD_STRESSDROP = .true.
 
   NAMELIST / INIT_STRESS / S1,S2,S3,n1,n2,n3
   NAMELIST /STRESS_TENSOR / Sigma

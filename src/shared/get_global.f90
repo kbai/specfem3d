@@ -63,7 +63,7 @@
   if (ier /= 0) stop 'error allocating array idummy'
 
   call sort_array_coordinates(npointot,xp,yp,zp,idummy,iglob,locval,ifseg, &
-                              nglob,ninseg,SMALLVALTOL)
+                              nglob,ninseg,SMALLVALTOL,0)
 
 ! deallocate arrays
   deallocate(ninseg)

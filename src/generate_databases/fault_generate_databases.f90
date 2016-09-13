@@ -582,27 +582,27 @@ subroutine save_one_fault_test(f,IOUT)
 
   write(IOUT,*) 'NSPEC NGLOB NGLL = ',f%nspec,f%nglob,NGLLX
   if (f%nspec==0) return
-  do e=1,f%nspec
-    write(IOUT,*) 'FLT_ELEM = ',e
-    write(IOUT,*) 'ISPEC1 ISPEC2 = ',f%ispec1(e),f%ispec2(e)
-    write(IOUT,fmt1) 'IBOOL1 = ',f%ibool1(:,e)
-    write(IOUT,fmt1) 'IBOOL2 = ',f%ibool2(:,e)
-    write(IOUT,fmt1) 'I1 = ',f%ijk1(1,:,e)
-    write(IOUT,fmt1) 'J1 = ',f%ijk1(2,:,e)
-    write(IOUT,fmt1) 'K1 = ',f%ijk1(3,:,e)
-    write(IOUT,fmt1) 'I2 = ',f%ijk2(1,:,e)
-    write(IOUT,fmt1) 'J2 = ',f%ijk2(2,:,e)
-    write(IOUT,fmt1) 'K2 = ',f%ijk2(3,:,e)
-    write(IOUT,fmt2) 'JAC2DW = ',f%jacobian2Dw(:,e)
-    write(IOUT,fmt2) 'N1 = ',f%normal(1,:,e)
-    write(IOUT,fmt2) 'N2 = ',f%normal(2,:,e)
-    write(IOUT,fmt2) 'N3 = ',f%normal(3,:,e)
-  enddo
-
-  write(IOUT,*) 'FLT_NODE IBULK1 IBULK2'
-  do k=1,f%nglob
-    write(IOUT,*) k,f%ibulk1(k),f%ibulk2(k)
-  enddo
+!  do e=1,f%nspec
+!    write(IOUT,*) 'FLT_ELEM = ',e
+!    write(IOUT,*) 'ISPEC1 ISPEC2 = ',f%ispec1(e),f%ispec2(e)
+!    write(IOUT,fmt1) 'IBOOL1 = ',f%ibool1(:,e)
+!    write(IOUT,fmt1) 'IBOOL2 = ',f%ibool2(:,e)
+!    write(IOUT,fmt1) 'I1 = ',f%ijk1(1,:,e)
+!    write(IOUT,fmt1) 'J1 = ',f%ijk1(2,:,e)
+!    write(IOUT,fmt1) 'K1 = ',f%ijk1(3,:,e)
+!    write(IOUT,fmt1) 'I2 = ',f%ijk2(1,:,e)
+!    write(IOUT,fmt1) 'J2 = ',f%ijk2(2,:,e)
+!    write(IOUT,fmt1) 'K2 = ',f%ijk2(3,:,e)
+!    write(IOUT,fmt2) 'JAC2DW = ',f%jacobian2Dw(:,e)
+!    write(IOUT,fmt2) 'N1 = ',f%normal(1,:,e)
+!    write(IOUT,fmt2) 'N2 = ',f%normal(2,:,e)
+!    write(IOUT,fmt2) 'N3 = ',f%normal(3,:,e)
+!  enddo
+!
+!  write(IOUT,*) 'FLT_NODE IBULK1 IBULK2'
+!  do k=1,f%nglob
+!    write(IOUT,*) k,f%ibulk1(k),f%ibulk2(k)
+!  enddo
 
   write(IOUT,*) 'FLT_NODE xcoordbulk ycoordbulk zcoordbulk'
   do k=1,f%nglob

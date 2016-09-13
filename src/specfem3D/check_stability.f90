@@ -173,6 +173,7 @@
   if (myrank == 0) then
 
     write(IMAIN,*) 'Time step # ',it
+    write(IMAIN,*) 't0',t0
     write(IMAIN,*) 'Time: ',sngl((it-1)*DT-t0),' seconds'
 
     ! elapsed time since beginning of the simulation

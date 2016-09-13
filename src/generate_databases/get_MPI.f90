@@ -71,7 +71,7 @@
   integer, dimension(:), allocatable :: reorder_interface_ext_mesh, &
     ninseg_ext_mesh
   logical, dimension(:), allocatable :: ifseg
-  integer :: iinterface,ilocnum
+  integer :: iinterface,ilocnum,flag
   integer :: num_points1, num_points2
 
   ! assembly test
@@ -121,15 +121,25 @@
 
     ! sorts (lexicographically?) ibool_interfaces_ext_mesh and updates value
     ! of total number of points nibool_interfaces_ext_mesh_true
+    flag = 0
+    if(myrank == 173 .and. iinterface == 2) then
+        flag = 1
+    endif
+
+
     call sort_array_coordinates(nibool_interfaces_ext_mesh(iinterface),xp,yp,zp, &
          ibool_interfaces_ext_mesh(1:nibool_interfaces_ext_mesh(iinterface),iinterface), &
          reorder_interface_ext_mesh,locval,ifseg, &
          nibool_interfaces_ext_mesh_true, &
-         ninseg_ext_mesh,SMALLVAL_TOL)
+         ninseg_ext_mesh,SMALLVAL_TOL,flag)
 
     ! checks that number of MPI points are still the same
     num_points1 = num_points1 + nibool_interfaces_ext_mesh(iinterface)
     num_points2 = num_points2 + nibool_interfaces_ext_mesh_true
+    if(myrank == 173 .and. iinterface == 2) then
+        write(*,*) 'here we are:',num_points1, num_points2
+    endif
+
     if (num_points1 /= num_points2) then
       write(*,*) 'error sorting MPI interface points:',myrank
       write(*,*) '   interface:',iinterface,num_points1,num_points2

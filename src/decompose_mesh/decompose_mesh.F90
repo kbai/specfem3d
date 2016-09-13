@@ -42,7 +42,7 @@ module decompose_mesh
     acoustic_elastic_poro_load,mesh2dual_ncommonnodes, &
     build_glob2loc_elmnts,build_glob2loc_nodes,build_interfaces,poro_elastic_repartitioning,moho_surface_repartitioning
 
-  use fault_scotch,only: ANY_FAULT,nodes_coords_open,read_fault_files,save_nodes_coords,close_faults, &
+  use fault_scotch,only: ANY_FAULT,nodes_coords_open,read_fault_files,save_nodes_coords,close_faults,close_faults_additional,&
     fault_repartition,write_fault_database
 
   implicit none
@@ -765,6 +765,7 @@ module decompose_mesh
 
     call read_fault_files(localpath_name)
     if (ANY_FAULT) then
+      call close_faults_additional(nodes_coords,nnodes)
       call save_nodes_coords(nodes_coords,nnodes)
       call close_faults(nodes_coords,nnodes)
     endif

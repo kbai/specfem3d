@@ -276,7 +276,7 @@ typedef struct mesh_ {
   // ------------------------------------------------------------------ //
 
   // displacement, velocity, acceleration
-  realw* d_displ; realw* d_veloc; realw* d_accel;
+  realw* d_displ; realw* d_veloc; realw* d_accel;realw* d_solution;
   // backward/reconstructed elastic wavefield
   realw* d_b_displ; realw* d_b_veloc; realw* d_b_accel;
 
@@ -286,6 +286,9 @@ typedef struct mesh_ {
   // elastic domain parameters
   int* d_phase_ispec_inner_elastic;
   int num_phase_ispec_elastic;
+
+  // fault mask
+  int *d_maskx,*d_maskax;
 
   // mesh coloring
   int* h_num_elem_colors_elastic;

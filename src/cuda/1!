@@ -1,0 +1,220 @@
+#include <cuda.h> 
+
+#include <cuda_runtime.h>
+#include <stdio.h>
+#include "conjugate_gradient_solver.hh"
+
+
+
+__global__ void vecSum(realw* sum, realw* array, int size)
+{
+	int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
+	if( id >= size) return;
+//	printf("special value:%f",array[id]);
+	atomicAdd(sum, array[id]);
+}
+
+__global__ void testarray(realw* array, int size)
+{
+
+	int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
+	if(id >= size) return;
+//	array[id] = 1.000;
+//	if(id == 1) printf("\narrayvalue:%d:%f\n",id,array[id]);
+
+}	
+
+__global__ void vecMul(realw* a, realw* b, realw* results,int size)
+{
+
+	int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
+	if(id >= size) return;
+	results[id] = a[id] * b[id]; 
+
+}
+
+__global__ void vecAdd(realw* a, realw* b, realw i, realw* results, int size)
+{
+	int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
+	if(id >= size) return;
+	results[id] = a[id] + i * b[id]; 
+}
+
+/*__global__ void compute_forces(realw* displ, realw* forces, bool* maskx, bool* maskax)
+{
+
+
+
+}	
+*/
+conjugate_gradient::conjugate_gradient(int NELE, realw* pdis, realw* pload, bool* Xsetfalse, bool* AXsetfalse, realw* gpu_displ, realw* gpu_force,  bool precon ,int proc_num)
+{
+	int num_blocks_x, num_blocks_y;
+	get_blocks_xy((int)ceil((double)(3*NSPEC)/128.0),&num_blocks_x, &num_blocks_y);
+	dim3 grid(num_blocks_x,num_blocks_y);
+	dim3 threads(128,1,1);
+
+	this->NSPEC = NELE;
+	/** reference to the outside array*/
+	this->h_displ = pdis;
+	this->h_load = pload;
+	/** these two cpu vectors are not used */
+	this->myrank = proc_num;
+	this->h_MASKX = Xsetfalse;
+	this->h_MASKAX = AXsetfalse;
+	this->h_Mprecon = new realw[3*NSPEC];
+	print_CUDA_error_if_any(cudaMalloc((void**)(&(this->d_pdire)), NSPEC*3*sizeof(realw)), 50001);
+	print_CUDA_error_if_any(cudaMalloc((void**)(&(this->d_residue)), NSPEC*3*sizeof(realw)), 50004);
+	print_CUDA_error_if_any(cudaMalloc((void**)(&(this->d_tmp)), NSPEC*3*sizeof(realw)), 50001);
+	print_CUDA_error_if_any(cudaMalloc((void**)(&(this->d_precon)), NSPEC*3*sizeof(realw)), 50010);
+	print_CUDA_error_if_any(cudaMalloc((void**)(&(this->d_sum)),sizeof(realw)),50002);
+	print_CUDA_error_if_any(cudaMalloc((void**)(&(this->d_norm)),sizeof(realw)),50003);
+	print_CUDA_error_if_any(cudaMemset(this->d_sum, 0.f , sizeof(realw)) ,50006);
+	print_CUDA_error_if_any(cudaMemset(this->d_norm, 0.f , sizeof(realw)) ,50007);
+	print_CUDA_error_if_any(cudaMemset(this->d_tmp, 0.f , sizeof(realw)) ,50007);
+	print_CUDA_error_if_any(cudaMalloc((void**)(&(this->d_MASKAX)), NSPEC*3*sizeof(bool)), 50011);
+	print_CUDA_error_if_any(cudaMalloc((void**)(&(this->d_MASKX)), NSPEC*3*sizeof(bool)), 50012);
+	print_CUDA_error_if_any(cudaMemcpy(this->d_MASKX, this->h_MASKX, NSPEC*3*sizeof(bool), cudaMemcpyHostToDevice),50015);
+	print_CUDA_error_if_any(cudaMemcpy(this->d_MASKAX, this->h_MASKAX, NSPEC*3*sizeof(bool), cudaMemcpyHostToDevice),500016);
+	print_CUDA_error_if_any(cudaMalloc((void**)(&(this->d_load)), NSPEC*3*sizeof(realw)), 50012);
+	print_CUDA_error_if_any(cudaMemcpy(this->d_load, this->h_load, NSPEC*3*sizeof(bool), cudaMemcpyHostToDevice),50015);
+	/** gpu vectors */
+	this->d_displ = gpu_displ;
+	this->d_force = gpu_force;
+	/** compute diagonal preconditioner */
+	if(precon)
+		this->compute_precon(); /** calls the cpu subroutine to compute diagonal elements */
+	print_CUDA_error_if_any(cudaMemcpy(this->d_precon, this->h_Mprecon, NSPEC*3*sizeof(realw), cudaMemcpyHostToDevice),50005);
+
+	this->compute_forces(this->d_displ);
+	printf("\n step2 \n");
+	/** copy cpu vector to gpu*/
+	vecAdd<<<grid,threads>>>(this->d_load, this->d_force,-1.f, this->d_residue, this->NSPEC*3);
+
+	vecAdd<<<grid,threads>>>(this->d_residue, this->d_residue, 0.f, this->d_pdire, this->NSPEC*3);
+
+	vecMul<<<grid,threads>>>(this->d_residue, this->d_residue, this->d_tmp, this->NSPEC*3);
+
+	vecMul<<<grid,threads>>>(this->d_tmp, this->d_precon, this->d_tmp, this->NSPEC*3);
+
+	vecSum<<<grid,threads>>>(this->d_sum, this->d_tmp, this->NSPEC*3);
+
+	print_CUDA_error_if_any(cudaMemcpy(&(this->h_sum),this->d_sum,sizeof(realw),cudaMemcpyDeviceToHost),50038);/** copy local sum from gpu to cpu*/
+
+	sum_all_all_cr_(&(this->h_sum),&(this->h_sum_all));
+
+	this->h_normold = this->h_sum_all;
+}
+
+conjugate_gradient::~conjugate_gradient()
+{}
+
+void conjugate_gradient::compute_precon()
+{
+	compute_diagonal_(this->h_Mprecon); /** fortran subroutine : ../specfem3d/compute_diagonal.f90 */ 
+	for(int i = 0; i < 3 * NSPEC ; i++) this->h_Mprecon[i] = 1.f/(this->h_Mprecon[i]);
+}
+
+void conjugate_gradient::checkfield()
+{
+//	std::cout<<std::endl<<"check:"<<h_displ[0]<<" "<<h_displ[1]<<" "<<h_displ[2]<<std::endl;
+//	std::cout<<std::endl<<"check precon1:"<<h_Mprecon[0]<<" "<<h_Mprecon[1]<<" "<<h_Mprecon[2]<<std::endl;
+//	std::cout<<std::endl<<"check precon2:"<<h_load[0]<<" "<<h_load[1]<<" "<<h_load[2]<<std::endl;
+//	std::cout<<"number of points:"<<NSPEC<<std::endl;
+	this->gpu_init();
+   
+
+}
+
+	
+void conjugate_gradient::gpu_init()
+{
+	int num_blocks_x, num_blocks_y;
+	get_blocks_xy((int)ceil((double)(3*NSPEC)/128.0),&num_blocks_x, &num_blocks_y);
+	dim3 grid(num_blocks_x,num_blocks_y);
+/**	std::cout<<num_blocks_x<<" "<<num_blocks_y << std::endl;*/
+	dim3 threads(128,1,1);
+    testarray<<<grid,threads>>>(this->d_displ, 3*NSPEC);
+
+//	printf("finishes!\n");
+}
+
+void conjugate_gradient::sum()
+{
+	int num_blocks_x, num_blocks_y;
+	get_blocks_xy((int)ceil((double)(3*NSPEC)/128.0),&num_blocks_x, &num_blocks_y);
+	dim3 grid(num_blocks_x,num_blocks_y);
+	std::cout<<num_blocks_x<<" "<<num_blocks_y << std::endl;
+	dim3 threads(128,1,1);
+    vecSum<<<grid,threads>>>(this->d_sum, this->d_displ, this->NSPEC*3);
+	print_CUDA_error_if_any(cudaMemcpy(&(this->h_sum),this->d_sum,sizeof(realw),cudaMemcpyDeviceToHost),50008);
+//	printf("\n the sum of the array: %f::%d\n",(this->h_sum),this->NSPEC);
+
+}
+
+void conjugate_gradient::compute_forces(realw* displ_field)
+{
+
+	compute_fault_gpu_(this->d_force, displ_field, this->d_MASKX, this->d_MASKAX);
+
+	print_CUDA_error_if_any(cudaMemcpy((this->h_load),this->d_force,NSPEC*3*sizeof(realw),cudaMemcpyDeviceToHost),50018);
+
+
+//	printf("\nmyrank is : %d\n",this->myrank);
+/** for debug*/
+	/*if(this->myrank == 31) 
+	{
+      for(int i = 9000;i<=9030;i+=3) printf("accel at %d:%f",i,h_load[i]); 
+	}*/
+}
+
+void conjugate_gradient::update_val_dire()
+{
+	realw alpha,beta;
+	int num_blocks_x, num_blocks_y;
+	get_blocks_xy((int)ceil((double)(3*NSPEC)/128.0),&num_blocks_x, &num_blocks_y);
+	dim3 grid(num_blocks_x,num_blocks_y);
+	dim3 threads(128,1,1);
+
+	this->compute_forces(this->d_displ); /** this->d_force = K*this->d_pdire*/
+	printf("step1\n");
+
+    vecMul<<<grid, threads>>>(this->d_pdire, this->d_force, this->d_tmp, this->NSPEC*3);
+
+	vecSum<<<grid, threads>>>(this->d_sum, this->d_tmp, this->NSPEC*3);
+
+	print_CUDA_error_if_any(cudaMemcpy(&(this->h_sum),this->d_sum,sizeof(realw),cudaMemcpyDeviceToHost),50037);/** copy local sum from gpu to cpu*/
+
+	sum_all_all_cr_(&(this->h_sum),&(this->h_sum_all));
+
+	print_CUDA_error_if_any(cudaMemcpy(this->d_sum,&(this->h_sum_all),sizeof(realw),cudaMemcpyHostToDevice),50038);/** copy global sum from cpu to gpu*/
+
+	alpha = this->h_normold/this->h_sum_all;
+
+	vecAdd<<<grid,threads>>>(this->d_displ,this->d_pdire, alpha, this->d_displ, this->NSPEC*3);
+
+
+	vecAdd<<<grid,threads>>>(this->d_residue, this->d_force, -alpha,this->d_residue, this->NSPEC*3);
+
+
+	vecMul<<<grid,threads>>>(this->d_residue, this->d_residue, this->d_tmp, this->NSPEC*3);
+
+	vecMul<<<grid,threads>>>(this->d_tmp, this->d_precon, this->d_tmp,this->NSPEC*3);
+
+	vecSum<<<grid,threads>>>(this->d_sum, this->d_tmp, this->NSPEC*3); 
+
+	print_CUDA_error_if_any(cudaMemcpy(&(this->h_sum),this->d_sum,sizeof(realw),cudaMemcpyDeviceToHost),50038);/** copy local sum from gpu to cpu*/
+
+	sum_all_all_cr_(&(this->h_sum),&(this->h_sum_all));
+
+	beta = h_sum_all / h_normold;
+
+	h_normold = h_sum_all;
+
+	vecMul<<<grid,threads>>>(this->d_residue, this->d_precon, this->d_tmp, this->NSPEC*3);
+
+	vecAdd<<<grid,threads>>>(this->d_tmp, this->d_pdire, beta , this->d_pdire, this->NSPEC*3);
+
+   
+
+}

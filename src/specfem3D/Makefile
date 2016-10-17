@@ -35,11 +35,11 @@
 # default cuda libraries
 # runtime library -lcudart needed, others are optional -lcuda -lcublas
 
-CUDA_LINK =  
-CUDA_CPPFLAGS =  -I../../
+CUDA_LINK = -L/opt/cuda-6.0/lib64 -lcudart
+CUDA_CPPFLAGS = -I/opt/cuda-6.0/include -I../../
 
-#NVCC = nvcc
-NVCC = gcc
+NVCC = nvcc 
+#NVCC = gcc
 
 # GPU architecture
 
@@ -53,21 +53,21 @@ GENCODE_30 = -gencode=arch=compute_30,code=\"sm_30,compute_30\"
 GENCODE_35 = -gencode=arch=compute_35,code=\"sm_35,compute_35\"
 
 # CUDA version 5.x
-##GENCODE = $(GENCODE_35)
+#GENCODE = $(GENCODE_35)
 # CUDA version 4.x
-#GENCODE = $(GENCODE_20)
+GENCODE = $(GENCODE_20)
 
 # CUDA flags and linking
-#NVCC_FLAGS_BASE = $(CUDA_CPPFLAGS) $(MPI_INCLUDES) $(COND_MPI_CPPFLAGS)
-##NVCC_FLAGS = $(NVCC_FLAGS_BASE) -dc -DCUDA $(GENCODE)
-#NVCC_FLAGS = $(NVCC_FLAGS_BASE) -DCUDA -DUSE_OLDER_CUDA4_GPU $(GENCODE)
+NVCC_FLAGS_BASE = $(CUDA_CPPFLAGS) $(MPI_INCLUDES) $(COND_MPI_CPPFLAGS)
+#NVCC_FLAGS = $(NVCC_FLAGS_BASE) -dc -DCUDA $(GENCODE)
+NVCC_FLAGS = $(NVCC_FLAGS_BASE) -DCUDA -DUSE_OLDER_CUDA4_GPU $(GENCODE)
 
-##NVCCLINK_BASE = $(NVCC) $(CUDA_CPPFLAGS) $(MPI_INCLUDES) $(COND_MPI_CPPFLAGS) -DCUDA
-##NVCCLINK = $(NVCCLINK_BASE) -dlink $(GENCODE)
-#NVCCLINK = $(NVCCLINK_BASE) -DUSE_OLDER_CUDA4_GPU $(GENCODE)
+#NVCCLINK_BASE = $(NVCC) $(CUDA_CPPFLAGS) $(MPI_INCLUDES) $(COND_MPI_CPPFLAGS) -DCUDA
+#NVCCLINK = $(NVCCLINK_BASE) -dlink $(GENCODE)
+NVCCLINK = $(NVCCLINK_BASE) -DUSE_OLDER_CUDA4_GPU $(GENCODE)
 
-NVCC_FLAGS = $(MPI_INCLUDES) $(COND_MPI_CPPFLAGS)
-NVCCLINK = $(NVCC) $(NVCC_FLAGS)
+#NVCC_FLAGS = $(MPI_INCLUDES) $(COND_MPI_CPPFLAGS)
+#NVCCLINK = $(NVCC) $(NVCC_FLAGS)
 
 # OpenMP
 # with configure: ./configure --with-openmp FLAGS_CHECK="-openmp .." OPENMP_LIB=.. 
@@ -102,7 +102,7 @@ MPIFCCOMPILE_CHECK = ${MPIFC} ${FCFLAGS} $(FLAGS_CHECK) $(COND_OPENMP_FFLAGS) -I
 FCLINK = $(MPIFCCOMPILE_CHECK)
 #FCLINK = $(FCCOMPILE_CHECK)
 
-CC = gcc
+CC = /usr/bin/gcc
 CFLAGS = -g -O2 $(CPPFLAGS)
 CPPFLAGS =  -I/usr/include/scotch $(COND_MPI_CPPFLAGS)
 COND_MPI_CPPFLAGS = -DWITH_MPI
@@ -171,6 +171,10 @@ CUDA_OBJECTS = \
 	$O/save_and_compare_cpu_vs_gpu.cudacc.o \
 	$O/transfer_fields_cuda.cuda.o \
 	$O/write_seismograms_cuda.cuda.o \
+	$O/conjugate_gradient_solver.cuda.o \
+	$O/passhandle.cuda.o \
+	$O/kernel_fault.cuda.o\
+	$O/fault_solver_dynamics.cuda.o\
 	$(EMPTY_MACRO)
 
 CUDA_STUBS = \
@@ -191,9 +195,9 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/fault_solver_common.o \
 	$O/fault_solver_dynamic.o \
 	$O/fault_solver_kinematic.o \
+	$O/gravity_perturbation.o \
         $O/fault_solver_qd.o \
         $O/conjugate_gradient_method.o \
-	$O/gravity_perturbation.o \
 	$O/compute_add_sources_acoustic.o \
 	$O/compute_add_sources_viscoelastic.o \
 	$O/compute_add_sources_poroelastic.o \
@@ -236,7 +240,9 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/finalize_simulation.o \
 	$O/initialize_simulation.o \
 	$O/iterate_time.o \
-        $O/iterate_time_static_solver2.o \
+	$O/iterate_time_static_solver2.o \
+	$O/compute_fault.o \
+	$O/compute_fault_local.o \
 	$O/make_gravity.o \
 	$O/noise_tomography.o \
 	$O/pml_allocate_arrays.o \
@@ -248,7 +254,7 @@ SOLVER_ARRAY_OBJECTS = \
 	$O/read_mesh_databases.o \
 	$O/save_adjoint_kernels.o \
 	$O/setup_GLL_points.o \
-        $O/setup_GLL_points2.o \
+	$O/setup_GLL_points2.o \
 	$O/setup_movie_meshes.o \
 	$O/setup_sources_receivers.o \
 	$O/specfem3D.o \
@@ -316,7 +322,7 @@ ADIOS_PREOBJECTS= $(ADIOS_PRESTUBS)
 # ADIOS
 # with configure: ./configure --with-adios ADIOS_CONFIG=..
 
-MPI_INCLUDES = 
+MPI_INCLUDES =  -I/opt/intel/impi/5.0.0.028/include64
 ADIOS_INC =  -I../../
 ADIOS_LINK = 
 
@@ -335,8 +341,8 @@ COND_OPENMP_OBJECTS =
 LIBSPECFEM = $L/libspecfem.a
 
 # objects for the pure Fortran version
-#XSPECFEM_OBJECTS = $(ADIOS_PREOBJECTS) $(SOLVER_ARRAY_OBJECTS) $(LIBSPECFEM) $(CUDA_OBJECTS) $(ADIOS_OBJECTS)
-XSPECFEM_OBJECTS = $(ADIOS_PREOBJECTS) $(SOLVER_ARRAY_OBJECTS) $(LIBSPECFEM) $(CUDA_STUBS) $(ADIOS_OBJECTS)
+XSPECFEM_OBJECTS = $(ADIOS_PREOBJECTS) $(SOLVER_ARRAY_OBJECTS) $(LIBSPECFEM) $(CUDA_OBJECTS) $(ADIOS_OBJECTS)
+#XSPECFEM_OBJECTS = $(ADIOS_PREOBJECTS) $(SOLVER_ARRAY_OBJECTS) $(LIBSPECFEM) $(CUDA_STUBS) $(ADIOS_OBJECTS)
 
 #######################################
 
@@ -371,10 +377,9 @@ specfem3D: xspecfem3D
 # rules for the pure Fortran version
 # solver also depends on values from mesher
 xspecfem3D: $(XSPECFEM_OBJECTS) $(COND_MPI_OBJECTS) $(COND_OPENMP_OBJECTS)
-##	${NVCCLINK} -o $(CUDA_DEVICE_OBJ) $(CUDA_OBJECTS)
-##	${FCLINK} -o ${E}/xspecfem3D $(XSPECFEM_OBJECTS) $(CUDA_DEVICE_OBJ) $(COND_MPI_OBJECTS) $(MPILIBS) $(COND_OPENMP_OBJECTS) $(OPENMP_LIBS) $(CUDA_LINK) $(ADIOS_LINK) $(LDFLAGS)
-#	${FCLINK} -o ${E}/xspecfem3D $(XSPECFEM_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS) $(COND_OPENMP_OBJECTS) $(OPENMP_LIBS) $(CUDA_LINK) $(ADIOS_LINK) $(LDFLAGS)
-	${FCLINK} -o ${E}/xspecfem3D $(XSPECFEM_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS) $(COND_OPENMP_OBJECTS) $(OPENMP_LIBS) $(CUDA_LINK) $(ADIOS_LINK) $(LDFLAGS)
+#	${NVCCLINK} -o $(CUDA_DEVICE_OBJ) $(CUDA_OBJECTS)
+#	${FCLINK} -o ${E}/xspecfem3D $(XSPECFEM_OBJECTS) $(CUDA_DEVICE_OBJ) $(COND_MPI_OBJECTS) $(MPILIBS) $(COND_OPENMP_OBJECTS) $(OPENMP_LIBS) $(CUDA_LINK) $(ADIOS_LINK) $(LDFLAGS)
+	${FCLINK} -o ${E}/xspecfem3D $(XSPECFEM_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS) $(COND_OPENMP_OBJECTS) $(OPENMP_LIBS) $(CUDA_LINK) $(ADIOS_LINK) $(LDFLAGS) #	${FCLINK} -o ${E}/xspecfem3D $(XSPECFEM_OBJECTS) $(COND_MPI_OBJECTS) $(MPILIBS) $(COND_OPENMP_OBJECTS) $(OPENMP_LIBS) $(CUDA_LINK) $(ADIOS_LINK) $(LDFLAGS)
 
 
 convolve_source_timefunction: xconvolve_source_timefunction

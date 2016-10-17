@@ -1,0 +1,7 @@
+Job Information:
+Job ID: 514304.fram-master.gps.caltech.edu
+User ID: kbai
+Group ID: ampuero
+Resource List: neednodes=12,nodes=12
+Resource Used: cput=00:01:31,mem=3256kb,vmem=38836kb,walltime=00:02:04
+Queue Name: default

@@ -216,6 +216,7 @@ void FC_FUNC_(prepare_constants_device,
 
   // transfer constant element data with padding
   for(int i=0;i < mp->NSPEC_AB;i++) {
+	  double start = get_time();
     print_CUDA_error_if_any(cudaMemcpy(mp->d_xix + i*NGLL3_PADDED, &h_xix[i*NGLL3],
                                        NGLL3*sizeof(realw),cudaMemcpyHostToDevice),1501);
     print_CUDA_error_if_any(cudaMemcpy(mp->d_xiy+i*NGLL3_PADDED,   &h_xiy[i*NGLL3],
@@ -595,6 +596,14 @@ void FC_FUNC_(prepare_fields_elastic_device,
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_displ),sizeof(realw)*size),4001);
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_veloc),sizeof(realw)*size),4002);
   print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_accel),sizeof(realw)*size),4003);
+  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_maskx),sizeof(int)*size),4004);
+  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_maskax),sizeof(int)*size),4005);
+  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_solution),sizeof(realw)*size),4006);
+  print_CUDA_error_if_any(cudaMemset(mp->d_maskx,0,sizeof(int)*size),4006);
+  print_CUDA_error_if_any(cudaMemset(mp->d_maskax,0,sizeof(int)*size),4007);
+  print_CUDA_error_if_any(cudaMemset(mp->d_solution,0,sizeof(realw)*size),4007);
+
+
   // initializes values to zero
   //print_CUDA_error_if_any(cudaMemset(mp->d_displ,0,sizeof(realw)*size),4007);
   //print_CUDA_error_if_any(cudaMemset(mp->d_veloc,0,sizeof(realw)*size),4007);
@@ -1484,4 +1493,5 @@ TRACE("prepare_cleanup_device");
 
   // mesh pointer - not needed anymore
   free(mp);
+
 }

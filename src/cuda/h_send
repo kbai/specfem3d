@@ -1,0 +1,1427 @@
+check_fields_cuda.cu:   h_array = (realw*)calloc(mp->NGLOB_AB,sizeof(realw));
+check_fields_cuda.cu:   print_CUDA_error_if_any(cudaMemcpy(h_array,mp->d_potential_dot_dot_acoustic,
+check_fields_cuda.cu:   sizeof(realw)*(mp->NGLOB_AB),cudaMemcpyDeviceToHost),131);
+check_fields_cuda.cu:   for( int i=1; i < mp->NGLOB_AB; i++){
+check_fields_cuda.cu:   get_maximum_kernel<<<grid,threads>>>(mp->d_potential_dot_dot_acoustic,
+check_fields_cuda.cu:   mp->NGLOB_AB,
+check_fields_cuda.cu:  int size = mp->NGLOB_AB;
+check_fields_cuda.cu:    get_maximum_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_potential_dot_dot_acoustic,size,d_max);
+check_fields_cuda.cu:    get_maximum_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_potential_dot_dot_acoustic,size,d_max);
+check_fields_cuda.cu:  cudaStreamSynchronize(mp->compute_stream);
+check_fields_cuda.cu:   imax = cublasIsamax(mp->NGLOB_AB,(realw*)mp->d_potential_dot_dot_acoustic, incr);
+check_fields_cuda.cu:   print_CUDA_error_if_any(cudaMemcpy(&max,&(mp->d_potential_dot_dot_acoustic[imax]),
+check_fields_cuda.cu:   printf("maximum %i %i %f \n",mp->NGLOB_AB,imax,max);
+check_fields_cuda.cu:  int size = mp->NGLOB_AB;
+check_fields_cuda.cu:    get_maximum_vector_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_displ,size,d_max);
+check_fields_cuda.cu:    get_maximum_vector_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_displ,size,d_max);
+check_fields_cuda.cu:  cudaStreamSynchronize(mp->compute_stream);
+check_fields_cuda.cu:  //printf("rank % d - type: %d norm: %f \n",mp->myrank,*type,res);
+check_fields_cuda.cu:  cudaMemcpy(accel_cpy,mp->d_accel,size*sizeof(realw),cudaMemcpyDeviceToHost);
+check_fields_cuda.cu: check_phase_ispec_kernel<<<grid,threads>>>(mp->num_phase_ispec_elastic,
+check_fields_cuda.cu: mp->d_phase_ispec_inner_elastic,
+check_fields_cuda.cu: mp->NSPEC_AB,
+check_fields_cuda.cu: check_phase_ispec_kernel<<<grid,threads>>>(mp->num_phase_ispec_acoustic,
+check_fields_cuda.cu: mp->d_phase_ispec_inner_acoustic,
+check_fields_cuda.cu: mp->NSPEC_AB,
+check_fields_cuda.cu: check_ispec_is_kernel<<<grid,threads>>>(mp->NSPEC_AB,
+check_fields_cuda.cu: mp->d_ispec_is_inner,
+check_fields_cuda.cu: check_ispec_is_kernel<<<grid,threads>>>(mp->NSPEC_AB,
+check_fields_cuda.cu: mp->d_ispec_is_elastic,
+check_fields_cuda.cu: check_ispec_is_kernel<<<grid,threads>>>(mp->NSPEC_AB,
+check_fields_cuda.cu: mp->d_ispec_is_acoustic,
+check_fields_cuda.cu: check_array_ispec_kernel<<<grid,threads>>>(mp->d_num_abs_boundary_faces,
+check_fields_cuda.cu: mp->d_abs_boundary_ispec,
+check_fields_cuda.cu: mp->NSPEC_AB,
+check_fields_cuda.cu:  cudaMemcpy(displ, mp->d_displ,*size*sizeof(realw),cudaMemcpyDeviceToHost);
+check_fields_cuda.cu:  cudaMemcpy(b_displ, mp->d_b_displ,*size*sizeof(realw),cudaMemcpyDeviceToHost);
+check_fields_cuda.cu:  cudaMemcpy(b_accel, mp->d_b_accel,*size*sizeof(realw),cudaMemcpyDeviceToHost);
+check_fields_cuda.cu:  cudaMemcpy(b_accel, mp->d_b_accel,*size*sizeof(realw),cudaMemcpyDeviceToHost);
+check_fields_cuda.cu:  cudaMemcpy(b_veloc, mp->d_b_veloc,*size*sizeof(realw),cudaMemcpyDeviceToHost);
+compute_add_sources_acoustic_cuda.cu:  if( mp->nsources_local == 0 ) return;
+compute_add_sources_acoustic_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_stf_pre_compute,h_stf_pre_compute,
+compute_add_sources_acoustic_cuda.cu:  compute_add_sources_acoustic_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_potential_dot_dot_acoustic,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_ibool,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_ispec_is_inner,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_sourcearrays,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_stf_pre_compute,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->myrank,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_islice_selected_source,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_ispec_selected_source,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_ispec_is_acoustic,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_kappastore,
+compute_add_sources_acoustic_cuda.cu:  if( mp->nsources_local == 0 ) return;
+compute_add_sources_acoustic_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_stf_pre_compute,h_stf_pre_compute,
+compute_add_sources_acoustic_cuda.cu:  compute_add_sources_acoustic_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_potential_dot_dot_acoustic,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_ibool,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_ispec_is_inner,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_sourcearrays,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_stf_pre_compute,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->myrank,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_islice_selected_source,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_ispec_selected_source,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_ispec_is_acoustic,
+compute_add_sources_acoustic_cuda.cu:                                                                              mp->d_kappastore,
+compute_add_sources_acoustic_cuda.cu:  if( *nadj_rec_local != mp->nadj_rec_local) exit_on_cuda_error("add_sources_ac_sim_type_2_or_3: nadj_rec_local not equal\n");
+compute_add_sources_acoustic_cuda.cu:  get_blocks_xy(mp->nadj_rec_local,&num_blocks_x,&num_blocks_y);
+compute_add_sources_acoustic_cuda.cu:    if(mp->myrank == h_islice_selected_rec[irec]) {
+compute_add_sources_acoustic_cuda.cu:                mp->h_adj_sourcearrays_slice[INDEX5(5,5,5,3,i,j,k,0,irec_local-1)]
+compute_add_sources_acoustic_cuda.cu:                  = h_adj_sourcearrays[INDEX6(mp->nadj_rec_local,
+compute_add_sources_acoustic_cuda.cu:                mp->h_adj_sourcearrays_slice[INDEX5(5,5,5,3,i,j,k,1,irec_local-1)]
+compute_add_sources_acoustic_cuda.cu:                  = h_adj_sourcearrays[INDEX6(mp->nadj_rec_local,
+compute_add_sources_acoustic_cuda.cu:                mp->h_adj_sourcearrays_slice[INDEX5(5,5,5,3,i,j,k,2,irec_local-1)]
+compute_add_sources_acoustic_cuda.cu:                  = h_adj_sourcearrays[INDEX6(mp->nadj_rec_local,
+compute_add_sources_acoustic_cuda.cu:  if( irec_local != mp->nadj_rec_local) exit_on_error("irec_local not equal to nadj_rec_local\n");
+compute_add_sources_acoustic_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_adj_sourcearrays, mp->h_adj_sourcearrays_slice,
+compute_add_sources_acoustic_cuda.cu:                                    (mp->nadj_rec_local)*3*NGLL3*sizeof(realw),cudaMemcpyHostToDevice),99099);
+compute_add_sources_acoustic_cuda.cu:  add_sources_ac_SIM_TYPE_2_OR_3_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_potential_dot_dot_acoustic,
+compute_add_sources_acoustic_cuda.cu:                                                                                mp->d_adj_sourcearrays,
+compute_add_sources_acoustic_cuda.cu:                                                                                mp->d_ibool,
+compute_add_sources_acoustic_cuda.cu:                                                                                mp->d_ispec_is_inner,
+compute_add_sources_acoustic_cuda.cu:                                                                                mp->d_ispec_is_acoustic,
+compute_add_sources_acoustic_cuda.cu:                                                                                mp->d_ispec_selected_rec,
+compute_add_sources_acoustic_cuda.cu:                                                                                mp->d_pre_computed_irec,
+compute_add_sources_acoustic_cuda.cu:                                                                                mp->nadj_rec_local,
+compute_add_sources_acoustic_cuda.cu:                                                                                mp->d_kappastore);
+compute_add_sources_viscoelastic_cuda.cu:  if( mp->nsources_local == 0 ) return;
+compute_add_sources_viscoelastic_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_stf_pre_compute,h_stf_pre_compute,
+compute_add_sources_viscoelastic_cuda.cu:  compute_add_sources_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel,mp->d_ibool,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->d_ispec_is_inner,phase_is_inner,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->d_sourcearrays,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->d_stf_pre_compute,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->myrank,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->d_islice_selected_source,mp->d_ispec_selected_source,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->d_ispec_is_elastic,
+compute_add_sources_viscoelastic_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_stf_pre_compute,h_stf_pre_compute,
+compute_add_sources_viscoelastic_cuda.cu:  compute_add_sources_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_accel,mp->d_ibool,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->d_ispec_is_inner, phase_is_inner,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->d_sourcearrays,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->d_stf_pre_compute,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->myrank,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->d_islice_selected_source,mp->d_ispec_selected_source,
+compute_add_sources_viscoelastic_cuda.cu:                                                                    mp->d_ispec_is_elastic,
+compute_add_sources_viscoelastic_cuda.cu:  if(mp->myrank == islice_selected_rec[irec_master_noise-1]) {
+compute_add_sources_viscoelastic_cuda.cu:    add_source_master_rec_noise_cuda_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_ibool,
+compute_add_sources_viscoelastic_cuda.cu:                                                                                    mp->d_ispec_selected_rec,
+compute_add_sources_viscoelastic_cuda.cu:                                                                                    mp->d_accel,
+compute_add_sources_viscoelastic_cuda.cu:                                                                                    mp->d_noise_sourcearray,
+compute_add_sources_viscoelastic_cuda.cu:  if( *nadj_rec_local != mp->nadj_rec_local) exit_on_error("add_sources_el_sim_type_2_or_3: nadj_rec_local not equal\n");
+compute_add_sources_viscoelastic_cuda.cu:  get_blocks_xy(mp->nadj_rec_local,&num_blocks_x,&num_blocks_y);
+compute_add_sources_viscoelastic_cuda.cu:    if(mp->myrank == h_islice_selected_rec[irec]) {
+compute_add_sources_viscoelastic_cuda.cu:                mp->h_adj_sourcearrays_slice[INDEX5(5,5,5,3,i,j,k,0,irec_local-1)]
+compute_add_sources_viscoelastic_cuda.cu:                mp->h_adj_sourcearrays_slice[INDEX5(5,5,5,3,i,j,k,1,irec_local-1)]
+compute_add_sources_viscoelastic_cuda.cu:                mp->h_adj_sourcearrays_slice[INDEX5(5,5,5,3,i,j,k,2,irec_local-1)]
+compute_add_sources_viscoelastic_cuda.cu:  if( irec_local != mp->nadj_rec_local) exit_on_error("irec_local not equal to nadj_rec_local\n");
+compute_add_sources_viscoelastic_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_adj_sourcearrays, mp->h_adj_sourcearrays_slice,
+compute_add_sources_viscoelastic_cuda.cu:                                    (mp->nadj_rec_local)*3*NGLL3*sizeof(realw),cudaMemcpyHostToDevice),98001);
+compute_add_sources_viscoelastic_cuda.cu:  add_sources_el_SIM_TYPE_2_OR_3_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel,
+compute_add_sources_viscoelastic_cuda.cu:                                                                               mp->d_adj_sourcearrays,
+compute_add_sources_viscoelastic_cuda.cu:                                                                               mp->d_ibool,
+compute_add_sources_viscoelastic_cuda.cu:                                                                               mp->d_ispec_is_inner,
+compute_add_sources_viscoelastic_cuda.cu:                                                                               mp->d_ispec_is_elastic,
+compute_add_sources_viscoelastic_cuda.cu:                                                                               mp->d_ispec_selected_rec,
+compute_add_sources_viscoelastic_cuda.cu:                                                                               mp->d_pre_computed_irec,
+compute_add_sources_viscoelastic_cuda.cu:                                                                               mp->nadj_rec_local);
+compute_coupling_cuda.cu:  compute_coupling_acoustic_el_kernel<<<grid,threads>>>(mp->d_displ,
+compute_coupling_cuda.cu:                                                       mp->d_potential_dot_dot_acoustic,
+compute_coupling_cuda.cu:                                                       mp->d_coupling_ac_el_ispec,
+compute_coupling_cuda.cu:                                                       mp->d_coupling_ac_el_ijk,
+compute_coupling_cuda.cu:                                                       mp->d_coupling_ac_el_normal,
+compute_coupling_cuda.cu:                                                       mp->d_coupling_ac_el_jacobian2Dw,
+compute_coupling_cuda.cu:                                                       mp->d_ibool,
+compute_coupling_cuda.cu:                                                       mp->d_ispec_is_inner,
+compute_coupling_cuda.cu:  if (mp->simulation_type == 3 ){
+compute_coupling_cuda.cu:    compute_coupling_acoustic_el_kernel<<<grid,threads>>>(mp->d_b_displ,
+compute_coupling_cuda.cu:                                                          mp->d_b_potential_dot_dot_acoustic,
+compute_coupling_cuda.cu:                                                          mp->d_coupling_ac_el_ispec,
+compute_coupling_cuda.cu:                                                          mp->d_coupling_ac_el_ijk,
+compute_coupling_cuda.cu:                                                          mp->d_coupling_ac_el_normal,
+compute_coupling_cuda.cu:                                                          mp->d_coupling_ac_el_jacobian2Dw,
+compute_coupling_cuda.cu:                                                          mp->d_ibool,
+compute_coupling_cuda.cu:                                                          mp->d_ispec_is_inner,
+compute_coupling_cuda.cu:  compute_coupling_elastic_ac_kernel<<<grid,threads>>>(mp->d_potential_dot_dot_acoustic,
+compute_coupling_cuda.cu:                                                       mp->d_accel,
+compute_coupling_cuda.cu:                                                       mp->d_coupling_ac_el_ispec,
+compute_coupling_cuda.cu:                                                       mp->d_coupling_ac_el_ijk,
+compute_coupling_cuda.cu:                                                       mp->d_coupling_ac_el_normal,
+compute_coupling_cuda.cu:                                                       mp->d_coupling_ac_el_jacobian2Dw,
+compute_coupling_cuda.cu:                                                       mp->d_ibool,
+compute_coupling_cuda.cu:                                                       mp->d_ispec_is_inner,
+compute_coupling_cuda.cu:                                                       mp->gravity,
+compute_coupling_cuda.cu:                                                       mp->d_minus_g,
+compute_coupling_cuda.cu:                                                       mp->d_rhostore,
+compute_coupling_cuda.cu:                                                       mp->d_displ);
+compute_coupling_cuda.cu:  if (mp->simulation_type == 3 ){
+compute_coupling_cuda.cu:    compute_coupling_elastic_ac_kernel<<<grid,threads>>>(mp->d_b_potential_dot_dot_acoustic,
+compute_coupling_cuda.cu:                                                         mp->d_b_accel,
+compute_coupling_cuda.cu:                                                         mp->d_coupling_ac_el_ispec,
+compute_coupling_cuda.cu:                                                         mp->d_coupling_ac_el_ijk,
+compute_coupling_cuda.cu:                                                         mp->d_coupling_ac_el_normal,
+compute_coupling_cuda.cu:                                                         mp->d_coupling_ac_el_jacobian2Dw,
+compute_coupling_cuda.cu:                                                         mp->d_ibool,
+compute_coupling_cuda.cu:                                                         mp->d_ispec_is_inner,
+compute_coupling_cuda.cu:                                                         mp->gravity,
+compute_coupling_cuda.cu:                                                         mp->d_minus_g,
+compute_coupling_cuda.cu:                                                         mp->d_rhostore,
+compute_coupling_cuda.cu:                                                         mp->d_b_displ);
+compute_coupling_cuda.cu:  if( mp->num_free_surface_faces == 0 ) return;
+compute_coupling_cuda.cu:  get_blocks_xy(mp->num_free_surface_faces,&num_blocks_x,&num_blocks_y);
+compute_coupling_cuda.cu:  print_CUDA_error_if_any(cudaMemset(mp->d_updated_dof_ocean_load,0,
+compute_coupling_cuda.cu:                                     sizeof(int)*mp->NGLOB_AB),88501);
+compute_coupling_cuda.cu:  compute_coupling_ocean_cuda_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel,
+compute_coupling_cuda.cu:                                                                           mp->d_rmassx,mp->d_rmassy,mp->d_rmassz,
+compute_coupling_cuda.cu:                                                                           mp->d_rmass_ocean_load,
+compute_coupling_cuda.cu:                                                                           mp->num_free_surface_faces,
+compute_coupling_cuda.cu:                                                                           mp->d_free_surface_ispec,
+compute_coupling_cuda.cu:                                                                           mp->d_free_surface_ijk,
+compute_coupling_cuda.cu:                                                                           mp->d_free_surface_normal,
+compute_coupling_cuda.cu:                                                                           mp->d_ibool,
+compute_coupling_cuda.cu:                                                                           mp->d_updated_dof_ocean_load);
+compute_coupling_cuda.cu:  if(mp->simulation_type == 3) {
+compute_coupling_cuda.cu:    print_CUDA_error_if_any(cudaMemset(mp->d_updated_dof_ocean_load,0,
+compute_coupling_cuda.cu:                                       sizeof(int)*mp->NGLOB_AB),88502);
+compute_coupling_cuda.cu:    compute_coupling_ocean_cuda_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_accel,
+compute_coupling_cuda.cu:                                                                             mp->d_rmassx,mp->d_rmassy,mp->d_rmassz,
+compute_coupling_cuda.cu:                                                                             mp->d_rmass_ocean_load,
+compute_coupling_cuda.cu:                                                                             mp->num_free_surface_faces,
+compute_coupling_cuda.cu:                                                                             mp->d_free_surface_ispec,
+compute_coupling_cuda.cu:                                                                             mp->d_free_surface_ijk,
+compute_coupling_cuda.cu:                                                                             mp->d_free_surface_normal,
+compute_coupling_cuda.cu:                                                                             mp->d_ibool,
+compute_coupling_cuda.cu:                                                                             mp->d_updated_dof_ocean_load);
+compute_forces_acoustic_cuda.cu:  if( mp->size_mpi_buffer_potential > 0 ){
+compute_forces_acoustic_cuda.cu:    int size_padded = ((int)ceil(((double)(mp->max_nibool_interfaces_ext_mesh))/((double)blocksize)))*blocksize;
+compute_forces_acoustic_cuda.cu:      prepare_boundary_potential_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_potential_dot_dot_acoustic,
+compute_forces_acoustic_cuda.cu:                                                                                   mp->d_send_potential_dot_dot_buffer,
+compute_forces_acoustic_cuda.cu:                                                                                   mp->num_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                   mp->max_nibool_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                   mp->d_nibool_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                   mp->d_ibool_interfaces_ext_mesh);
+compute_forces_acoustic_cuda.cu:      cudaStreamSynchronize(mp->compute_stream);
+compute_forces_acoustic_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(send_potential_dot_dot_buffer,mp->d_send_potential_dot_dot_buffer,
+compute_forces_acoustic_cuda.cu:                                         mp->size_mpi_buffer_potential*sizeof(realw),cudaMemcpyDeviceToHost),98000);
+compute_forces_acoustic_cuda.cu:      prepare_boundary_potential_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_potential_dot_dot_acoustic,
+compute_forces_acoustic_cuda.cu:                                                                                   mp->d_b_send_potential_dot_dot_buffer,
+compute_forces_acoustic_cuda.cu:                                                                                   mp->num_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                   mp->max_nibool_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                   mp->d_nibool_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                   mp->d_ibool_interfaces_ext_mesh);
+compute_forces_acoustic_cuda.cu:      cudaStreamSynchronize(mp->compute_stream);
+compute_forces_acoustic_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(send_potential_dot_dot_buffer,mp->d_b_send_potential_dot_dot_buffer,
+compute_forces_acoustic_cuda.cu:                                         mp->size_mpi_buffer_potential*sizeof(realw),cudaMemcpyDeviceToHost),98000);
+compute_forces_acoustic_cuda.cu:  if( mp->size_mpi_buffer_potential > 0 ){
+compute_forces_acoustic_cuda.cu:    int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+compute_forces_acoustic_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_send_potential_dot_dot_buffer, buffer_recv_scalar_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                         mp->size_mpi_buffer_potential*sizeof(realw), cudaMemcpyHostToDevice),98010);
+compute_forces_acoustic_cuda.cu:      assemble_boundary_potential_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_potential_dot_dot_acoustic,
+compute_forces_acoustic_cuda.cu:                                                                                    mp->d_send_potential_dot_dot_buffer,
+compute_forces_acoustic_cuda.cu:                                                                                    mp->num_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                    mp->max_nibool_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                    mp->d_nibool_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                    mp->d_ibool_interfaces_ext_mesh);
+compute_forces_acoustic_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_b_send_potential_dot_dot_buffer, buffer_recv_scalar_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                         mp->size_mpi_buffer_potential*sizeof(realw), cudaMemcpyHostToDevice),98011);
+compute_forces_acoustic_cuda.cu:      assemble_boundary_potential_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_potential_dot_dot_acoustic,
+compute_forces_acoustic_cuda.cu:                                                                                    mp->d_b_send_potential_dot_dot_buffer,
+compute_forces_acoustic_cuda.cu:                                                                                    mp->num_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                    mp->max_nibool_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                    mp->d_nibool_interfaces_ext_mesh,
+compute_forces_acoustic_cuda.cu:                                                                                    mp->d_ibool_interfaces_ext_mesh);
+compute_forces_acoustic_cuda.cu:  Kernel_2_acoustic_impl<1><<<grid,threads,0,mp->compute_stream>>>(nb_blocks_to_compute,
+compute_forces_acoustic_cuda.cu:                                                            mp->NGLOB_AB,
+compute_forces_acoustic_cuda.cu:                                                            mp->d_phase_ispec_inner_acoustic,
+compute_forces_acoustic_cuda.cu:                                                            mp->num_phase_ispec_acoustic,
+compute_forces_acoustic_cuda.cu:                                                            mp->use_mesh_coloring_gpu,
+compute_forces_acoustic_cuda.cu:                                                            mp->d_potential_acoustic, mp->d_potential_dot_dot_acoustic,
+compute_forces_acoustic_cuda.cu:                                                            mp->d_hprime_xx,
+compute_forces_acoustic_cuda.cu:                                                            mp->d_hprimewgll_xx,
+compute_forces_acoustic_cuda.cu:                                                            mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
+compute_forces_acoustic_cuda.cu:                                                            mp->gravity,
+compute_forces_acoustic_cuda.cu:                                                            mp->d_minus_g,
+compute_forces_acoustic_cuda.cu:                                                            mp->d_wgll_cube);
+compute_forces_acoustic_cuda.cu:  if(mp->simulation_type == 3) {
+compute_forces_acoustic_cuda.cu:    Kernel_2_acoustic_impl<3><<<grid,threads,0,mp->compute_stream>>>(nb_blocks_to_compute,
+compute_forces_acoustic_cuda.cu:                                                          mp->NGLOB_AB,
+compute_forces_acoustic_cuda.cu:                                                          mp->d_phase_ispec_inner_acoustic,
+compute_forces_acoustic_cuda.cu:                                                          mp->num_phase_ispec_acoustic,
+compute_forces_acoustic_cuda.cu:                                                          mp->use_mesh_coloring_gpu,
+compute_forces_acoustic_cuda.cu:                                                          mp->d_b_potential_acoustic, mp->d_b_potential_dot_dot_acoustic,
+compute_forces_acoustic_cuda.cu:                                                          mp->d_hprime_xx,
+compute_forces_acoustic_cuda.cu:                                                          mp->d_hprimewgll_xx,
+compute_forces_acoustic_cuda.cu:                                                          mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
+compute_forces_acoustic_cuda.cu:                                                          mp->gravity,
+compute_forces_acoustic_cuda.cu:                                                          mp->d_minus_g,
+compute_forces_acoustic_cuda.cu:                                                          mp->d_wgll_cube);
+compute_forces_acoustic_cuda.cu:  if( mp->use_mesh_coloring_gpu ){
+compute_forces_acoustic_cuda.cu:      nb_colors = mp->num_colors_outer_acoustic;
+compute_forces_acoustic_cuda.cu:      offset = mp->nspec_elastic * NGLL3_PADDED;
+compute_forces_acoustic_cuda.cu:      offset_nonpadded = mp->nspec_elastic * NGLL3;
+compute_forces_acoustic_cuda.cu:      nb_colors = mp->num_colors_outer_acoustic + mp->num_colors_inner_acoustic;
+compute_forces_acoustic_cuda.cu:      istart = mp->num_colors_outer_acoustic;
+compute_forces_acoustic_cuda.cu:      offset = ( mp->nspec_elastic + (*nspec_outer_acoustic) ) * NGLL3_PADDED;
+compute_forces_acoustic_cuda.cu:      offset_nonpadded = ( mp->nspec_elastic + (*nspec_outer_acoustic) ) * NGLL3;
+compute_forces_acoustic_cuda.cu:      nb_blocks_to_compute = mp->h_num_elem_colors_acoustic[icolor];
+compute_forces_acoustic_cuda.cu:                         mp->d_ibool + offset_nonpadded,
+compute_forces_acoustic_cuda.cu:                         mp->d_xix + offset,mp->d_xiy + offset,mp->d_xiz + offset,
+compute_forces_acoustic_cuda.cu:                         mp->d_etax + offset,mp->d_etay + offset,mp->d_etaz + offset,
+compute_forces_acoustic_cuda.cu:                         mp->d_gammax + offset,mp->d_gammay + offset,mp->d_gammaz + offset,
+compute_forces_acoustic_cuda.cu:                         mp->d_rhostore + offset,
+compute_forces_acoustic_cuda.cu:                         mp->d_kappastore + offset_nonpadded);
+compute_forces_acoustic_cuda.cu:                      mp->d_ibool,
+compute_forces_acoustic_cuda.cu:                      mp->d_xix,mp->d_xiy,mp->d_xiz,
+compute_forces_acoustic_cuda.cu:                      mp->d_etax,mp->d_etay,mp->d_etaz,
+compute_forces_acoustic_cuda.cu:                      mp->d_gammax,mp->d_gammay,mp->d_gammaz,
+compute_forces_acoustic_cuda.cu:                      mp->d_rhostore,
+compute_forces_acoustic_cuda.cu:                      mp->d_kappastore);
+compute_forces_acoustic_cuda.cu:    get_blocks_xy(mp->num_free_surface_faces,&num_blocks_x,&num_blocks_y);
+compute_forces_acoustic_cuda.cu:    enforce_free_surface_cuda_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_potential_acoustic,
+compute_forces_acoustic_cuda.cu:                                                                             mp->d_potential_dot_acoustic,
+compute_forces_acoustic_cuda.cu:                                                                             mp->d_potential_dot_dot_acoustic,
+compute_forces_acoustic_cuda.cu:                                                                             mp->num_free_surface_faces,
+compute_forces_acoustic_cuda.cu:                                                                             mp->d_free_surface_ispec,
+compute_forces_acoustic_cuda.cu:                                                                             mp->d_free_surface_ijk,
+compute_forces_acoustic_cuda.cu:                                                                             mp->d_ibool,
+compute_forces_acoustic_cuda.cu:                                                                             mp->d_ispec_is_acoustic);
+compute_forces_acoustic_cuda.cu:    if(mp->simulation_type == 3) {
+compute_forces_acoustic_cuda.cu:      enforce_free_surface_cuda_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_potential_acoustic,
+compute_forces_acoustic_cuda.cu:                                                                               mp->d_b_potential_dot_acoustic,
+compute_forces_acoustic_cuda.cu:                                                                               mp->d_b_potential_dot_dot_acoustic,
+compute_forces_acoustic_cuda.cu:                                                                               mp->num_free_surface_faces,
+compute_forces_acoustic_cuda.cu:                                                                               mp->d_free_surface_ispec,
+compute_forces_acoustic_cuda.cu:                                                                               mp->d_free_surface_ijk,
+compute_forces_acoustic_cuda.cu:                                                                               mp->d_ibool,
+compute_forces_acoustic_cuda.cu:                                                                               mp->d_ispec_is_acoustic);
+compute_forces_viscoelastic_cuda.cu:  if( mp->size_mpi_buffer > 0 ){
+compute_forces_viscoelastic_cuda.cu:    int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+compute_forces_viscoelastic_cuda.cu:      prepare_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel,mp->d_send_accel_buffer,
+compute_forces_viscoelastic_cuda.cu:                                                                              mp->num_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                              mp->max_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                              mp->d_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                              mp->d_ibool_interfaces_ext_mesh);
+compute_forces_viscoelastic_cuda.cu:      cudaStreamSynchronize(mp->compute_stream);
+compute_forces_viscoelastic_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(send_accel_buffer,mp->d_send_accel_buffer,
+compute_forces_viscoelastic_cuda.cu:                              mp->size_mpi_buffer*sizeof(realw),cudaMemcpyDeviceToHost),97001);
+compute_forces_viscoelastic_cuda.cu:      prepare_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_accel,mp->d_b_send_accel_buffer,
+compute_forces_viscoelastic_cuda.cu:                                                                              mp->num_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                              mp->max_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                              mp->d_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                              mp->d_ibool_interfaces_ext_mesh);
+compute_forces_viscoelastic_cuda.cu:      cudaStreamSynchronize(mp->compute_stream);
+compute_forces_viscoelastic_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(send_accel_buffer,mp->d_b_send_accel_buffer,
+compute_forces_viscoelastic_cuda.cu:                              mp->size_mpi_buffer*sizeof(realw),cudaMemcpyDeviceToHost),97002);
+compute_forces_viscoelastic_cuda.cu:  if( mp->size_mpi_buffer > 0 ){
+compute_forces_viscoelastic_cuda.cu:    int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+compute_forces_viscoelastic_cuda.cu:    prepare_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel,mp->d_send_accel_buffer,
+compute_forces_viscoelastic_cuda.cu:                                                                            mp->num_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                            mp->max_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                            mp->d_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                            mp->d_ibool_interfaces_ext_mesh);
+compute_forces_viscoelastic_cuda.cu:    cudaStreamSynchronize(mp->compute_stream);
+compute_forces_viscoelastic_cuda.cu:    cudaMemcpyAsync(mp->h_send_accel_buffer,mp->d_send_accel_buffer,
+compute_forces_viscoelastic_cuda.cu:                    mp->size_mpi_buffer*sizeof(realw),cudaMemcpyDeviceToHost,mp->copy_stream);
+compute_forces_viscoelastic_cuda.cu:  if( mp->size_mpi_buffer > 0 ){
+compute_forces_viscoelastic_cuda.cu:    memcpy(mp->h_recv_accel_buffer,buffer_recv_vector_ext_mesh,mp->size_mpi_buffer*sizeof(realw));
+compute_forces_viscoelastic_cuda.cu:    cudaMemcpyAsync(mp->d_send_accel_buffer, buffer_recv_vector_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                    mp->size_mpi_buffer*sizeof(realw),cudaMemcpyHostToDevice,mp->copy_stream);
+compute_forces_viscoelastic_cuda.cu:  if( mp->size_mpi_buffer > 0 ){
+compute_forces_viscoelastic_cuda.cu:      cudaStreamSynchronize(mp->copy_stream);
+compute_forces_viscoelastic_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_b_send_accel_buffer, buffer_recv_vector_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                              mp->size_mpi_buffer*sizeof(realw),cudaMemcpyHostToDevice),97001);
+compute_forces_viscoelastic_cuda.cu:    int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+compute_forces_viscoelastic_cuda.cu:      assemble_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel, mp->d_send_accel_buffer,
+compute_forces_viscoelastic_cuda.cu:                                                                               mp->num_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                               mp->max_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                               mp->d_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                               mp->d_ibool_interfaces_ext_mesh);
+compute_forces_viscoelastic_cuda.cu:      assemble_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_accel, mp->d_b_send_accel_buffer,
+compute_forces_viscoelastic_cuda.cu:                                                                               mp->num_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                               mp->max_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                               mp->d_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu:                                                                               mp->d_ibool_interfaces_ext_mesh);
+compute_forces_viscoelastic_cuda.cu://  int size_padded = ((int)ceil(((double)mp->max_nibool_interfaces_ext_mesh)/((double)blocksize)))*blocksize;
+compute_forces_viscoelastic_cuda.cu://  cudaStreamSynchronize(mp->copy_stream);
+compute_forces_viscoelastic_cuda.cu://    assemble_boundary_accel_on_device<<<grid,threads,0,mp->compute_stream>>>(mp->d_accel, mp->d_send_accel_buffer,
+compute_forces_viscoelastic_cuda.cu://                                                                             mp->num_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu://                                                                             mp->max_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu://                                                                             mp->d_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu://                                                                             mp->d_ibool_interfaces_ext_mesh);
+compute_forces_viscoelastic_cuda.cu://    assemble_boundary_accel_on_device<<<grid,threads,0,mp->copy_stream>>>(mp->d_b_accel, mp->d_send_accel_buffer,
+compute_forces_viscoelastic_cuda.cu://                                                        mp->num_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu://                                                        mp->max_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu://                                                        mp->d_nibool_interfaces_ext_mesh,
+compute_forces_viscoelastic_cuda.cu://                                                        mp->d_ibool_interfaces_ext_mesh);
+compute_forces_viscoelastic_cuda.cu:    Kernel_2_att_impl<1><<<grid,threads,0,mp->compute_stream>>>(nb_blocks_to_compute,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->NGLOB_AB,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->d_phase_ispec_inner_elastic,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->num_phase_ispec_elastic,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->use_mesh_coloring_gpu,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->d_displ,mp->d_veloc,mp->d_accel,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->d_hprime_xx,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->d_hprimewgll_xx,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->simulation_type,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->NSPEC_AB,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->d_alphaval,mp->d_betaval,mp->d_gammaval,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->gravity,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->d_minus_g,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->d_minus_deriv_gravity,
+compute_forces_viscoelastic_cuda.cu:                                                                mp->d_wgll_cube);
+compute_forces_viscoelastic_cuda.cu:    if(mp->simulation_type == 3) {
+compute_forces_viscoelastic_cuda.cu:      Kernel_2_att_impl<3><<< grid,threads,0,mp->compute_stream>>>(nb_blocks_to_compute,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->NGLOB_AB,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->d_phase_ispec_inner_elastic,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->num_phase_ispec_elastic,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->use_mesh_coloring_gpu,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->d_b_displ,mp->d_b_veloc,mp->d_b_accel,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->d_hprime_xx,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->d_hprimewgll_xx,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->simulation_type,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->NSPEC_AB,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->d_b_alphaval,mp->d_b_betaval,mp->d_b_gammaval,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->gravity,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->d_minus_g,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->d_minus_deriv_gravity,
+compute_forces_viscoelastic_cuda.cu:                                                                   mp->d_wgll_cube);
+compute_forces_viscoelastic_cuda.cu:    Kernel_2_noatt_impl<1><<<grid,threads,0,mp->compute_stream>>>(nb_blocks_to_compute,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->NGLOB_AB,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->d_phase_ispec_inner_elastic,mp->num_phase_ispec_elastic,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->use_mesh_coloring_gpu,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->d_displ,mp->d_veloc,mp->d_accel,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->d_hprime_xx,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->d_hprimewgll_xx,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->simulation_type,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->NSPEC_AB,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->d_alphaval,mp->d_betaval,mp->d_gammaval,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->gravity,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->d_minus_g,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->d_minus_deriv_gravity,
+compute_forces_viscoelastic_cuda.cu:                                                                  mp->d_wgll_cube );
+compute_forces_viscoelastic_cuda.cu:    if(mp->simulation_type == 3) {
+compute_forces_viscoelastic_cuda.cu:      Kernel_2_noatt_impl<3><<< grid,threads,0,mp->compute_stream>>>(nb_blocks_to_compute,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->NGLOB_AB,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->d_phase_ispec_inner_elastic,mp->num_phase_ispec_elastic,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->use_mesh_coloring_gpu,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->d_b_displ,mp->d_b_veloc,mp->d_b_accel,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->d_hprime_xx,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->d_hprimewgll_xx,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->d_wgllwgll_xy, mp->d_wgllwgll_xz, mp->d_wgllwgll_yz,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->simulation_type,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->NSPEC_AB,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->d_b_alphaval,mp->d_b_betaval,mp->d_b_gammaval,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->gravity,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->d_minus_g,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->d_minus_deriv_gravity,
+compute_forces_viscoelastic_cuda.cu:                                                                     mp->d_wgll_cube );
+compute_forces_viscoelastic_cuda.cu:  if( mp->use_mesh_coloring_gpu ){
+compute_forces_viscoelastic_cuda.cu:      nb_colors = mp->num_colors_outer_elastic;
+compute_forces_viscoelastic_cuda.cu:      nb_colors = mp->num_colors_outer_elastic + mp->num_colors_inner_elastic;
+compute_forces_viscoelastic_cuda.cu:      istart = mp->num_colors_outer_elastic;
+compute_forces_viscoelastic_cuda.cu:      nb_blocks_to_compute = mp->h_num_elem_colors_elastic[icolor];
+compute_forces_viscoelastic_cuda.cu:               mp->d_ibool + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_xix + offset,mp->d_xiy + offset,mp->d_xiz + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_etax + offset,mp->d_etay + offset,mp->d_etaz + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_gammax + offset,mp->d_gammay + offset,mp->d_gammaz + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_kappav + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_muv + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_epsilondev_xx + offset_nonpadded,mp->d_epsilondev_yy + offset_nonpadded,mp->d_epsilondev_xy + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_epsilondev_xz + offset_nonpadded,mp->d_epsilondev_yz + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_epsilon_trace_over_3 + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_one_minus_sum_beta + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_factor_common + offset_nonpadded_att2,
+compute_forces_viscoelastic_cuda.cu:               mp->d_R_xx + offset_nonpadded,mp->d_R_yy + offset_nonpadded,mp->d_R_xy + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_R_xz + offset_nonpadded,mp->d_R_yz + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_b_epsilondev_xx + offset_nonpadded,mp->d_b_epsilondev_yy + offset_nonpadded,mp->d_b_epsilondev_xy + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_b_epsilondev_xz + offset_nonpadded,mp->d_b_epsilondev_yz + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_b_epsilon_trace_over_3 + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_b_R_xx + offset_nonpadded,mp->d_b_R_yy + offset_nonpadded,mp->d_b_R_xy + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_b_R_xz + offset_nonpadded,mp->d_b_R_yz + offset_nonpadded,
+compute_forces_viscoelastic_cuda.cu:               mp->d_c11store + offset,mp->d_c12store + offset,mp->d_c13store + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_c14store + offset,mp->d_c15store + offset,mp->d_c16store + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_c22store + offset,mp->d_c23store + offset,mp->d_c24store + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_c25store + offset,mp->d_c26store + offset,mp->d_c33store + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_c34store + offset,mp->d_c35store + offset,mp->d_c36store + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_c44store + offset,mp->d_c45store + offset,mp->d_c46store + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_c55store + offset,mp->d_c56store + offset,mp->d_c66store + offset,
+compute_forces_viscoelastic_cuda.cu:               mp->d_rhostore + offset);
+compute_forces_viscoelastic_cuda.cu:             mp->d_ibool,
+compute_forces_viscoelastic_cuda.cu:             mp->d_xix,mp->d_xiy,mp->d_xiz,
+compute_forces_viscoelastic_cuda.cu:             mp->d_etax,mp->d_etay,mp->d_etaz,
+compute_forces_viscoelastic_cuda.cu:             mp->d_gammax,mp->d_gammay,mp->d_gammaz,
+compute_forces_viscoelastic_cuda.cu:             mp->d_kappav,
+compute_forces_viscoelastic_cuda.cu:             mp->d_muv,
+compute_forces_viscoelastic_cuda.cu:             mp->d_epsilondev_xx,mp->d_epsilondev_yy,mp->d_epsilondev_xy,
+compute_forces_viscoelastic_cuda.cu:             mp->d_epsilondev_xz,mp->d_epsilondev_yz,
+compute_forces_viscoelastic_cuda.cu:             mp->d_epsilon_trace_over_3,
+compute_forces_viscoelastic_cuda.cu:             mp->d_one_minus_sum_beta,
+compute_forces_viscoelastic_cuda.cu:             mp->d_factor_common,
+compute_forces_viscoelastic_cuda.cu:             mp->d_R_xx,mp->d_R_yy,mp->d_R_xy,
+compute_forces_viscoelastic_cuda.cu:             mp->d_R_xz,mp->d_R_yz,
+compute_forces_viscoelastic_cuda.cu:             mp->d_b_epsilondev_xx,mp->d_b_epsilondev_yy,mp->d_b_epsilondev_xy,
+compute_forces_viscoelastic_cuda.cu:             mp->d_b_epsilondev_xz,mp->d_b_epsilondev_yz,
+compute_forces_viscoelastic_cuda.cu:             mp->d_b_epsilon_trace_over_3,
+compute_forces_viscoelastic_cuda.cu:             mp->d_b_R_xx,mp->d_b_R_yy,mp->d_b_R_xy,
+compute_forces_viscoelastic_cuda.cu:             mp->d_b_R_xz,mp->d_b_R_yz,
+compute_forces_viscoelastic_cuda.cu:             mp->d_c11store,mp->d_c12store,mp->d_c13store,
+compute_forces_viscoelastic_cuda.cu:             mp->d_c14store,mp->d_c15store,mp->d_c16store,
+compute_forces_viscoelastic_cuda.cu:             mp->d_c22store,mp->d_c23store,mp->d_c24store,
+compute_forces_viscoelastic_cuda.cu:             mp->d_c25store,mp->d_c26store,mp->d_c33store,
+compute_forces_viscoelastic_cuda.cu:             mp->d_c34store,mp->d_c35store,mp->d_c36store,
+compute_forces_viscoelastic_cuda.cu:             mp->d_c44store,mp->d_c45store,mp->d_c46store,
+compute_forces_viscoelastic_cuda.cu:             mp->d_c55store,mp->d_c56store,mp->d_c66store,
+compute_forces_viscoelastic_cuda.cu:             mp->d_rhostore);
+compute_forces_viscoelastic_cuda.cu:  if( mp->size_mpi_buffer > 0 ){
+compute_forces_viscoelastic_cuda.cu:    cudaStreamSynchronize(mp->copy_stream);
+compute_forces_viscoelastic_cuda.cu:    memcpy(send_buffer,mp->h_send_accel_buffer,mp->size_mpi_buffer*sizeof(float));
+compute_kernels_cuda.cu:  get_blocks_xy(mp->NSPEC_AB,&num_blocks_x,&num_blocks_y);
+compute_kernels_cuda.cu:  if( mp->anisotropic_kl ){
+compute_kernels_cuda.cu:    compute_kernels_ani_cudakernel<<<grid,threads>>>(mp->d_ispec_is_elastic,mp->d_ibool,
+compute_kernels_cuda.cu:                                                     mp->d_accel, mp->d_b_displ,
+compute_kernels_cuda.cu:                                                     mp->d_epsilondev_xx,
+compute_kernels_cuda.cu:                                                     mp->d_epsilondev_yy,
+compute_kernels_cuda.cu:                                                     mp->d_epsilondev_xy,
+compute_kernels_cuda.cu:                                                     mp->d_epsilondev_xz,
+compute_kernels_cuda.cu:                                                     mp->d_epsilondev_yz,
+compute_kernels_cuda.cu:                                                     mp->d_b_epsilondev_xx,
+compute_kernels_cuda.cu:                                                     mp->d_b_epsilondev_yy,
+compute_kernels_cuda.cu:                                                     mp->d_b_epsilondev_xy,
+compute_kernels_cuda.cu:                                                     mp->d_b_epsilondev_xz,
+compute_kernels_cuda.cu:                                                     mp->d_b_epsilondev_yz,
+compute_kernels_cuda.cu:                                                     mp->d_rho_kl,
+compute_kernels_cuda.cu:                                                     mp->d_cijkl_kl,
+compute_kernels_cuda.cu:                                                     mp->d_epsilon_trace_over_3,
+compute_kernels_cuda.cu:                                                     mp->d_b_epsilon_trace_over_3,
+compute_kernels_cuda.cu:                                                     mp->NSPEC_AB);
+compute_kernels_cuda.cu:    compute_kernels_cudakernel<<<grid,threads>>>(mp->d_ispec_is_elastic,mp->d_ibool,
+compute_kernels_cuda.cu:                                                 mp->d_accel, mp->d_b_displ,
+compute_kernels_cuda.cu:                                                 mp->d_epsilondev_xx,
+compute_kernels_cuda.cu:                                                 mp->d_epsilondev_yy,
+compute_kernels_cuda.cu:                                                 mp->d_epsilondev_xy,
+compute_kernels_cuda.cu:                                                 mp->d_epsilondev_xz,
+compute_kernels_cuda.cu:                                                 mp->d_epsilondev_yz,
+compute_kernels_cuda.cu:                                                 mp->d_b_epsilondev_xx,
+compute_kernels_cuda.cu:                                                 mp->d_b_epsilondev_yy,
+compute_kernels_cuda.cu:                                                 mp->d_b_epsilondev_xy,
+compute_kernels_cuda.cu:                                                 mp->d_b_epsilondev_xz,
+compute_kernels_cuda.cu:                                                 mp->d_b_epsilondev_yz,
+compute_kernels_cuda.cu:                                                 mp->d_rho_kl,
+compute_kernels_cuda.cu:                                                 mp->d_mu_kl,
+compute_kernels_cuda.cu:                                                 mp->d_kappa_kl,
+compute_kernels_cuda.cu:                                                 mp->d_epsilon_trace_over_3,
+compute_kernels_cuda.cu:                                                 mp->d_b_epsilon_trace_over_3,
+compute_kernels_cuda.cu:                                                 mp->NSPEC_AB);
+compute_kernels_cuda.cu:  if( mp->num_free_surface_faces == 0 ) return;
+compute_kernels_cuda.cu:  get_blocks_xy(mp->num_free_surface_faces,&num_blocks_x,&num_blocks_y);
+compute_kernels_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_noise_surface_movie,h_noise_surface_movie,
+compute_kernels_cuda.cu:                          NDIM*NGLL2*(mp->num_free_surface_faces)*sizeof(realw),cudaMemcpyHostToDevice),81000);
+compute_kernels_cuda.cu:  compute_kernels_strength_noise_cuda_kernel<<<grid,threads>>>(mp->d_displ,
+compute_kernels_cuda.cu:                                                               mp->d_free_surface_ispec,
+compute_kernels_cuda.cu:                                                               mp->d_free_surface_ijk,
+compute_kernels_cuda.cu:                                                               mp->d_ibool,
+compute_kernels_cuda.cu:                                                               mp->d_noise_surface_movie,
+compute_kernels_cuda.cu:                                                               mp->d_normal_x_noise,
+compute_kernels_cuda.cu:                                                               mp->d_normal_y_noise,
+compute_kernels_cuda.cu:                                                               mp->d_normal_z_noise,
+compute_kernels_cuda.cu:                                                               mp->d_Sigma_kl,*deltat,
+compute_kernels_cuda.cu:                                                               mp->num_free_surface_faces);
+compute_kernels_cuda.cu:  get_blocks_xy(mp->NSPEC_AB,&num_blocks_x,&num_blocks_y);
+compute_kernels_cuda.cu:  compute_kernels_acoustic_kernel<<<grid,threads>>>(mp->d_ispec_is_acoustic,
+compute_kernels_cuda.cu:                                                    mp->d_ibool,
+compute_kernels_cuda.cu:                                                    mp->d_rhostore,
+compute_kernels_cuda.cu:                                                    mp->d_kappastore,
+compute_kernels_cuda.cu:                                                    mp->d_hprime_xx,
+compute_kernels_cuda.cu:                                                    mp->d_xix,mp->d_xiy,mp->d_xiz,
+compute_kernels_cuda.cu:                                                    mp->d_etax,mp->d_etay,mp->d_etaz,
+compute_kernels_cuda.cu:                                                    mp->d_gammax,mp->d_gammay,mp->d_gammaz,
+compute_kernels_cuda.cu:                                                    mp->d_potential_dot_dot_acoustic,
+compute_kernels_cuda.cu:                                                    mp->d_b_potential_acoustic,
+compute_kernels_cuda.cu:                                                    mp->d_b_potential_dot_dot_acoustic,
+compute_kernels_cuda.cu:                                                    mp->d_rho_ac_kl,
+compute_kernels_cuda.cu:                                                    mp->d_kappa_ac_kl,
+compute_kernels_cuda.cu:                                                    mp->NSPEC_AB,
+compute_kernels_cuda.cu:                                                    mp->gravity);
+compute_kernels_cuda.cu:  get_blocks_xy(mp->NSPEC_AB,&num_blocks_x,&num_blocks_y);
+compute_kernels_cuda.cu:    compute_kernels_hess_el_cudakernel<<<grid,threads>>>(mp->d_ispec_is_elastic,
+compute_kernels_cuda.cu:                                                         mp->d_ibool,
+compute_kernels_cuda.cu:                                                         mp->d_accel,
+compute_kernels_cuda.cu:                                                         mp->d_b_accel,
+compute_kernels_cuda.cu:                                                         mp->d_hess_el_kl,
+compute_kernels_cuda.cu:                                                         mp->NSPEC_AB);
+compute_kernels_cuda.cu:    compute_kernels_hess_ac_cudakernel<<<grid,threads>>>(mp->d_ispec_is_acoustic,
+compute_kernels_cuda.cu:                                                         mp->d_ibool,
+compute_kernels_cuda.cu:                                                         mp->d_potential_dot_dot_acoustic,
+compute_kernels_cuda.cu:                                                         mp->d_b_potential_dot_dot_acoustic,
+compute_kernels_cuda.cu:                                                         mp->d_rhostore,
+compute_kernels_cuda.cu:                                                         mp->d_hprime_xx,
+compute_kernels_cuda.cu:                                                         mp->d_xix,mp->d_xiy,mp->d_xiz,
+compute_kernels_cuda.cu:                                                         mp->d_etax,mp->d_etay,mp->d_etaz,
+compute_kernels_cuda.cu:                                                         mp->d_gammax,mp->d_gammay,mp->d_gammaz,
+compute_kernels_cuda.cu:                                                         mp->d_hess_ac_kl,
+compute_kernels_cuda.cu:                                                         mp->NSPEC_AB,
+compute_kernels_cuda.cu:                                                         mp->gravity);
+compute_stacey_acoustic_cuda.cu:  if( mp->d_num_abs_boundary_faces == 0 ) return;
+compute_stacey_acoustic_cuda.cu:  get_blocks_xy(mp->d_num_abs_boundary_faces,&num_blocks_x,&num_blocks_y);
+compute_stacey_acoustic_cuda.cu:  if (mp->simulation_type == 3 ){
+compute_stacey_acoustic_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_b_absorb_potential,h_b_absorb_potential,
+compute_stacey_acoustic_cuda.cu:                                       mp->d_b_reclen_potential,cudaMemcpyHostToDevice),7700);
+compute_stacey_acoustic_cuda.cu:  compute_stacey_acoustic_kernel<<<grid,threads>>>(mp->d_potential_dot_acoustic,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_potential_dot_dot_acoustic,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_abs_boundary_ispec,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_abs_boundary_ijk,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_abs_boundary_jacobian2Dw,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_ibool,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_rhostore,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_kappastore,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_ispec_is_inner,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_ispec_is_acoustic,
+compute_stacey_acoustic_cuda.cu:                                                   mp->simulation_type,
+compute_stacey_acoustic_cuda.cu:                                                   mp->save_forward,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_num_abs_boundary_faces,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_b_potential_dot_acoustic,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_b_potential_dot_dot_acoustic,
+compute_stacey_acoustic_cuda.cu:                                                   mp->d_b_absorb_potential,
+compute_stacey_acoustic_cuda.cu:                                                   mp->gravity);
+compute_stacey_acoustic_cuda.cu:  if (mp->simulation_type == 1 && mp->save_forward ){
+compute_stacey_acoustic_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(h_b_absorb_potential,mp->d_b_absorb_potential,
+compute_stacey_acoustic_cuda.cu:                                       mp->d_b_reclen_potential,cudaMemcpyDeviceToHost),7701);
+compute_stacey_viscoelastic_cuda.cu:  if( mp->d_num_abs_boundary_faces == 0 ) return;
+compute_stacey_viscoelastic_cuda.cu:  get_blocks_xy(mp->d_num_abs_boundary_faces,&num_blocks_x,&num_blocks_y);
+compute_stacey_viscoelastic_cuda.cu:  if(mp->simulation_type == 3 ) {
+compute_stacey_viscoelastic_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_b_absorb_field,b_absorb_field,
+compute_stacey_viscoelastic_cuda.cu:                                       mp->d_b_reclen_field,cudaMemcpyHostToDevice),7700);
+compute_stacey_viscoelastic_cuda.cu:  compute_stacey_elastic_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_veloc,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_accel,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_abs_boundary_ispec,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_abs_boundary_ijk,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_abs_boundary_normal,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_abs_boundary_jacobian2Dw,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_ibool,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_rho_vp,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_rho_vs,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_ispec_is_inner,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_ispec_is_elastic,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->simulation_type,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->save_forward,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_num_abs_boundary_faces,
+compute_stacey_viscoelastic_cuda.cu:                                                  mp->d_b_absorb_field);
+compute_stacey_viscoelastic_cuda.cu:  if(mp->simulation_type == 3 ){
+compute_stacey_viscoelastic_cuda.cu:    compute_stacey_elastic_sim3_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_abs_boundary_ispec,
+compute_stacey_viscoelastic_cuda.cu:                                                         mp->d_abs_boundary_ijk,
+compute_stacey_viscoelastic_cuda.cu:                                                         mp->d_ibool,
+compute_stacey_viscoelastic_cuda.cu:                                                         mp->d_ispec_is_inner,
+compute_stacey_viscoelastic_cuda.cu:                                                         mp->d_ispec_is_elastic,
+compute_stacey_viscoelastic_cuda.cu:                                                         mp->d_num_abs_boundary_faces,
+compute_stacey_viscoelastic_cuda.cu:                                                         mp->d_b_accel,
+compute_stacey_viscoelastic_cuda.cu:                                                         mp->d_b_absorb_field);
+compute_stacey_viscoelastic_cuda.cu:  // if (mp->simulation_type == 1 .and. SAVE_FORWARD .and. num_abs_boundary_faces > 0 ) &
+compute_stacey_viscoelastic_cuda.cu:  if(mp->simulation_type == 1 && mp->save_forward ) {
+compute_stacey_viscoelastic_cuda.cu:    cudaStreamSynchronize(mp->compute_stream);
+compute_stacey_viscoelastic_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(b_absorb_field,mp->d_b_absorb_field,
+compute_stacey_viscoelastic_cuda.cu:                                       mp->d_b_reclen_field,cudaMemcpyDeviceToHost),7701);
+it_update_displacement_cuda.cu:  int size = NDIM * mp->NGLOB_AB;
+it_update_displacement_cuda.cu:  //max_d = get_device_array_maximum_value(mp->d_displ, size);
+it_update_displacement_cuda.cu:  //max_v = get_device_array_maximum_value(mp->d_veloc, size);
+it_update_displacement_cuda.cu:  //max_a = get_device_array_maximum_value(mp->d_accel, size);
+it_update_displacement_cuda.cu:  //printf("rank %d - max displ: %f veloc: %f accel: %f\n",mp->myrank,max_d,max_v,max_a);
+it_update_displacement_cuda.cu:  UpdateDispVeloc_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_displ,mp->d_veloc,mp->d_accel,
+it_update_displacement_cuda.cu:  if(mp->simulation_type == 3) {
+it_update_displacement_cuda.cu:    UpdateDispVeloc_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_displ,mp->d_b_veloc,mp->d_b_accel,
+it_update_displacement_cuda.cu:  int size = mp->NGLOB_AB;
+it_update_displacement_cuda.cu:  UpdatePotential_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_potential_acoustic,
+it_update_displacement_cuda.cu:                                                                 mp->d_potential_dot_acoustic,
+it_update_displacement_cuda.cu:                                                                 mp->d_potential_dot_dot_acoustic,
+it_update_displacement_cuda.cu:  if(mp->simulation_type == 3) {
+it_update_displacement_cuda.cu:    UpdatePotential_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_b_potential_acoustic,
+it_update_displacement_cuda.cu:                                                                  mp->d_b_potential_dot_acoustic,
+it_update_displacement_cuda.cu:                                                                  mp->d_b_potential_dot_dot_acoustic,
+it_update_displacement_cuda.cu:  int size = mp->NGLOB_AB;
+it_update_displacement_cuda.cu:   kernel_3_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_veloc,
+it_update_displacement_cuda.cu:                                                                 mp->d_accel,
+it_update_displacement_cuda.cu:                                                                 mp->d_rmassx,mp->d_rmassy,mp->d_rmassz);
+it_update_displacement_cuda.cu:   if(mp->simulation_type == 3) {
+it_update_displacement_cuda.cu:     kernel_3_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_b_veloc,
+it_update_displacement_cuda.cu:                                                                   mp->d_b_accel,
+it_update_displacement_cuda.cu:                                                                   mp->d_rmassx,mp->d_rmassy,mp->d_rmassz);
+it_update_displacement_cuda.cu:   kernel_3_accel_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_accel,
+it_update_displacement_cuda.cu:                                                                       mp->d_rmassx,
+it_update_displacement_cuda.cu:                                                                       mp->d_rmassy,
+it_update_displacement_cuda.cu:                                                                       mp->d_rmassz);
+it_update_displacement_cuda.cu:   if(mp->simulation_type == 3) {
+it_update_displacement_cuda.cu:     kernel_3_accel_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_b_accel,
+it_update_displacement_cuda.cu:                                                                         mp->d_rmassx,
+it_update_displacement_cuda.cu:                                                                         mp->d_rmassy,
+it_update_displacement_cuda.cu:                                                                         mp->d_rmassz);
+it_update_displacement_cuda.cu:  int size = mp->NGLOB_AB;
+it_update_displacement_cuda.cu:  kernel_3_veloc_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_veloc,
+it_update_displacement_cuda.cu:                                                                      mp->d_accel,
+it_update_displacement_cuda.cu:  if(mp->simulation_type == 3) {
+it_update_displacement_cuda.cu:    kernel_3_veloc_cuda_device<<< grid, threads,0,mp->compute_stream>>>(mp->d_b_veloc,
+it_update_displacement_cuda.cu:                                                                        mp->d_b_accel,
+it_update_displacement_cuda.cu:  int size = mp->NGLOB_AB;
+it_update_displacement_cuda.cu:  kernel_3_a_acoustic_cuda_device<<< grid, threads>>>(mp->d_potential_dot_dot_acoustic,
+it_update_displacement_cuda.cu:                                                     mp->d_rmass_acoustic);
+it_update_displacement_cuda.cu:  if(mp->simulation_type == 3) {
+it_update_displacement_cuda.cu:   kernel_3_a_acoustic_cuda_device<<< grid, threads>>>(mp->d_b_potential_dot_dot_acoustic,
+it_update_displacement_cuda.cu:                                                       mp->d_rmass_acoustic);
+it_update_displacement_cuda.cu:  int size = mp->NGLOB_AB;
+it_update_displacement_cuda.cu:  kernel_3_b_acoustic_cuda_device<<< grid, threads>>>(mp->d_potential_dot_acoustic,
+it_update_displacement_cuda.cu:                                                      mp->d_potential_dot_dot_acoustic,
+it_update_displacement_cuda.cu:                                                      mp->d_rmass_acoustic);
+it_update_displacement_cuda.cu:  if(mp->simulation_type == 3) {
+it_update_displacement_cuda.cu:    kernel_3_b_acoustic_cuda_device<<< grid, threads>>>(mp->d_b_potential_dot_acoustic,
+it_update_displacement_cuda.cu:                                                        mp->d_b_potential_dot_dot_acoustic,
+it_update_displacement_cuda.cu:                                                        mp->d_rmass_acoustic);
+kernel_fault.cu:		  mp->NGLOB_AB,
+kernel_fault.cu:		  mp->d_ibool,
+kernel_fault.cu:		  mp->d_phase_ispec_inner_elastic,
+kernel_fault.cu:		  mp->num_phase_ispec_elastic,
+kernel_fault.cu:		  CG_d_displ,	mp->d_veloc,	CG_d_accel,
+kernel_fault.cu:		  mp->d_xix,	mp->d_xiy,		mp->d_xiz,
+kernel_fault.cu:		  mp->d_etax,	mp->d_etay,		mp->d_etaz,
+kernel_fault.cu:		  mp->d_gammax,	mp->d_gammay,	mp->d_gammaz,
+kernel_fault.cu:		  mp->d_hprime_xx,mp->d_hprimewgll_xx,
+kernel_fault.cu:		  mp->d_wgllwgll_xy,
+kernel_fault.cu:		  mp->d_wgllwgll_xz,
+kernel_fault.cu:		  mp->d_wgllwgll_yz,
+kernel_fault.cu:		  mp->d_kappav,	mp->d_muv,
+kernel_fault.cu:		  mp->NSPEC_AB,
+kernel_fault.cu:		  mp->d_rhostore,
+kernel_fault.cu:		  mp->d_wgll_cube,
+noise_tomography_cuda.cu:  // realw* displ_rnd = (realw*)malloc(mp->NGLOB_AB*3*sizeof(realw));
+noise_tomography_cuda.cu:  for(int i=0;i<mp->NGLOB_AB*3;i++) {
+noise_tomography_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_displ,h_displ,mp->NGLOB_AB*3*sizeof(realw),cudaMemcpyHostToDevice),44001);
+noise_tomography_cuda.cu:  get_blocks_xy(mp->num_free_surface_faces,&num_blocks_x,&num_blocks_y);
+noise_tomography_cuda.cu:  transfer_surface_to_host_kernel<<<grid,threads>>>(mp->d_free_surface_ispec,
+noise_tomography_cuda.cu:                                                    mp->d_free_surface_ijk,
+noise_tomography_cuda.cu:                                                    mp->num_free_surface_faces,
+noise_tomography_cuda.cu:                                                    mp->d_ibool,
+noise_tomography_cuda.cu:                                                    mp->d_displ,
+noise_tomography_cuda.cu:                                                    mp->d_noise_surface_movie);
+noise_tomography_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(h_noise_surface_movie,mp->d_noise_surface_movie,
+noise_tomography_cuda.cu:                                     3*NGLL2*(mp->num_free_surface_faces)*sizeof(realw),cudaMemcpyDeviceToHost),44002);
+noise_tomography_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_noise_surface_movie,h_noise_surface_movie,
+noise_tomography_cuda.cu:                                     3*NGLL2*(mp->num_free_surface_faces)*sizeof(realw),cudaMemcpyHostToDevice),44003);
+noise_tomography_cuda.cu:  get_blocks_xy(mp->num_free_surface_faces,&num_blocks_x,&num_blocks_y);
+noise_tomography_cuda.cu:    noise_read_add_surface_movie_cuda_kernel<<<grid,threads>>>(mp->d_accel,
+noise_tomography_cuda.cu:                                                               mp->d_ibool,
+noise_tomography_cuda.cu:                                                               mp->d_free_surface_ispec,
+noise_tomography_cuda.cu:                                                               mp->d_free_surface_ijk,
+noise_tomography_cuda.cu:                                                               mp->num_free_surface_faces,
+noise_tomography_cuda.cu:                                                               mp->d_noise_surface_movie,
+noise_tomography_cuda.cu:                                                               mp->d_normal_x_noise,
+noise_tomography_cuda.cu:                                                               mp->d_normal_y_noise,
+noise_tomography_cuda.cu:                                                               mp->d_normal_z_noise,
+noise_tomography_cuda.cu:                                                               mp->d_mask_noise,
+noise_tomography_cuda.cu:                                                               mp->d_free_surface_jacobian2Dw);
+noise_tomography_cuda.cu:    noise_read_add_surface_movie_cuda_kernel<<<grid,threads>>>(mp->d_b_accel,
+noise_tomography_cuda.cu:                                                               mp->d_ibool,
+noise_tomography_cuda.cu:                                                               mp->d_free_surface_ispec,
+noise_tomography_cuda.cu:                                                               mp->d_free_surface_ijk,
+noise_tomography_cuda.cu:                                                               mp->num_free_surface_faces,
+noise_tomography_cuda.cu:                                                               mp->d_noise_surface_movie,
+noise_tomography_cuda.cu:                                                               mp->d_normal_x_noise,
+noise_tomography_cuda.cu:                                                               mp->d_normal_y_noise,
+noise_tomography_cuda.cu:                                                               mp->d_normal_z_noise,
+noise_tomography_cuda.cu:                                                               mp->d_mask_noise,
+noise_tomography_cuda.cu:                                                               mp->d_free_surface_jacobian2Dw);
+passhandle.cu:	conjugate_gradient *newCG = new conjugate_gradient(*NELE , disp, pload, Xsetfalse, AXsetfalse, mp->d_displ, mp->d_accel, true, *myrank);
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_hprime_xx),"d_hprime_xx");
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_hprime_xx),d_hprime_xx);
+prepare_constants_cuda.h://   err = cudaGetSymbolAddress((void**)&(mp->d_hprime_yy),"d_hprime_yy");
+prepare_constants_cuda.h://   err = cudaGetSymbolAddress((void**)&(mp->d_hprime_zz),"d_hprime_zz");
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_hprimewgll_xx),"d_hprimewgll_xx");
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_hprimewgll_xx),d_hprimewgll_xx);
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_hprimewgll_yy),"d_hprimewgll_yy");
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_hprimewgll_zz),"d_hprimewgll_zz");
+prepare_constants_cuda.h:  //mp->d_wgllwgll_xy = d_wgllwgll_xy;
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_wgllwgll_xy),"d_wgllwgll_xy");
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_wgllwgll_xy),d_wgllwgll_xy);
+prepare_constants_cuda.h:  //mp->d_wgllwgll_xz = d_wgllwgll_xz;
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_wgllwgll_xz),"d_wgllwgll_xz");
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_wgllwgll_xz),d_wgllwgll_xz);
+prepare_constants_cuda.h:  //mp->d_wgllwgll_yz = d_wgllwgll_yz;
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_wgllwgll_yz),"d_wgllwgll_yz");
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_wgllwgll_yz),d_wgllwgll_yz);
+prepare_constants_cuda.h:  //mp->d_wgll_cube = d_wgll_cube;
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_wgll_cube),"d_wgll_cube");
+prepare_constants_cuda.h:  err = cudaGetSymbolAddress((void**)&(mp->d_wgll_cube),d_wgll_cube);
+prepare_mesh_constants_cuda.cu:  mp->myrank = *h_myrank;
+prepare_mesh_constants_cuda.cu:  mp->NSPEC_AB = *NSPEC_AB;
+prepare_mesh_constants_cuda.cu:  mp->NGLOB_AB = *NGLOB_AB;
+prepare_mesh_constants_cuda.cu:  mp->simulation_type = *SIMULATION_TYPE;
+prepare_mesh_constants_cuda.cu:  mp->absorbing_conditions = *ABSORBING_CONDITIONS;
+prepare_mesh_constants_cuda.cu:  mp->save_forward = *SAVE_FORWARD;
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, d_hprime_xx_tex_ptr, mp->d_hprime_xx, &channelDesc, sizeof(realw)*(NGLL2)), 4001);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, &d_hprime_xx_tex, mp->d_hprime_xx, &channelDesc, sizeof(realw)*(NGLL2)), 4001);
+prepare_mesh_constants_cuda.cu:  int size_padded = NGLL3_PADDED * (mp->NSPEC_AB);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_xix, size_padded*sizeof(realw)),1001);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_xiy, size_padded*sizeof(realw)),1002);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_xiz, size_padded*sizeof(realw)),1003);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_etax, size_padded*sizeof(realw)),1004);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_etay, size_padded*sizeof(realw)),1005);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_etaz, size_padded*sizeof(realw)),1006);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_gammax, size_padded*sizeof(realw)),1007);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_gammay, size_padded*sizeof(realw)),1008);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_gammaz, size_padded*sizeof(realw)),1009);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_kappav, size_padded*sizeof(realw)),1010);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_muv, size_padded*sizeof(realw)),1011);
+prepare_mesh_constants_cuda.cu:  for(int i=0;i < mp->NSPEC_AB;i++) {
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_xix + i*NGLL3_PADDED, &h_xix[i*NGLL3],
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_xiy+i*NGLL3_PADDED,   &h_xiy[i*NGLL3],
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_xiz+i*NGLL3_PADDED,   &h_xiz[i*NGLL3],
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_etax+i*NGLL3_PADDED,  &h_etax[i*NGLL3],
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_etay+i*NGLL3_PADDED,  &h_etay[i*NGLL3],
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_etaz+i*NGLL3_PADDED,  &h_etaz[i*NGLL3],
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_gammax+i*NGLL3_PADDED,&h_gammax[i*NGLL3],
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_gammay+i*NGLL3_PADDED,&h_gammay[i*NGLL3],
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_gammaz+i*NGLL3_PADDED,&h_gammaz[i*NGLL3],
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_kappav+i*NGLL3_PADDED,&h_kappav[i*NGLL3],
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_muv+i*NGLL3_PADDED,   &h_muv[i*NGLL3],
+prepare_mesh_constants_cuda.cu:  copy_todevice_int((void**)&mp->d_ibool,h_ibool,NGLL3*(mp->NSPEC_AB));
+prepare_mesh_constants_cuda.cu:  mp->num_interfaces_ext_mesh = *num_interfaces_ext_mesh;
+prepare_mesh_constants_cuda.cu:  mp->max_nibool_interfaces_ext_mesh = *max_nibool_interfaces_ext_mesh;
+prepare_mesh_constants_cuda.cu:  if( mp->num_interfaces_ext_mesh > 0 ){
+prepare_mesh_constants_cuda.cu:    copy_todevice_int((void**)&mp->d_nibool_interfaces_ext_mesh,h_nibool_interfaces_ext_mesh,
+prepare_mesh_constants_cuda.cu:                      mp->num_interfaces_ext_mesh);
+prepare_mesh_constants_cuda.cu:    copy_todevice_int((void**)&mp->d_ibool_interfaces_ext_mesh,h_ibool_interfaces_ext_mesh,
+prepare_mesh_constants_cuda.cu:                      (mp->num_interfaces_ext_mesh)*(mp->max_nibool_interfaces_ext_mesh));
+prepare_mesh_constants_cuda.cu:  cudaStreamCreate(&mp->compute_stream);
+prepare_mesh_constants_cuda.cu:  if( mp->num_interfaces_ext_mesh * mp->max_nibool_interfaces_ext_mesh > 0 ){
+prepare_mesh_constants_cuda.cu:    cudaStreamCreate(&mp->copy_stream);
+prepare_mesh_constants_cuda.cu:  copy_todevice_int((void**)&mp->d_ispec_is_inner,h_ispec_is_inner,mp->NSPEC_AB);
+prepare_mesh_constants_cuda.cu:  mp->d_num_abs_boundary_faces = *h_num_abs_boundary_faces;
+prepare_mesh_constants_cuda.cu:  if( mp->absorbing_conditions && mp->d_num_abs_boundary_faces > 0 ){
+prepare_mesh_constants_cuda.cu:    copy_todevice_int((void**)&mp->d_abs_boundary_ispec,h_abs_boundary_ispec,mp->d_num_abs_boundary_faces);
+prepare_mesh_constants_cuda.cu:    copy_todevice_int((void**)&mp->d_abs_boundary_ijk,h_abs_boundary_ijk,
+prepare_mesh_constants_cuda.cu:                      3*NGLL2*(mp->d_num_abs_boundary_faces));
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_abs_boundary_normal,h_abs_boundary_normal,
+prepare_mesh_constants_cuda.cu:                        NDIM*NGLL2*(mp->d_num_abs_boundary_faces));
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_abs_boundary_jacobian2Dw,h_abs_boundary_jacobian2Dw,
+prepare_mesh_constants_cuda.cu:                        NGLL2*(mp->d_num_abs_boundary_faces));
+prepare_mesh_constants_cuda.cu:  mp->nsources_local = *nsources_local_f;
+prepare_mesh_constants_cuda.cu:  if (mp->simulation_type == 1  || mp->simulation_type == 3){
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_sourcearrays,h_sourcearrays,(*NSOURCES)*NDIM*NGLL3);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_stf_pre_compute,
+prepare_mesh_constants_cuda.cu:  copy_todevice_int((void**)&mp->d_islice_selected_source,h_islice_selected_source,(*NSOURCES));
+prepare_mesh_constants_cuda.cu:  copy_todevice_int((void**)&mp->d_ispec_selected_source,h_ispec_selected_source,(*NSOURCES));
+prepare_mesh_constants_cuda.cu:  mp->nrec_local = *nrec_local; // number of receiver located in this partition
+prepare_mesh_constants_cuda.cu:  if( mp->nrec_local > 0 ){
+prepare_mesh_constants_cuda.cu:    copy_todevice_int((void**)&mp->d_number_receiver_global,h_number_receiver_global,mp->nrec_local);
+prepare_mesh_constants_cuda.cu:  copy_todevice_int((void**)&mp->d_ispec_selected_rec,h_ispec_selected_rec,(*nrec));
+prepare_mesh_constants_cuda.cu:  mp->use_mesh_coloring_gpu = 1;
+prepare_mesh_constants_cuda.cu:  mp->use_mesh_coloring_gpu = *USE_MESH_COLORING_GPU_f;
+prepare_mesh_constants_cuda.cu:  mp->nspec_acoustic = *nspec_acoustic;
+prepare_mesh_constants_cuda.cu:  mp->nspec_elastic = *nspec_elastic;
+prepare_mesh_constants_cuda.cu:  mp->gravity = 0;
+prepare_mesh_constants_cuda.cu:  int size = mp->NGLOB_AB;
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_potential_acoustic),sizeof(realw)*size),2001);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_potential_dot_acoustic),sizeof(realw)*size),2002);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_potential_dot_dot_acoustic),sizeof(realw)*size),2003);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_potential_acoustic,0,sizeof(realw)*size),2007);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_potential_dot_acoustic,0,sizeof(realw)*size),2007);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_potential_dot_dot_acoustic,0,sizeof(realw)*size),2007);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, d_potential_tex_ref_ptr, mp->d_potential_acoustic, &channelDesc, sizeof(realw)*size), 2001);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, d_potential_dot_dot_tex_ref_ptr, mp->d_potential_dot_dot_acoustic, &channelDesc, sizeof(realw)*size), 2003);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, &d_potential_tex, mp->d_potential_acoustic, &channelDesc, sizeof(realw)*size), 2001);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, &d_potential_dot_dot_tex, mp->d_potential_dot_dot_acoustic, &channelDesc, sizeof(realw)*size), 2003);
+prepare_mesh_constants_cuda.cu:  mp->size_mpi_buffer_potential = (mp->num_interfaces_ext_mesh) * (mp->max_nibool_interfaces_ext_mesh);
+prepare_mesh_constants_cuda.cu:  if( mp->size_mpi_buffer_potential > 0 ){
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_send_potential_dot_dot_buffer),mp->size_mpi_buffer_potential *sizeof(realw)),2004);
+prepare_mesh_constants_cuda.cu:  copy_todevice_realw((void**)&mp->d_rmass_acoustic,rmass_acoustic,mp->NGLOB_AB);
+prepare_mesh_constants_cuda.cu:  int size_padded = NGLL3_PADDED * mp->NSPEC_AB;
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_rhostore),size_padded*sizeof(realw)),2006);
+prepare_mesh_constants_cuda.cu:  for(int i=0; i < mp->NSPEC_AB; i++) {
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_rhostore+i*NGLL3_PADDED, &rhostore[i*NGLL3],
+prepare_mesh_constants_cuda.cu:  copy_todevice_realw((void**)&mp->d_kappastore,kappastore,NGLL3*mp->NSPEC_AB);
+prepare_mesh_constants_cuda.cu:  mp->num_phase_ispec_acoustic = *num_phase_ispec_acoustic;
+prepare_mesh_constants_cuda.cu:  copy_todevice_int((void**)&mp->d_phase_ispec_inner_acoustic,phase_ispec_inner_acoustic,
+prepare_mesh_constants_cuda.cu:                    2*mp->num_phase_ispec_acoustic);
+prepare_mesh_constants_cuda.cu:  copy_todevice_int((void**)&mp->d_ispec_is_acoustic,ispec_is_acoustic,mp->NSPEC_AB);
+prepare_mesh_constants_cuda.cu:    mp->num_free_surface_faces = *num_free_surface_faces;
+prepare_mesh_constants_cuda.cu:    if( mp->num_free_surface_faces > 0 ){
+prepare_mesh_constants_cuda.cu:      copy_todevice_int((void**)&mp->d_free_surface_ispec,free_surface_ispec,mp->num_free_surface_faces);
+prepare_mesh_constants_cuda.cu:      copy_todevice_int((void**)&mp->d_free_surface_ijk,free_surface_ijk,
+prepare_mesh_constants_cuda.cu:                        3*NGLL2*mp->num_free_surface_faces);
+prepare_mesh_constants_cuda.cu:  if( mp->absorbing_conditions && mp->d_num_abs_boundary_faces > 0 ){
+prepare_mesh_constants_cuda.cu:    if(mp->simulation_type == 3 || ( mp->simulation_type == 1 && mp->save_forward )){
+prepare_mesh_constants_cuda.cu:      mp->d_b_reclen_potential = *b_reclen_potential;
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_b_absorb_potential,mp->d_b_reclen_potential),2201);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_b_absorb_potential,b_absorb_potential,mp->d_b_reclen_potential,cudaMemcpyHostToDevice),2202);
+prepare_mesh_constants_cuda.cu:  if( mp->nrec_local > 0 ){
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_station_seismo_potential),
+prepare_mesh_constants_cuda.cu:                                       mp->nrec_local*NGLL3*sizeof(realw)),2107);
+prepare_mesh_constants_cuda.cu:    mp->h_station_seismo_potential = (realw*) malloc( mp->nrec_local*NGLL3*sizeof(realw) );
+prepare_mesh_constants_cuda.cu:    if( mp->h_station_seismo_potential == NULL) exit_on_error("error allocating h_station_seismo_potential");
+prepare_mesh_constants_cuda.cu:    copy_todevice_int((void**)&mp->d_coupling_ac_el_ispec,coupling_ac_el_ispec,(*num_coupling_ac_el_faces));
+prepare_mesh_constants_cuda.cu:    copy_todevice_int((void**)&mp->d_coupling_ac_el_ijk,coupling_ac_el_ijk,3*NGLL2*(*num_coupling_ac_el_faces));
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_coupling_ac_el_normal,coupling_ac_el_normal,
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_coupling_ac_el_jacobian2Dw,coupling_ac_el_jacobian2Dw,
+prepare_mesh_constants_cuda.cu:  if( mp->use_mesh_coloring_gpu ){
+prepare_mesh_constants_cuda.cu:    mp->num_colors_outer_acoustic = *num_colors_outer_acoustic;
+prepare_mesh_constants_cuda.cu:    mp->num_colors_inner_acoustic = *num_colors_inner_acoustic;
+prepare_mesh_constants_cuda.cu:    mp->h_num_elem_colors_acoustic = (int*) num_elem_colors_acoustic;
+prepare_mesh_constants_cuda.cu:  if( mp->simulation_type != 3 ) return;
+prepare_mesh_constants_cuda.cu:  int size = mp->NGLOB_AB;
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_b_potential_acoustic),sizeof(realw)*size),3014);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_b_potential_dot_acoustic),sizeof(realw)*size),3015);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_b_potential_dot_dot_acoustic),sizeof(realw)*size),3016);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_b_potential_acoustic,0,sizeof(realw)*size),3007);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_b_potential_dot_acoustic,0,sizeof(realw)*size),3007);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_b_potential_dot_dot_acoustic,0,sizeof(realw)*size),3007);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, d_b_potential_tex_ref_ptr, mp->d_b_potential_acoustic, &channelDesc, sizeof(realw)*size), 3001);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, d_b_potential_dot_dot_tex_ref_ptr, mp->d_b_potential_dot_dot_acoustic, &channelDesc, sizeof(realw)*size), 3003);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, &d_b_potential_tex, mp->d_b_potential_acoustic, &channelDesc, sizeof(realw)*size), 3001);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, &d_b_potential_dot_dot_tex, mp->d_b_potential_dot_dot_acoustic, &channelDesc, sizeof(realw)*size), 3003);
+prepare_mesh_constants_cuda.cu:  size = NGLL3*mp->NSPEC_AB;
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_rho_ac_kl),size*sizeof(realw)),3017);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_kappa_ac_kl),size*sizeof(realw)),3018);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMemset(mp->d_rho_ac_kl,0,size*sizeof(realw)),3019);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMemset(mp->d_kappa_ac_kl,0,size*sizeof(realw)),3020);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_hess_ac_kl),size*sizeof(realw)),3030);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemset(mp->d_hess_ac_kl,0,size*sizeof(realw)),3031);
+prepare_mesh_constants_cuda.cu:  if( mp->size_mpi_buffer_potential > 0 ){
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_b_send_potential_dot_dot_buffer),mp->size_mpi_buffer_potential*sizeof(realw)),3014);
+prepare_mesh_constants_cuda.cu:  //printf("prepare_fields_elastic_device: rank %d - wavefield setup\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:  size = NDIM * mp->NGLOB_AB;
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_displ),sizeof(realw)*size),4001);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_veloc),sizeof(realw)*size),4002);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_accel),sizeof(realw)*size),4003);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_displ,0,sizeof(realw)*size),4007);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_veloc,0,sizeof(realw)*size),4007);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_accel,0,sizeof(realw)*size),4007);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, d_displ_tex_ref_ptr, mp->d_displ, &channelDesc, sizeof(realw)*size), 4001);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, d_veloc_tex_ref_ptr, mp->d_veloc, &channelDesc, sizeof(realw)*size), 4002);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, d_accel_tex_ref_ptr, mp->d_accel, &channelDesc, sizeof(realw)*size), 4003);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, &d_displ_tex, mp->d_displ, &channelDesc, sizeof(realw)*size), 4001);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, &d_veloc_tex, mp->d_veloc, &channelDesc, sizeof(realw)*size), 4002);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, &d_accel_tex, mp->d_accel, &channelDesc, sizeof(realw)*size), 4003);
+prepare_mesh_constants_cuda.cu:  mp->size_mpi_buffer = NDIM * (mp->num_interfaces_ext_mesh) * (mp->max_nibool_interfaces_ext_mesh);
+prepare_mesh_constants_cuda.cu:  if( mp->size_mpi_buffer > 0 ){
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMallocHost((void**)&(mp->h_send_accel_buffer),sizeof(float)*(mp->size_mpi_buffer)),8004);
+prepare_mesh_constants_cuda.cu:    //mp->send_buffer = (float*)malloc((mp->size_mpi_buffer)*sizeof(float));
+prepare_mesh_constants_cuda.cu:    //print_CUDA_error_if_any(cudaMallocHost((void**)&(mp->h_send_b_accel_buffer),sizeof(float)*(mp->size_mpi_buffer)),8004);
+prepare_mesh_constants_cuda.cu:    // mp->b_send_buffer = (float*)malloc((size_mpi_buffer)*sizeof(float));
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMallocHost((void**)&(mp->h_recv_accel_buffer),sizeof(float)*(mp->size_mpi_buffer)),8004);
+prepare_mesh_constants_cuda.cu:    mp->recv_buffer = (float*)malloc((mp->size_mpi_buffer)*sizeof(float));
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_send_accel_buffer),mp->size_mpi_buffer*sizeof(realw)),4004);
+prepare_mesh_constants_cuda.cu:    if( mp->simulation_type == 3 ){
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_b_send_accel_buffer),mp->size_mpi_buffer*sizeof(realw)),4004);
+prepare_mesh_constants_cuda.cu:  //printf("prepare_fields_elastic_device: rank %d - mass matrix\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:  copy_todevice_realw((void**)&mp->d_rmassx,rmassx,mp->NGLOB_AB);
+prepare_mesh_constants_cuda.cu:  copy_todevice_realw((void**)&mp->d_rmassy,rmassy,mp->NGLOB_AB);
+prepare_mesh_constants_cuda.cu:  copy_todevice_realw((void**)&mp->d_rmassz,rmassz,mp->NGLOB_AB);
+prepare_mesh_constants_cuda.cu:  copy_todevice_int((void**)&mp->d_ispec_is_elastic,ispec_is_elastic,mp->NSPEC_AB);
+prepare_mesh_constants_cuda.cu:  mp->num_phase_ispec_elastic = *num_phase_ispec_elastic;
+prepare_mesh_constants_cuda.cu:  copy_todevice_int((void**)&mp->d_phase_ispec_inner_elastic,phase_ispec_inner_elastic,2*mp->num_phase_ispec_elastic);
+prepare_mesh_constants_cuda.cu:  if( mp->nrec_local > 0 ){
+prepare_mesh_constants_cuda.cu:    //printf("prepare_fields_elastic_device: rank %d - seismogram setup\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_station_seismo_field),3*NGLL3*(mp->nrec_local)*sizeof(realw)),4015);
+prepare_mesh_constants_cuda.cu:    mp->h_station_seismo_field = (realw*) malloc( 3*NGLL3*(mp->nrec_local)*sizeof(realw) );
+prepare_mesh_constants_cuda.cu:    if( mp->h_station_seismo_field == NULL) exit_on_error("h_station_seismo_field not allocated \n");
+prepare_mesh_constants_cuda.cu:  if( mp->absorbing_conditions && mp->d_num_abs_boundary_faces > 0){
+prepare_mesh_constants_cuda.cu:    //printf("prepare_fields_elastic_device: rank %d - absorbing boundary setup\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_rho_vp,rho_vp,NGLL3*mp->NSPEC_AB);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_rho_vs,rho_vs,NGLL3*mp->NSPEC_AB);
+prepare_mesh_constants_cuda.cu:    if(mp->simulation_type == 3 || ( mp->simulation_type == 1 && mp->save_forward )){
+prepare_mesh_constants_cuda.cu:      mp->d_b_reclen_field = *b_reclen_field;
+prepare_mesh_constants_cuda.cu:      //printf("prepare_fields_elastic_device: rank %d - absorbing boundary i/o %d\n",mp->myrank,mp->d_b_reclen_field);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_b_absorb_field,mp->d_b_reclen_field),4101);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_b_absorb_field,b_absorb_field,mp->d_b_reclen_field,cudaMemcpyHostToDevice),4102);
+prepare_mesh_constants_cuda.cu:    //printf("prepare_fields_elastic_device: rank %d - strain setup\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:    size = NGLL3 * mp->NSPEC_AB; // note: non-aligned; if align, check memcpy below and indexing
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_epsilondev_xx,epsilondev_xx,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_epsilondev_yy,epsilondev_yy,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_epsilondev_xy,epsilondev_xy,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_epsilondev_xz,epsilondev_xz,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_epsilondev_yz,epsilondev_yz,size);
+prepare_mesh_constants_cuda.cu:    //printf("prepare_fields_elastic_device: rank %d - attenuation setup\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_R_xx,R_xx,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_R_yy,R_yy,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_R_xy,R_xy,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_R_xz,R_xz,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_R_yz,R_yz,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_one_minus_sum_beta,one_minus_sum_beta,NGLL3*mp->NSPEC_AB);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_factor_common,factor_common,N_SLS*NGLL3*mp->NSPEC_AB);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_alphaval,alphaval,N_SLS);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_betaval,betaval,N_SLS);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_gammaval,gammaval,N_SLS);
+prepare_mesh_constants_cuda.cu:    //printf("prepare_fields_elastic_device: rank %d - attenuation setup\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:    int size_padded = NGLL3_PADDED * (mp->NSPEC_AB);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c11store),size_padded*sizeof(realw)),4700);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c12store),size_padded*sizeof(realw)),4701);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c13store),size_padded*sizeof(realw)),4702);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c14store),size_padded*sizeof(realw)),4703);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c15store),size_padded*sizeof(realw)),4704);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c16store),size_padded*sizeof(realw)),4705);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c22store),size_padded*sizeof(realw)),4706);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c23store),size_padded*sizeof(realw)),4707);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c24store),size_padded*sizeof(realw)),4708);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c25store),size_padded*sizeof(realw)),4709);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c26store),size_padded*sizeof(realw)),4710);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c33store),size_padded*sizeof(realw)),4711);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c34store),size_padded*sizeof(realw)),4712);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c35store),size_padded*sizeof(realw)),4713);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c36store),size_padded*sizeof(realw)),4714);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c44store),size_padded*sizeof(realw)),4715);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c45store),size_padded*sizeof(realw)),4716);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c46store),size_padded*sizeof(realw)),4717);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c55store),size_padded*sizeof(realw)),4718);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c56store),size_padded*sizeof(realw)),4719);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_c66store),size_padded*sizeof(realw)),4720);
+prepare_mesh_constants_cuda.cu:    for(int i=0;i < mp->NSPEC_AB;i++) {
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c11store + i*NGLL3_PADDED, &c11store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c12store + i*NGLL3_PADDED, &c12store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c13store + i*NGLL3_PADDED, &c13store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c14store + i*NGLL3_PADDED, &c14store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c15store + i*NGLL3_PADDED, &c15store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c16store + i*NGLL3_PADDED, &c16store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c22store + i*NGLL3_PADDED, &c22store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c23store + i*NGLL3_PADDED, &c23store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c24store + i*NGLL3_PADDED, &c24store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c25store + i*NGLL3_PADDED, &c25store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c26store + i*NGLL3_PADDED, &c26store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c33store + i*NGLL3_PADDED, &c33store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c34store + i*NGLL3_PADDED, &c34store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c35store + i*NGLL3_PADDED, &c35store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c36store + i*NGLL3_PADDED, &c36store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c44store + i*NGLL3_PADDED, &c44store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c45store + i*NGLL3_PADDED, &c45store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c46store + i*NGLL3_PADDED, &c46store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c55store + i*NGLL3_PADDED, &c55store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c56store + i*NGLL3_PADDED, &c56store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMemcpy(mp->d_c66store + i*NGLL3_PADDED, &c66store[i*NGLL3],
+prepare_mesh_constants_cuda.cu:    //printf("prepare_fields_elastic_device: rank %d - ocean load setup\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:    mp->num_free_surface_faces = *num_free_surface_faces;
+prepare_mesh_constants_cuda.cu:    if( mp->num_free_surface_faces > 0 ){
+prepare_mesh_constants_cuda.cu:      copy_todevice_realw((void**)&mp->d_rmass_ocean_load,rmass_ocean_load,mp->NGLOB_AB);
+prepare_mesh_constants_cuda.cu:      copy_todevice_realw((void**)&mp->d_free_surface_normal,free_surface_normal,
+prepare_mesh_constants_cuda.cu:                          3*NGLL2*(mp->num_free_surface_faces));
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_updated_dof_ocean_load),
+prepare_mesh_constants_cuda.cu:                                         sizeof(int)*mp->NGLOB_AB),4505);
+prepare_mesh_constants_cuda.cu:        copy_todevice_int((void**)&mp->d_free_surface_ispec,free_surface_ispec,mp->num_free_surface_faces);
+prepare_mesh_constants_cuda.cu:        copy_todevice_int((void**)&mp->d_free_surface_ijk,free_surface_ijk,
+prepare_mesh_constants_cuda.cu:                          3*NGLL2*mp->num_free_surface_faces);
+prepare_mesh_constants_cuda.cu:  if( mp->use_mesh_coloring_gpu ){
+prepare_mesh_constants_cuda.cu:    mp->num_colors_outer_elastic = *num_colors_outer_elastic;
+prepare_mesh_constants_cuda.cu:    mp->num_colors_inner_elastic = *num_colors_inner_elastic;
+prepare_mesh_constants_cuda.cu:    mp->h_num_elem_colors_elastic = (int*) num_elem_colors_elastic;
+prepare_mesh_constants_cuda.cu:  //printf("prepare_fields_elastic_device: rank %d - done\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:  if( mp->simulation_type != 3 ) return;
+prepare_mesh_constants_cuda.cu:  //printf("prepare_fields_elastic_adj_dev: rank %d - kernel setup\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_b_displ),sizeof(realw)*size),5201);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_b_veloc),sizeof(realw)*size),5202);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_b_accel),sizeof(realw)*size),5203);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_b_displ,0,sizeof(realw)*size),5207);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_b_veloc,0,sizeof(realw)*size),5207);
+prepare_mesh_constants_cuda.cu:  //print_CUDA_error_if_any(cudaMemset(mp->d_b_accel,0,sizeof(realw)*size),5207);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, d_b_displ_tex_ref_ptr, mp->d_b_displ, &channelDesc, sizeof(realw)*size), 4001);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, d_b_veloc_tex_ref_ptr, mp->d_b_veloc, &channelDesc, sizeof(realw)*size), 4002);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, d_b_accel_tex_ref_ptr, mp->d_b_accel, &channelDesc, sizeof(realw)*size), 4003);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, &d_b_displ_tex, mp->d_b_displ, &channelDesc, sizeof(realw)*size), 4001);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, &d_b_veloc_tex, mp->d_b_veloc, &channelDesc, sizeof(realw)*size), 4002);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaBindTexture(0, &d_b_accel_tex, mp->d_b_accel, &channelDesc, sizeof(realw)*size), 4003);
+prepare_mesh_constants_cuda.cu:  mp->anisotropic_kl = *ANISOTROPIC_KL;
+prepare_mesh_constants_cuda.cu:  //printf("prepare_fields_elastic_adj_dev: rank %d -  anisotropic/isotropic kernels\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:  size = NGLL3 * mp->NSPEC_AB; // note: non-aligned; if align, check memcpy below and indexing
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_rho_kl),size*sizeof(realw)),5204);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMemset(mp->d_rho_kl,0,size*sizeof(realw)),5214);
+prepare_mesh_constants_cuda.cu:  if( mp->anisotropic_kl ){
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_cijkl_kl),21*size*sizeof(realw)),5205);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemset(mp->d_cijkl_kl,0,21*size*sizeof(realw)),5215);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_mu_kl),size*sizeof(realw)),5206);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_kappa_kl),size*sizeof(realw)),5207);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemset(mp->d_mu_kl,0,size*sizeof(realw)),5216);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemset(mp->d_kappa_kl,0,size*sizeof(realw)),5217);
+prepare_mesh_constants_cuda.cu:    //printf("prepare_fields_elastic_adj_dev: rank %d - strains\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:    size = NGLL3 * mp->NSPEC_AB; // note: non-aligned; if align, check memcpy below and indexing
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_epsilon_trace_over_3,epsilon_trace_over_3,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_epsilon_trace_over_3,b_epsilon_trace_over_3,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_epsilondev_xx,b_epsilondev_xx,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_epsilondev_yy,b_epsilondev_yy,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_epsilondev_xy,b_epsilondev_xy,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_epsilondev_xz,b_epsilondev_xz,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_epsilondev_yz,b_epsilondev_yz,size);
+prepare_mesh_constants_cuda.cu:    //printf("prepare_fields_elastic_adj_dev: rank %d - attenuation\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_R_xx,b_R_xx,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_R_yy,b_R_yy,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_R_xy,b_R_xy,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_R_xz,b_R_xz,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_R_yz,b_R_yz,size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_alphaval,b_alphaval,N_SLS);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_betaval,b_betaval,N_SLS);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_b_gammaval,b_gammaval,N_SLS);
+prepare_mesh_constants_cuda.cu:    //printf("prepare_fields_elastic_adj_dev: rank %d - hessian kernel\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:    size = NGLL3 * mp->NSPEC_AB; // note: non-aligned; if align, check memcpy below and indexing
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_hess_el_kl),size*sizeof(realw)),5450);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemset(mp->d_hess_el_kl,0,size*sizeof(realw)),5451);
+prepare_mesh_constants_cuda.cu:  //printf("prepare_fields_elastic_adj_dev: rank %d - done\n",mp->myrank);
+prepare_mesh_constants_cuda.cu:  mp->nadj_rec_local = *nadj_rec_local;
+prepare_mesh_constants_cuda.cu:  if( mp->nadj_rec_local > 0 ){
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_adj_sourcearrays,
+prepare_mesh_constants_cuda.cu:                                       (mp->nadj_rec_local)*3*NGLL3*sizeof(realw)),6003);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_pre_computed_irec,
+prepare_mesh_constants_cuda.cu:                                       (mp->nadj_rec_local)*sizeof(int)),6004);
+prepare_mesh_constants_cuda.cu:    int* h_pre_computed_irec = (int*) malloc( (mp->nadj_rec_local)*sizeof(int) );
+prepare_mesh_constants_cuda.cu:      if(mp->myrank == islice_selected_rec[irec]) {
+prepare_mesh_constants_cuda.cu:    if( irec_local != mp->nadj_rec_local ) exit_on_error("prepare_sim2_or_3_const_device: irec_local not equal\n");
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(mp->d_pre_computed_irec,h_pre_computed_irec,
+prepare_mesh_constants_cuda.cu:                                       (mp->nadj_rec_local)*sizeof(int),cudaMemcpyHostToDevice),6010);
+prepare_mesh_constants_cuda.cu:    mp->h_adj_sourcearrays_slice = (realw*) malloc( (mp->nadj_rec_local)*3*NGLL3*sizeof(realw) );
+prepare_mesh_constants_cuda.cu:    if( mp->h_adj_sourcearrays_slice == NULL ) exit_on_error("h_adj_sourcearrays_slice not allocated\n");
+prepare_mesh_constants_cuda.cu:  mp->num_free_surface_faces = *num_free_surface_faces;
+prepare_mesh_constants_cuda.cu:  copy_todevice_int((void**)&mp->d_free_surface_ispec,free_surface_ispec,mp->num_free_surface_faces);
+prepare_mesh_constants_cuda.cu:  copy_todevice_int((void**)&mp->d_free_surface_ijk,free_surface_ijk,
+prepare_mesh_constants_cuda.cu:                    3*NGLL2*mp->num_free_surface_faces);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**) &mp->d_noise_surface_movie,
+prepare_mesh_constants_cuda.cu:                                     3*NGLL2*mp->num_free_surface_faces*sizeof(realw)),7005);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_noise_sourcearray,noise_sourcearray,
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_normal_x_noise,normal_x_noise,nface_size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_normal_y_noise,normal_y_noise,nface_size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_normal_z_noise,normal_z_noise,nface_size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_mask_noise,mask_noise,nface_size);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_free_surface_jacobian2Dw,free_surface_jacobian2Dw,nface_size);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_Sigma_kl),NGLL3*(mp->NSPEC_AB)*sizeof(realw)),7401);
+prepare_mesh_constants_cuda.cu:    print_CUDA_error_if_any(cudaMemset(mp->d_Sigma_kl,0,NGLL3*mp->NSPEC_AB*sizeof(realw)),7403);
+prepare_mesh_constants_cuda.cu:  mp->gravity = *GRAVITY;
+prepare_mesh_constants_cuda.cu:  if( mp->gravity ){
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_minus_deriv_gravity,minus_deriv_gravity,mp->NGLOB_AB);
+prepare_mesh_constants_cuda.cu:    copy_todevice_realw((void**)&mp->d_minus_g,minus_g,mp->NGLOB_AB);
+prepare_mesh_constants_cuda.cu:      int size_padded = NGLL3_PADDED * (mp->NSPEC_AB);
+prepare_mesh_constants_cuda.cu:      print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_rhostore),size_padded*sizeof(realw)),8006);
+prepare_mesh_constants_cuda.cu:      for(int i=0; i < mp->NSPEC_AB; i++) {
+prepare_mesh_constants_cuda.cu:        print_CUDA_error_if_any(cudaMemcpy(mp->d_rhostore+i*NGLL3_PADDED, &rhostore[i*NGLL3],
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_nu),3*3*(*nrec_local)*sizeof(double)),8100);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_hxir),5*(*nrec_local)*sizeof(double)),8100);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_hetar),5*(*nrec_local)*sizeof(double)),8100);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&(mp->d_hgammar),5*(*nrec_local)*sizeof(double)),8100);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_seismograms_d,3*(*nrec_local)*sizeof(realw)),8101);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_seismograms_v,3*(*nrec_local)*sizeof(realw)),8101);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMalloc((void**)&mp->d_seismograms_a,3*(*nrec_local)*sizeof(realw)),8101);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_nu,nu,3*3*(*nrec_local)*sizeof(double),cudaMemcpyHostToDevice),8101);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_hxir,hxir,5*(*nrec_local)*sizeof(double),cudaMemcpyHostToDevice),8101);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_hetar,hetar,5*(*nrec_local)*sizeof(double),cudaMemcpyHostToDevice),8101);
+prepare_mesh_constants_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_hgammar,hgammar,5*(*nrec_local)*sizeof(double),cudaMemcpyHostToDevice),8101);
+prepare_mesh_constants_cuda.cu:  cudaMallocHost((void**)&mp->h_seismograms_d_it,3**nrec_local*sizeof(realw));
+prepare_mesh_constants_cuda.cu:  cudaMallocHost((void**)&mp->h_seismograms_v_it,3**nrec_local*sizeof(realw));
+prepare_mesh_constants_cuda.cu:  cudaMallocHost((void**)&mp->h_seismograms_a_it,3**nrec_local*sizeof(realw));
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_xix);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_xiy);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_xiz);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_etax);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_etay);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_etaz);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_gammax);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_gammay);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_gammaz);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_muv);
+prepare_mesh_constants_cuda.cu:  if( *ABSORBING_CONDITIONS && mp->d_num_abs_boundary_faces > 0 ){
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_abs_boundary_ispec);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_abs_boundary_ijk);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_abs_boundary_normal);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_abs_boundary_jacobian2Dw);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_nibool_interfaces_ext_mesh);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_ibool_interfaces_ext_mesh);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_ispec_is_inner);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_ibool);
+prepare_mesh_constants_cuda.cu:  if (mp->simulation_type == 1  || mp->simulation_type == 3){
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_sourcearrays);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_stf_pre_compute);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_islice_selected_source);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_ispec_selected_source);
+prepare_mesh_constants_cuda.cu:  if( mp->nrec_local > 0 ) cudaFree(mp->d_number_receiver_global);
+prepare_mesh_constants_cuda.cu:  cudaFree(mp->d_ispec_selected_rec);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_potential_acoustic);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_potential_dot_acoustic);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_potential_dot_dot_acoustic);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_send_potential_dot_dot_buffer);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_rmass_acoustic);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_rhostore);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_kappastore);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_phase_ispec_inner_acoustic);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_ispec_is_acoustic);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_free_surface_ispec);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_free_surface_ijk);
+prepare_mesh_constants_cuda.cu:    if( *ABSORBING_CONDITIONS ) cudaFree(mp->d_b_absorb_potential);
+prepare_mesh_constants_cuda.cu:    if( mp->simulation_type == 3 ) {
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_b_potential_acoustic);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_b_potential_dot_acoustic);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_b_potential_dot_dot_acoustic);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_rho_ac_kl);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_kappa_ac_kl);
+prepare_mesh_constants_cuda.cu:      if( *APPROXIMATE_HESS_KL) cudaFree(mp->d_hess_ac_kl);
+prepare_mesh_constants_cuda.cu:    if(mp->nrec_local > 0 ){
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_station_seismo_potential);
+prepare_mesh_constants_cuda.cu:      free(mp->h_station_seismo_potential);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_displ);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_veloc);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_accel);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_send_accel_buffer);
+prepare_mesh_constants_cuda.cu:    if( mp->simulation_type == 3) cudaFree(mp->d_b_send_accel_buffer);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_rmassx);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_rmassy);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_rmassz);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_phase_ispec_inner_elastic);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_ispec_is_elastic);
+prepare_mesh_constants_cuda.cu:    if( mp->nrec_local > 0 ){
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_station_seismo_field);
+prepare_mesh_constants_cuda.cu:      free(mp->h_station_seismo_field);
+prepare_mesh_constants_cuda.cu:    if( *ABSORBING_CONDITIONS && mp->d_num_abs_boundary_faces > 0){
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_rho_vp);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_rho_vs);
+prepare_mesh_constants_cuda.cu:      if(mp->simulation_type == 3 || ( mp->simulation_type == 1 && mp->save_forward ))
+prepare_mesh_constants_cuda.cu:          cudaFree(mp->d_b_absorb_field);
+prepare_mesh_constants_cuda.cu:    if( mp->simulation_type == 3 ) {
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_b_displ);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_b_veloc);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_b_accel);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_rho_kl);
+prepare_mesh_constants_cuda.cu:      if( mp->anisotropic_kl ){
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_cijkl_kl);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_mu_kl);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_kappa_kl);
+prepare_mesh_constants_cuda.cu:      if( *APPROXIMATE_HESS_KL ) cudaFree(mp->d_hess_el_kl);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_epsilondev_xx);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_epsilondev_yy);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_epsilondev_xy);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_epsilondev_xz);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_epsilondev_yz);
+prepare_mesh_constants_cuda.cu:      if( mp->simulation_type == 3 ){
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_epsilon_trace_over_3);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_epsilon_trace_over_3);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_epsilondev_xx);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_epsilondev_yy);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_epsilondev_xy);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_epsilondev_xz);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_epsilondev_yz);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_factor_common);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_one_minus_sum_beta);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_alphaval);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_betaval);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_gammaval);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_R_xx);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_R_yy);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_R_xy);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_R_xz);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_R_yz);
+prepare_mesh_constants_cuda.cu:      if( mp->simulation_type == 3){
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_R_xx);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_R_yy);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_R_xy);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_R_xz);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_R_yz);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_alphaval);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_betaval);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_b_gammaval);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c11store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c12store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c13store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c14store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c15store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c16store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c22store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c23store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c24store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c25store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c26store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c33store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c34store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c35store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c36store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c44store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c45store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c46store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c55store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c56store);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_c66store);
+prepare_mesh_constants_cuda.cu:      if( mp->num_free_surface_faces > 0 ){
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_rmass_ocean_load);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_free_surface_normal);
+prepare_mesh_constants_cuda.cu:        cudaFree(mp->d_updated_dof_ocean_load);
+prepare_mesh_constants_cuda.cu:          cudaFree(mp->d_free_surface_ispec);
+prepare_mesh_constants_cuda.cu:          cudaFree(mp->d_free_surface_ijk);
+prepare_mesh_constants_cuda.cu:  if( mp->simulation_type == 2 || mp->simulation_type == 3 ){
+prepare_mesh_constants_cuda.cu:    if(mp->nadj_rec_local > 0 ){
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_adj_sourcearrays);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_pre_computed_irec);
+prepare_mesh_constants_cuda.cu:      free(mp->h_adj_sourcearrays_slice);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_free_surface_ispec);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_free_surface_ijk);
+prepare_mesh_constants_cuda.cu:    cudaFree(mp->d_noise_surface_movie);
+prepare_mesh_constants_cuda.cu:    if( *NOISE_TOMOGRAPHY == 1 ) cudaFree(mp->d_noise_sourcearray);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_normal_x_noise);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_normal_y_noise);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_normal_z_noise);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_mask_noise);
+prepare_mesh_constants_cuda.cu:      cudaFree(mp->d_free_surface_jacobian2Dw);
+prepare_mesh_constants_cuda.cu:    if( *NOISE_TOMOGRAPHY == 3 ) cudaFree(mp->d_Sigma_kl);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_displ,displ,sizeof(realw)*(*size),cudaMemcpyHostToDevice),40003);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_veloc,veloc,sizeof(realw)*(*size),cudaMemcpyHostToDevice),40004);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_accel,accel,sizeof(realw)*(*size),cudaMemcpyHostToDevice),40005);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(displ,mp->d_displ,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),40006);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(veloc,mp->d_veloc,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),40007);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(accel,mp->d_accel,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),40008);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_displ,b_displ,sizeof(realw)*(*size),cudaMemcpyHostToDevice),41006);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_veloc,b_veloc,sizeof(realw)*(*size),cudaMemcpyHostToDevice),41007);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_accel,b_accel,sizeof(realw)*(*size),cudaMemcpyHostToDevice),41008);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(b_displ,mp->d_b_displ,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),42006);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(b_veloc,mp->d_b_veloc,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),42007);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(b_accel,mp->d_b_accel,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),42008);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_accel,accel,sizeof(realw)*(*size),cudaMemcpyHostToDevice),40016);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(accel,mp->d_accel,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),40026);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(b_accel,mp->d_b_accel,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),40036);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(sigma_kl,mp->d_Sigma_kl,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),40046);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(displ,mp->d_b_displ,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),40056);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(displ,mp->d_displ,sizeof(realw)*(*size),cudaMemcpyDeviceToHost),40066);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_R_xx,b_R_xx,*size_R*sizeof(realw),cudaMemcpyHostToDevice),43011);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_R_yy,b_R_yy,*size_R*sizeof(realw),cudaMemcpyHostToDevice),43012);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_R_xy,b_R_xy,*size_R*sizeof(realw),cudaMemcpyHostToDevice),43013);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_R_xz,b_R_xz,*size_R*sizeof(realw),cudaMemcpyHostToDevice),43014);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_R_yz,b_R_yz,*size_R*sizeof(realw),cudaMemcpyHostToDevice),43015);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_epsilondev_xx,b_epsilondev_xx,*size_epsilondev*sizeof(realw),cudaMemcpyHostToDevice),43016);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_epsilondev_yy,b_epsilondev_yy,*size_epsilondev*sizeof(realw),cudaMemcpyHostToDevice),43017);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_epsilondev_xy,b_epsilondev_xy,*size_epsilondev*sizeof(realw),cudaMemcpyHostToDevice),43018);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_epsilondev_xz,b_epsilondev_xz,*size_epsilondev*sizeof(realw),cudaMemcpyHostToDevice),43019);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_epsilondev_yz,b_epsilondev_yz,*size_epsilondev*sizeof(realw),cudaMemcpyHostToDevice),43020);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(R_xx,mp->d_R_xx,*size_R*sizeof(realw),cudaMemcpyDeviceToHost),43021);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(R_yy,mp->d_R_yy,*size_R*sizeof(realw),cudaMemcpyDeviceToHost),43022);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(R_xy,mp->d_R_xy,*size_R*sizeof(realw),cudaMemcpyDeviceToHost),43023);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(R_xz,mp->d_R_xz,*size_R*sizeof(realw),cudaMemcpyDeviceToHost),43024);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(R_yz,mp->d_R_yz,*size_R*sizeof(realw),cudaMemcpyDeviceToHost),43025);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(epsilondev_xx,mp->d_epsilondev_xx,*size_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost),43026);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(epsilondev_yy,mp->d_epsilondev_yy,*size_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost),43027);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(epsilondev_xy,mp->d_epsilondev_xy,*size_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost),43028);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(epsilondev_xz,mp->d_epsilondev_xz,*size_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost),43029);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(epsilondev_yz,mp->d_epsilondev_yz,*size_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost),43030);
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(h_rho_kl,mp->d_rho_kl,*NSPEC_AB*NGLL3*sizeof(realw),
+transfer_fields_cuda.cu:  if( mp->anisotropic_kl ){
+transfer_fields_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(h_cijkl_kl,mp->d_cijkl_kl,*NSPEC_AB*21*NGLL3*sizeof(realw),
+transfer_fields_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(h_mu_kl,mp->d_mu_kl,*NSPEC_AB*NGLL3*sizeof(realw),
+transfer_fields_cuda.cu:    print_CUDA_error_if_any(cudaMemcpy(h_kappa_kl,mp->d_kappa_kl,*NSPEC_AB*NGLL3*sizeof(realw),
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(h_Sigma_kl,mp->d_Sigma_kl,NGLL3*(*NSPEC_AB)*sizeof(realw),
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_potential_acoustic,potential_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_potential_dot_acoustic,potential_dot_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_potential_dot_dot_acoustic,potential_dot_dot_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_potential_acoustic,b_potential_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_potential_dot_acoustic,b_potential_dot_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->d_b_potential_dot_dot_acoustic,b_potential_dot_dot_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(potential_acoustic,mp->d_potential_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(potential_dot_acoustic,mp->d_potential_dot_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(potential_dot_dot_acoustic,mp->d_potential_dot_dot_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(b_potential_acoustic,mp->d_b_potential_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(b_potential_dot_acoustic,mp->d_b_potential_dot_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(b_potential_dot_dot_acoustic,mp->d_b_potential_dot_dot_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(potential_dot_dot_acoustic,mp->d_potential_dot_dot_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(b_potential_dot_dot_acoustic,mp->d_b_potential_dot_dot_acoustic,
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(h_rho_ac_kl,mp->d_rho_ac_kl,size*sizeof(realw),
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(h_kappa_ac_kl,mp->d_kappa_ac_kl,size*sizeof(realw),
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(h_hess_kl,mp->d_hess_el_kl,NGLL3*(*NSPEC_AB)*sizeof(realw),
+transfer_fields_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(h_hess_ac_kl,mp->d_hess_ac_kl,NGLL3*(*NSPEC_AB)*sizeof(realw),
+transfer_fields_cuda.cu:  cudaMemcpy(rho_kl,mp->d_rho_kl,*size_rho*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  if( ! mp->anisotropic_kl ){
+transfer_fields_cuda.cu:    cudaMemcpy(mu_kl,mp->d_mu_kl,*size_mu*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:    cudaMemcpy(kappa_kl,mp->d_kappa_kl,*size_kappa*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(accel,mp->d_accel,*size_accel*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(b_displ,mp->d_b_displ,*size_b_displ*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(epsilondev_xx,mp->d_epsilondev_xx,*size_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(epsilondev_yy,mp->d_epsilondev_yy,*size_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(epsilondev_xy,mp->d_epsilondev_xy,*size_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(epsilondev_xz,mp->d_epsilondev_xz,*size_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(epsilondev_yz,mp->d_epsilondev_yz,*size_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(b_epsilondev_xx,mp->d_b_epsilondev_xx,*size_b_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(b_epsilondev_yy,mp->d_b_epsilondev_yy,*size_b_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(b_epsilondev_xy,mp->d_b_epsilondev_xy,*size_b_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(b_epsilondev_xz,mp->d_b_epsilondev_xz,*size_b_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(b_epsilondev_yz,mp->d_b_epsilondev_yz,*size_b_epsilondev*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(rho_kl,mp->d_rho_kl,*size_rho*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  if( ! mp->anisotropic_kl ){
+transfer_fields_cuda.cu:    cudaMemcpy(mu_kl,mp->d_mu_kl,*size_mu*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:    cudaMemcpy(kappa_kl,mp->d_kappa_kl,*size_kappa*sizeof(realw),cudaMemcpyDeviceToHost);
+transfer_fields_cuda.cu:  cudaMemcpy(epsilon_trace_over_3,mp->d_epsilon_trace_over_3,*size_epsilon_trace_over_3*sizeof(realw),
+transfer_fields_cuda.cu:  cudaMemcpy(b_epsilon_trace_over_3,mp->d_b_epsilon_trace_over_3,*size_epsilon_trace_over_3*sizeof(realw),
+write_seismograms_cuda.cu:  compute_interpolated_dva_plus_seismogram<<<grid,threads,0,mp->compute_stream>>>(*nrec_local,
+write_seismograms_cuda.cu:                                                                                  mp->d_displ,mp->d_veloc,mp->d_accel,
+write_seismograms_cuda.cu:                                                                                  mp->d_ibool,
+write_seismograms_cuda.cu:                                                                                  mp->d_hxir, mp->d_hetar, mp->d_hgammar,
+write_seismograms_cuda.cu:                                                                                  mp->d_seismograms_d,
+write_seismograms_cuda.cu:                                                                                  mp->d_seismograms_v,
+write_seismograms_cuda.cu:                                                                                  mp->d_seismograms_a,
+write_seismograms_cuda.cu:                                                                                  mp->d_nu,
+write_seismograms_cuda.cu:                                                                                  mp->d_number_receiver_global,
+write_seismograms_cuda.cu:                                                                                  mp->d_ispec_selected_rec
+write_seismograms_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->h_seismograms_d_it,mp->d_seismograms_d,sizeof(realw)*3* *nrec_local,cudaMemcpyDeviceToHost),72001);
+write_seismograms_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->h_seismograms_v_it,mp->d_seismograms_v,sizeof(realw)*3* *nrec_local,cudaMemcpyDeviceToHost),72002);
+write_seismograms_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->h_seismograms_a_it,mp->d_seismograms_a,sizeof(realw)*3* *nrec_local,cudaMemcpyDeviceToHost),72003);
+write_seismograms_cuda.cu:  // if(abs(mp->h_seismograms_d_it[0]) < 1e-25) printf("seismo1_x=%e\n",mp->h_seismograms_d_it[0]);
+write_seismograms_cuda.cu:  // if(abs(mp->h_seismograms_d_it[1]) < 1e-25) printf("seismo1_y=%e\n",mp->h_seismograms_d_it[1]);
+write_seismograms_cuda.cu:  // if(abs(mp->h_seismograms_d_it[2]) < 1e-25) {
+write_seismograms_cuda.cu:  // printf("%d:seismo1_z=%e\n",*it,mp->h_seismograms_d_it[2]);
+write_seismograms_cuda.cu:  memcpy(&seismograms_d[3**nrec_local*(*it-1)],mp->h_seismograms_d_it,3* *nrec_local*sizeof(realw));
+write_seismograms_cuda.cu:  memcpy(&seismograms_v[3**nrec_local*(*it-1)],mp->h_seismograms_v_it,3* *nrec_local*sizeof(realw));
+write_seismograms_cuda.cu:  memcpy(&seismograms_a[3**nrec_local*(*it-1)],mp->h_seismograms_a_it,3* *nrec_local*sizeof(realw));
+write_seismograms_cuda.cu:  if( mp->nrec_local == 0 ) return;
+write_seismograms_cuda.cu:  get_blocks_xy(mp->nrec_local,&num_blocks_x,&num_blocks_y);
+write_seismograms_cuda.cu:  transfer_stations_fields_from_device_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_number_receiver_global,
+write_seismograms_cuda.cu:                                                                                      mp->d_ibool,
+write_seismograms_cuda.cu:                                                                                      mp->d_station_seismo_field,
+write_seismograms_cuda.cu:                                                                                      mp->nrec_local);
+write_seismograms_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->h_station_seismo_field,mp->d_station_seismo_field,
+write_seismograms_cuda.cu:                                    (3*NGLL3)*(mp->nrec_local)*sizeof(realw),cudaMemcpyDeviceToHost),71001);
+write_seismograms_cuda.cu:  for(irec_local=0;irec_local<mp->nrec_local;irec_local++) {
+write_seismograms_cuda.cu:      h_field[0+3*iglob] = mp->h_station_seismo_field[0+3*i+irec_local*NGLL3*3];
+write_seismograms_cuda.cu:      h_field[1+3*iglob] = mp->h_station_seismo_field[1+3*i+irec_local*NGLL3*3];
+write_seismograms_cuda.cu:      h_field[2+3*iglob] = mp->h_station_seismo_field[2+3*i+irec_local*NGLL3*3];
+write_seismograms_cuda.cu:  if( mp->nrec_local == 0 ) return;
+write_seismograms_cuda.cu:  if(mp->simulation_type == 1) {
+write_seismograms_cuda.cu:    transfer_field_from_device(mp,mp->d_displ,displ, number_receiver_global,
+write_seismograms_cuda.cu:             mp->d_ispec_selected_rec, ispec_selected_rec, ibool);
+write_seismograms_cuda.cu:    transfer_field_from_device(mp,mp->d_veloc,veloc, number_receiver_global,
+write_seismograms_cuda.cu:             mp->d_ispec_selected_rec, ispec_selected_rec, ibool);
+write_seismograms_cuda.cu:    transfer_field_from_device(mp,mp->d_accel,accel, number_receiver_global,
+write_seismograms_cuda.cu:             mp->d_ispec_selected_rec, ispec_selected_rec, ibool);
+write_seismograms_cuda.cu:  else if(mp->simulation_type == 2) {
+write_seismograms_cuda.cu:    transfer_field_from_device(mp,mp->d_displ,displ, number_receiver_global,
+write_seismograms_cuda.cu:             mp->d_ispec_selected_source, ispec_selected_source, ibool);
+write_seismograms_cuda.cu:    transfer_field_from_device(mp,mp->d_veloc,veloc, number_receiver_global,
+write_seismograms_cuda.cu:             mp->d_ispec_selected_source, ispec_selected_source, ibool);
+write_seismograms_cuda.cu:    transfer_field_from_device(mp,mp->d_accel,accel, number_receiver_global,
+write_seismograms_cuda.cu:             mp->d_ispec_selected_source, ispec_selected_source, ibool);
+write_seismograms_cuda.cu:  else if(mp->simulation_type == 3) {
+write_seismograms_cuda.cu:    transfer_field_from_device(mp,mp->d_b_displ,b_displ, number_receiver_global,
+write_seismograms_cuda.cu:             mp->d_ispec_selected_rec, ispec_selected_rec, ibool);
+write_seismograms_cuda.cu:    transfer_field_from_device(mp,mp->d_b_veloc,b_veloc, number_receiver_global,
+write_seismograms_cuda.cu:             mp->d_ispec_selected_rec, ispec_selected_rec, ibool);
+write_seismograms_cuda.cu:    transfer_field_from_device(mp,mp->d_b_accel,b_accel, number_receiver_global,
+write_seismograms_cuda.cu:             mp->d_ispec_selected_rec, ispec_selected_rec, ibool);
+write_seismograms_cuda.cu:  if( mp->nrec_local < 1 ) return;
+write_seismograms_cuda.cu:  get_blocks_xy(mp->nrec_local,&num_blocks_x,&num_blocks_y);
+write_seismograms_cuda.cu:  transfer_stations_fields_acoustic_from_device_kernel<<<grid,threads>>>(mp->d_number_receiver_global,
+write_seismograms_cuda.cu:                                                                         mp->d_ibool,
+write_seismograms_cuda.cu:                                                                         mp->d_station_seismo_potential,
+write_seismograms_cuda.cu:  print_CUDA_error_if_any(cudaMemcpy(mp->h_station_seismo_potential,mp->d_station_seismo_potential,
+write_seismograms_cuda.cu:                                     mp->nrec_local*NGLL3*sizeof(realw),cudaMemcpyDeviceToHost),55000);
+write_seismograms_cuda.cu:  //printf("copy local receivers: %i \n",mp->nrec_local);
+write_seismograms_cuda.cu:  for(irec_local=0; irec_local < mp->nrec_local; irec_local++) {
+write_seismograms_cuda.cu:      h_potential[iglob] = mp->h_station_seismo_potential[j+irec_local*NGLL3];
+write_seismograms_cuda.cu:    //memcpy(&(h_potential[iglob]),&(mp->h_station_seismo_potential[irec_local*NGLL3]),NGLL3*sizeof(realw));
+write_seismograms_cuda.cu:  if( mp->nrec_local == 0 ) return;
+write_seismograms_cuda.cu:  if(mp->simulation_type == 1) {
+write_seismograms_cuda.cu:    transfer_field_acoustic_from_device(mp,mp->d_potential_acoustic,potential_acoustic,
+write_seismograms_cuda.cu:                                        mp->d_ispec_selected_rec, ispec_selected_rec, ibool);
+write_seismograms_cuda.cu:    transfer_field_acoustic_from_device(mp,mp->d_potential_dot_acoustic,potential_dot_acoustic,
+write_seismograms_cuda.cu:                                        mp->d_ispec_selected_rec, ispec_selected_rec, ibool);
+write_seismograms_cuda.cu:    transfer_field_acoustic_from_device(mp,mp->d_potential_dot_dot_acoustic,potential_dot_dot_acoustic,
+write_seismograms_cuda.cu:                                        mp->d_ispec_selected_rec, ispec_selected_rec, ibool);
+write_seismograms_cuda.cu:  else if(mp->simulation_type == 2) {
+write_seismograms_cuda.cu:    transfer_field_acoustic_from_device(mp,mp->d_potential_acoustic,potential_acoustic,
+write_seismograms_cuda.cu:                                        mp->d_ispec_selected_source, ispec_selected_source, ibool);
+write_seismograms_cuda.cu:    transfer_field_acoustic_from_device(mp,mp->d_potential_dot_acoustic,potential_dot_acoustic,
+write_seismograms_cuda.cu:                                        mp->d_ispec_selected_source, ispec_selected_source, ibool);
+write_seismograms_cuda.cu:    transfer_field_acoustic_from_device(mp,mp->d_potential_dot_dot_acoustic,potential_dot_dot_acoustic,
+write_seismograms_cuda.cu:                                        mp->d_ispec_selected_source, ispec_selected_source, ibool);
+write_seismograms_cuda.cu:  else if(mp->simulation_type == 3) {
+write_seismograms_cuda.cu:    transfer_field_acoustic_from_device(mp,mp->d_b_potential_acoustic,b_potential_acoustic,
+write_seismograms_cuda.cu:                                        mp->d_ispec_selected_rec, ispec_selected_rec, ibool);
+write_seismograms_cuda.cu:    transfer_field_acoustic_from_device(mp,mp->d_b_potential_dot_acoustic,b_potential_dot_acoustic,
+write_seismograms_cuda.cu:                                        mp->d_ispec_selected_rec, ispec_selected_rec, ibool);
+write_seismograms_cuda.cu:    transfer_field_acoustic_from_device(mp,mp->d_b_potential_dot_dot_acoustic,b_potential_dot_dot_acoustic,
+write_seismograms_cuda.cu:                                        mp->d_ispec_selected_rec, ispec_selected_rec, ibool);

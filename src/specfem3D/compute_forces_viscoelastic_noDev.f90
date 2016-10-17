@@ -1,4 +1,3 @@
-
 subroutine compute_forces_viscoelastic_noDev(iphase, &
                         NSPEC_AB,NGLOB_AB,X,veloc,AX, load, MASKX, MASKAX, &
                         xix,xiy,xiz,etax,etay,etaz,gammax,gammay,gammaz, &
@@ -40,13 +39,14 @@ subroutine compute_forces_viscoelastic_noDev(iphase, &
                      rmemory_duy_dxl_y, rmemory_duy_dzl_y, rmemory_duz_dyl_y, rmemory_dux_dyl_y, &
                      rmemory_dux_dxl_z, rmemory_duy_dyl_z, rmemory_duz_dzl_z, &
                      rmemory_duz_dxl_z, rmemory_duz_dyl_z, rmemory_duy_dzl_z, rmemory_dux_dzl_z, &
-                     rmemory_displ_elastic,displ_old 
+                     rmemory_displ_elastic,displ_old
   use fault_solver_dynamic, only : Kelvin_Voigt_eta!, KV_direction
-  use specfem_par, only : PI,FULL_ATTENUATION_SOLID, xigll, yigll, zigll, ystore 
+  use specfem_par, only : myrank,PI,FULL_ATTENUATION_SOLID, xigll, yigll, zigll, ystore
   use specfem_par_elastic, only : rmassx ,rmassy ,rmassz
 
   implicit none
-
+      integer:: ii,jj,kk
+   
   integer :: NSPEC_AB,NGLOB_AB
 
 ! displacement, velocity and acceleration
@@ -177,8 +177,6 @@ subroutine compute_forces_viscoelastic_noDev(iphase, &
   else
     num_elements = nspec_inner_elastic
   endif
-!  WRITE(*,*) num_elements
-!  write(*,*) X(1,3)
   do ispec_p = 1,num_elements
 !        write(*,*) ispec_p
         ! returns element id from stored element list
@@ -237,9 +235,9 @@ subroutine compute_forces_viscoelastic_noDev(iphase, &
                 dummyy_loc(i,j,k) = X(2,iglob) + eta_decay*veloc(2,iglob)
                 dummyz_loc(i,j,k) = X(3,iglob) + eta_decay*veloc(3,iglob)
 !                 write(*,*) 'before MASK is used'
-                dummyx_loc(i,j,k) = dummyx_loc(i,j,k)*MASKX(1,iglob) * (-1.0e0_CUSTOM_REAL) 
-                dummyy_loc(i,j,k) = dummyy_loc(i,j,k)*MASKX(2,iglob) * (-1.0e0_CUSTOM_REAL)  
-                dummyz_loc(i,j,k) = dummyz_loc(i,j,k)*MASKX(3,iglob) * (-1.0e0_CUSTOM_REAL)  
+                dummyx_loc(i,j,k) = dummyx_loc(i,j,k)*MASKX(1,iglob) * (-1.0e0_CUSTOM_REAL)
+                dummyy_loc(i,j,k) = dummyy_loc(i,j,k)*MASKX(2,iglob) * (-1.0e0_CUSTOM_REAL)
+                dummyz_loc(i,j,k) = dummyz_loc(i,j,k)*MASKX(3,iglob) * (-1.0e0_CUSTOM_REAL)
 !                 write(*,*)  'after mask is used'
               enddo
             enddo
@@ -256,15 +254,16 @@ subroutine compute_forces_viscoelastic_noDev(iphase, &
                 dummyx_loc(i,j,k) = X(1,iglob)
                 dummyy_loc(i,j,k) = X(2,iglob)
                 dummyz_loc(i,j,k) = X(3,iglob)
-                dummyx_loc(i,j,k) = dummyx_loc(i,j,k)*MASKX(1,iglob) * (-1.0e0_CUSTOM_REAL)  
-                dummyy_loc(i,j,k) = dummyy_loc(i,j,k)*MASKX(2,iglob) * (-1.0e0_CUSTOM_REAL)  
-                dummyz_loc(i,j,k) = dummyz_loc(i,j,k)*MASKX(3,iglob) * (-1.0e0_CUSTOM_REAL)  
+                dummyx_loc(i,j,k) = dummyx_loc(i,j,k)*MASKX(1,iglob) * (-1.0e0_CUSTOM_REAL)
+                dummyy_loc(i,j,k) = dummyy_loc(i,j,k)*MASKX(2,iglob) * (-1.0e0_CUSTOM_REAL)
+                dummyz_loc(i,j,k) = dummyz_loc(i,j,k)*MASKX(3,iglob) * (-1.0e0_CUSTOM_REAL)
 
- 
+
 
               enddo
             enddo
           enddo
+          !if(ispec == 1 .and. myrank == 31) write(*,*),'here is dummyx:',dummyx_loc
         endif
 
 
@@ -331,9 +330,18 @@ subroutine compute_forces_viscoelastic_noDev(iphase, &
             tempx3(i,j,k) = tempx3(i,j,k) + dummyx_loc(i,j,l)*hp3
             tempy3(i,j,k) = tempy3(i,j,k) + dummyy_loc(i,j,l)*hp3
             tempz3(i,j,k) = tempz3(i,j,k) + dummyz_loc(i,j,l)*hp3
-          enddo
+            enddo
+!        if(ispec == 1 .and. myrank == 31 .and. i==5 .and. j==5 .and. k==5) then
+!            write(*,*),' tempx1output:', tempx1
+!
+!            write(*,*), 'dummyx:',dummyx_loc
+!            write(*,*), 'hprime: ', hprime_xx
+!
+!        endif
+!        write(*,*) ,'tempx1lCPU:',i,j,k,' ',tempx1(i,j,k)
 
           if(ATTENUATION .and. COMPUTE_AND_STORE_STRAIN) then
+
              tempx1_att(i,j,k) = tempx1(i,j,k)
              tempx2_att(i,j,k) = tempx2(i,j,k)
              tempx3_att(i,j,k) = tempx3(i,j,k)
@@ -418,6 +426,9 @@ subroutine compute_forces_viscoelastic_noDev(iphase, &
               gammazl = gammaz(i,j,k,ispec)
               jacobianl = jacobian(i,j,k,ispec)
 
+!              if(myrank == 31 .and. ibool(i,j,k,ispec) == 2) write(*,*), "cpu,jacobian",jacobianl,' i ',i,' j ',j,' k ', k ,'&
+!                  ispec',ispec,'iphase',iphase,' number:', ibool(2,1,5,13)
+
               duxdxl = xixl*tempx1(i,j,k) + etaxl*tempx2(i,j,k) + gammaxl*tempx3(i,j,k)
               duxdyl = xiyl*tempx1(i,j,k) + etayl*tempx2(i,j,k) + gammayl*tempx3(i,j,k)
               duxdzl = xizl*tempx1(i,j,k) + etazl*tempx2(i,j,k) + gammazl*tempx3(i,j,k)
@@ -430,6 +441,10 @@ subroutine compute_forces_viscoelastic_noDev(iphase, &
               duzdyl = xiyl*tempz1(i,j,k) + etayl*tempz2(i,j,k) + gammayl*tempz3(i,j,k)
               duzdzl = xizl*tempz1(i,j,k) + etazl*tempz2(i,j,k) + gammazl*tempz3(i,j,k)
 
+              iglob = ibool(i,j,k,ispec)
+
+
+!            if(iglob == 2 .and. myrank == 31) write(*,*) "cpu info:",duxdxl
               ! stores derivatives of ux, uy and uz with respect to x, y and z
               if (PML_CONDITIONS .and. (.not. backward_simulation) .and. NSPEC_CPML > 0) then
                  ! do not merge this second line with the first using an ".and." statement
@@ -614,7 +629,11 @@ subroutine compute_forces_viscoelastic_noDev(iphase, &
                 sigma_xy = mul*duxdyl_plus_duydxl
                 sigma_xz = mul*duzdxl_plus_duxdzl
                 sigma_yz = mul*duzdyl_plus_duydzl
-     !           write(IMAIN,*) 'sigma_xy',sigma_xy,'mul',mul   !added by Kangchen
+!                if(ispec == 1 .and. myrank == 31 .and. i==5 .and. j == 1 .and. k == 1) write(*,*) "here is the cpu results:",&
+!                    lambdal,mul,duxdxl,duydyl,duzdzl
+!                 if(ispec == 1 .and. myrank == 31 .and. i==4 .and. j == 1 .and. k == 1) write(*,*) "here is the cpu results:",&
+!                    lambdal,mul,duxdxl,duydyl,duzdzl
+    !           write(IMAIN,*) 'sigma_xy',sigma_xy,'mul',mul   !added by Kangchen
               endif ! ANISOTROPY
 
               ! subtract memory variables if attenuation
@@ -728,7 +747,7 @@ subroutine compute_forces_viscoelastic_noDev(iphase, &
                     tempx3(i,j,k) = jacobianl * (sigma_xx*gammaxl + sigma_yx*gammayl + sigma_zx*gammazl) ! this goes to accel_x
                     tempy3(i,j,k) = jacobianl * (sigma_xy*gammaxl + sigma_yy*gammayl + sigma_zy*gammazl) ! this goes to accel_y
                     tempz3(i,j,k) = jacobianl * (sigma_xz*gammaxl + sigma_yz*gammayl + sigma_zz*gammazl) ! this goes to accel_z
-                 endif
+               endif
               else
                  ! define symmetric components of sigma
                  sigma_yx = sigma_xy
@@ -819,15 +838,25 @@ subroutine compute_forces_viscoelastic_noDev(iphase, &
                                 fac2*newtempy2(i,j,k) - fac3*newtempy3(i,j,k)
           delta_accel(3,iglob) = - fac1*newtempz1(i,j,k) - &
                                 fac2*newtempz2(i,j,k) - fac3*newtempz3(i,j,k)
+!        if(iglob==2 .and. myrank == 31)  write(*,*)"CPU:fac1:",fac1 ,'newtmpx1',newtempx1(i,j,k),'tmpx1:',tempx1(i,j,k),i,j,k
+!   if(iglob == 2 .and. myrank == 31 ) then
+!       do ii = 1,5
+!        do jj = 1,5
+!        do kk = 1,5
+!        write(*,*) kk,jj,ii,":",tempx1(kk,jj,ii)
+!        enddo
+!        enddo
+!        enddo 
 
+!    endif 
           AX(1,iglob) = AX(1,iglob) + delta_accel(1,iglob) * MASKAX(1,iglob) * (-1.0e0_CUSTOM_REAL)
           AX(2,iglob) = AX(2,iglob) + delta_accel(2,iglob) * MASKAX(2,iglob) * (-1.0e0_CUSTOM_REAL)
           AX(3,iglob) = AX(3,iglob) + delta_accel(3,iglob) * MASKAX(3,iglob) * (-1.0e0_CUSTOM_REAL)
-
-          
- !         X(1,iglob) = X(1,iglob) + load(1,iglob) + delta_accel(1,iglob)*deltat*deltat*rmassx(iglob)  
- !         X(2,iglob) = X(2,iglob) + load(2,iglob) + delta_accel(2,iglob)*deltat*deltat*rmassy(iglob)  
- !         X(3,iglob) = X(3,iglob) + load(3,iglob) + delta_accel(3,iglob)*deltat*deltat*rmassz(iglob)  
+          !if(iglob == 362504 .and. myrank == 4) write(*,*) "CPU side:",delta_accel(1,iglob),ispec,iphase,MASKAX(1,iglob)
+          !if(iglob == 26165 .and. myrank == 11) write(*,*) "CPU side:",delta_accel(1,iglob),ispec,iphase,MASKAX(1,iglob)
+          !if(ispec == 345 .and. myrank == 11) write(*,*) "CPUbool:", iglob , MASKAX(1,iglob)
+!          if(iglob==2 .and. myrank == 31)  write(*,*)"CPU:delta:",delta_accel(1,iglob)
+!          if(iglob==2 .and. myrank == 31)  write(*,*)"CPU:delta:",delta_accel(1,iglob)
         enddo
      enddo
   enddo

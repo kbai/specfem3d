@@ -165,7 +165,10 @@
   endif
 
   ! checks courant number & minimum resolved period for each grid cell
+  write(*,*) NSPEC_AB
+
   do ispec=1,NSPEC_AB
+  write(*,*) myrank,': ', ispec
 
     ! determines minimum/maximum velocities within this element
     call get_vpvs_minmax(vpmin,vpmax,vsmin,vsmax,ispec,has_vs_zero, &
@@ -245,12 +248,14 @@
     if( SAVE_MESH_FILES ) tmp2(ispec) = pmax
 
   enddo
+  write(*,*) 'step 6'
 
   ! Vp velocity
   vpmin = vpmin_glob
   vpmax = vpmax_glob
   call min_all_cr(vpmin,vpmin_glob)
   call max_all_cr(vpmax,vpmax_glob)
+  write(*,*) 'step 7'
 
   ! Vs velocity
   vsmin = vsmin_glob

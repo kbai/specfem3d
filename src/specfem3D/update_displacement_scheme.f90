@@ -150,6 +150,35 @@
 !--------------------------------------------------------------------------------------------------------------
 !
 
+  subroutine update_displacement_elastic_static()
+
+! updates elastic wavefields
+
+  use specfem_par
+  use specfem_par_elastic
+  use pml_par
+
+  implicit none
+
+  ! Newmark time marching
+
+  if( .not. GPU_MODE ) then
+    ! wavefields on CPU
+
+    ! updates elastic displacement and velocity
+    displ(:,:) = displ(:,:) + deltat*veloc(:,:) + deltatsqover2*accel(:,:)
+    veloc(:,:) = veloc(:,:) + deltatover2*accel(:,:)
+    accel(:,:) = 0._CUSTOM_REAL
+
+
+  else
+    ! wavefields on GPU
+
+    call it_update_displacement_static_cuda(Mesh_pointer,deltat,deltatsqover2,deltatover2,b_deltat,b_deltatsqover2,b_deltatover2)
+  endif ! GPU_MODE
+
+  end subroutine update_displacement_elastic_static
+
 
   subroutine update_displacement_elastic()
 

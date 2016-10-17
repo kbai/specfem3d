@@ -3,8 +3,6 @@
 #include <cuda.h>
 #include <cuda_runtime.h>
 #include <stdio.h>
-
-
 __global__ void compute_forces(int nb_blocks_to_compute,
                            int NGLOB,
                            int* d_ibool,
@@ -21,8 +19,8 @@ __global__ void compute_forces(int nb_blocks_to_compute,
                            int NSPEC,
                            realw* d_rhostore,
                            realw* wgll_cube, 
-						   bool* maskx,
-						   bool* maskax,
+						   int* maskx,
+						   int* maskax,
 						   int myrank){
 
 
@@ -95,11 +93,15 @@ __global__ void compute_forces(int nb_blocks_to_compute,
     s_dummyx_loc[tx] = d_displ[iglob*3];
     s_dummyy_loc[tx] = d_displ[iglob*3 + 1];
     s_dummyz_loc[tx] = d_displ[iglob*3 + 2];
-	s_dummyx_loc[tx] = s_dummyx_loc[tx] * maskx[iglob*3];
-	s_dummyy_loc[tx] = s_dummyy_loc[tx] * maskx[iglob*3 + 1];
-	s_dummyz_loc[tx] = s_dummyz_loc[tx] * maskx[iglob*3 + 2];
+	s_dummyx_loc[tx] = s_dummyx_loc[tx] * maskx[iglob*3] * (-1.0f);
+	s_dummyy_loc[tx] = s_dummyy_loc[tx] * maskx[iglob*3 + 1] * (-1.0f);
+	s_dummyz_loc[tx] = s_dummyz_loc[tx] * maskx[iglob*3 + 2] * (-1.0f);
 
+//	if(!maskx[iglob*3]) printf("maskvaluefalse : %d\n",maskx[iglob*3]);
   // JC JC here we will need to add GPU support for the new C-PML routines
+//	if(maskx[iglob*3]) printf("maskvaluetrue : %d\n",maskx[iglob*3]);
+  // JC JC here we will need to add GPU support for the new C-PML routines
+
 
   }
 
@@ -336,14 +338,20 @@ s_dummyx_loc[K*NGLL2+J*NGLLX+4],d_hprime_xx[4*NGLLX+I]);
     fac2 = d_wgllwgll_xz[K*NGLLX+I];
     fac3 = d_wgllwgll_xy[J*NGLLX+I];
 
-    sum_terms1 = - (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l) * maskax[iglob*3];
-    sum_terms2 = - (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l) * maskax[iglob*3 + 1];
-    sum_terms3 = - (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l) * maskax[iglob*3 + 2];
+    sum_terms1 =  (fac1*tempx1l + fac2*tempx2l + fac3*tempx3l) * maskax[iglob*3] * (-1.0f);
+    sum_terms2 =  (fac1*tempy1l + fac2*tempy2l + fac3*tempy3l) * maskax[iglob*3 + 1] * (-1.0f);
+    sum_terms3 =  (fac1*tempz1l + fac2*tempz2l + fac3*tempz3l) * maskax[iglob*3 + 2] * (-1.0f);
 
     // adds gravity term
       atomicAdd(&d_accel[iglob*3], sum_terms1);
       atomicAdd(&d_accel[iglob*3+1], sum_terms2);
       atomicAdd(&d_accel[iglob*3+2], sum_terms3);
+//	  if(iglob == 362503 && myrank == 4) printf("\nGPU side: %e daccel: d_accel= %e, block: %d iphase: %d\n",sum_terms1,d_accel[iglob*3],working_element,d_iphase);
+
+//	  if(iglob == 26164   && myrank==11) printf("\nGPU side: %e daccel: d_accel= %e, block: %d iphase: %d\n",sum_terms1,d_accel[iglob*3],working_element,d_iphase);
+//	  if(myrank == 11 && working_element == 344) printf("\nGPUint:%d,%d\n",iglob,maskx[3*iglob]);
+
+
 /*	  if(iglob == 1 && myrank == 31) printf("\ngpu : delta: %f\n",sum_terms1);
 	  if(iglob == 1 && myrank == 31) printf("\ngpu : fac1 %f tempx1l%f\n, s_tempx1,%f,tx= %d\n",fac1,tempx1l,s_tempx1[tx],tx);
 
@@ -363,8 +371,8 @@ void FC_FUNC_(compute_forces_fault,
                                     realw* deltat,
 									realw* CG_d_displ,
 									realw* CG_d_accel,
-									bool* maskx,
-									bool* maskax,
+									int* maskx,
+									int* maskax,
                                     int* nspec_outer_elastic,
                                     int* nspec_inner_elastic,
 									int* myrank )

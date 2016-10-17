@@ -70,6 +70,61 @@ __global__ void UpdateDispVeloc_kernel(realw* displ,
 }
 
 /* ----------------------------------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------------------------------- */
+
+
+__global__ void UpdateDispVeloc_static_kernel(realw* displ,
+                                       realw* veloc,
+                                       realw* accel,
+                                       int size,
+                                       realw deltat)
+{
+
+  // two dimensional array of blocks on grid where each block has one dimensional array of threads
+  //int tid = threadIdx.x;
+  //int bx = blockIdx.y*gridDim.x+blockIdx.x;
+  //int id = tid + bx*blockDim.x;
+
+  int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
+
+  // because of block and grid sizing problems, there is a small
+  // amount of buffer at the end of the calculation
+  if(id < size) {
+    displ[id] +=  deltat*veloc[id];
+	veloc[id] +=  0.5*deltat*accel[id];
+//    veloc[id] = veloc[id] + deltatover2*accel[id];
+//    accel[id] = 0.0f; // can do this using memset...not sure if faster,probably not
+  }
+}
+
+/* ----------------------------------------------------------------------------------------------- */
+__global__ void UpdateVeloc_static_kernel(realw* displ,
+                                       realw* veloc,
+                                       realw* accel,
+                                       int size,
+                                       realw deltat)
+{
+
+  // two dimensional array of blocks on grid where each block has one dimensional array of threads
+  //int tid = threadIdx.x;
+  //int bx = blockIdx.y*gridDim.x+blockIdx.x;
+  //int id = tid + bx*blockDim.x;
+
+  int id = threadIdx.x + blockIdx.x*blockDim.x + blockIdx.y*gridDim.x*blockDim.x;
+
+  // because of block and grid sizing problems, there is a small
+  // amount of buffer at the end of the calculation
+  if(id < size) {
+//    displ[id] = displ[id] + deltat*veloc[id];
+	accel[id] = -accel[id]*2.0/(deltat*deltat);
+	displ[id] += deltat*deltat*0.5*accel[id];
+	veloc[id] += 0.5*deltat*accel[id];
+//    veloc[id] = veloc[id] + deltatover2*accel[id];
+//    accel[id] = 0.0f; // can do this using memset...not sure if faster,probably not
+  }
+}
+
+
 
 extern "C"
 void FC_FUNC_(it_update_displacement_cuda,
@@ -127,6 +182,82 @@ void FC_FUNC_(it_update_displacement_cuda,
 }
 
 /* ----------------------------------------------------------------------------------------------- */
+/* ----------------------------------------------------------------------------------------------- */
+
+extern "C"
+void FC_FUNC_(it_update_displacement_static_cuda,
+              IT_UPDATE_DISPLACMENT_STATIC_CUDA)(long* Mesh_pointer,
+                                          realw* deltat_F) {
+
+  TRACE("\tit_update_displacement_cuda");
+
+  Mesh* mp = (Mesh*)(*Mesh_pointer); // get Mesh from fortran integer wrapper
+
+  realw deltat = *deltat_F;
+
+  printf("\ndeltat from 2:%f\n",deltat);
+
+
+  int size = NDIM * mp->NGLOB_AB;
+
+  int blocksize = BLOCKSIZE_KERNEL1;
+  int size_padded = ((int)ceil(((double)size)/((double)blocksize)))*blocksize;
+
+  int num_blocks_x, num_blocks_y;
+  get_blocks_xy(size_padded/blocksize,&num_blocks_x,&num_blocks_y);
+
+  dim3 grid(num_blocks_x,num_blocks_y);
+  dim3 threads(blocksize,1,1);
+
+  // debug
+  //realw max_d,max_v,max_a;
+  //max_d = get_device_array_maximum_value(mp->d_displ, size);
+  //max_v = get_device_array_maximum_value(mp->d_veloc, size);
+  //max_a = get_device_array_maximum_value(mp->d_accel, size);
+  //printf("rank %d - max displ: %f veloc: %f accel: %f\n",mp->myrank,max_d,max_v,max_a);
+
+  //launch kernel
+  UpdateDispVeloc_static_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_displ,mp->d_veloc,mp->d_accel,
+                                                                size,deltat);
+
+
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  exit_on_cuda_error("it_update_displacement_cuda");
+#endif
+}
+//=====================================================================
+//
+extern "C"
+void FC_FUNC_(it_update_displacement2_static_cuda,
+              IT_UPDATE_DISPLACMENT2_STATIC_CUDA)(long* Mesh_pointer,
+                                          realw* deltat_F) {
+
+  TRACE("\tit_update_displacement_cuda");
+
+  Mesh* mp = (Mesh*)(*Mesh_pointer); // get Mesh from fortran integer wrapper
+
+  realw deltat = *deltat_F;
+
+  int size = NDIM * mp->NGLOB_AB;
+
+  int blocksize = BLOCKSIZE_KERNEL1;
+  int size_padded = ((int)ceil(((double)size)/((double)blocksize)))*blocksize;
+
+  int num_blocks_x, num_blocks_y;
+  get_blocks_xy(size_padded/blocksize,&num_blocks_x,&num_blocks_y);
+
+  dim3 grid(num_blocks_x,num_blocks_y);
+  dim3 threads(blocksize,1,1);
+
+  UpdateVeloc_static_kernel<<<grid,threads,0,mp->compute_stream>>>(mp->d_displ,mp->d_veloc,mp->d_accel,
+                                                                size,deltat);
+
+
+#ifdef ENABLE_VERY_SLOW_ERROR_CHECKING
+  exit_on_cuda_error("it_update_displacement_cuda");
+#endif
+}
+
 
 // acoustic wavefield
 

@@ -35,4 +35,4 @@
 !
 ! ALSO CHANGE FILE constants.h ACCORDINGLY
 !
-  integer, parameter :: CUSTOM_MPI_TYPE = MPI_DOUBLE_PRECISION
+  integer, parameter :: CUSTOM_MPI_TYPE = MPI_REAL

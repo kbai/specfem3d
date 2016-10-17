@@ -33,9 +33,9 @@
   use specfem_par_elastic
   use specfem_par_poroelastic
   use specfem_par_movie
-!  use fault_solver_dynamic, only : BC_DYNFLT_init
-!  use fault_solver_kinematic, only : BC_KINFLT_init
-  use fault_solver_qstatic , only : BC_QSTATICFLT_init
+  use fault_solver_dynamic, only : BC_DYNFLT_init
+  use fault_solver_kinematic, only : BC_KINFLT_init
+  !use fault_solver_qstatic , only : BC_QSTATICFLT_init
   use gravity_perturbation, only : gravity_init
 
   implicit none
@@ -56,8 +56,8 @@
   call prepare_timerun_init_wavefield()
 
   ! Loading kinematic and dynamic fault solvers.
-!  call BC_DYNFLT_init(prname,DT,myrank)
-  call BC_QSTATICFLT_init(prname,DT,myrank)
+  call BC_DYNFLT_init(prname,DT,myrank)
+  !call BC_QSTATICFLT_init(prname,DT,myrank)
 !  call BC_KINFLT_init(prname,DT,myrank)
 
   ! sets up arrays for gravity field
@@ -346,6 +346,7 @@
 
   implicit none
 
+  integer :: ii
   ! initialize acoustic arrays to zero
   if( ACOUSTIC_SIMULATION ) then
     potential_acoustic(:) = 0._CUSTOM_REAL
@@ -1227,6 +1228,7 @@
   use specfem_par_elastic
   use specfem_par_poroelastic
   use specfem_par_movie
+  use fault_solver_dynamic
 
   implicit none
 
@@ -1370,6 +1372,12 @@
     call prepare_fields_gravity_device(Mesh_pointer,GRAVITY, &
                                 minus_deriv_gravity,minus_g,wgll_cube,&
                                 ACOUSTIC_SIMULATION,rhostore)
+  endif
+  
+  if(SIMULATION_TYPE_DYN) then
+      call Transfer_faultdata_GPU()
+      call rsf_GPU_init()
+      call set_fault_mask(Mesh_pointer, Fault_pointer, myrank)
   endif
 
   ! synchronizes processes

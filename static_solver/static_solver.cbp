@@ -1,0 +1,2615 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>
+<CodeBlocks_project_file>
+	<FileVersion major="1" minor="6" />
+	<Project>
+		<Option title="static_solver" />
+		<Option pch_mode="2" />
+		<Option compiler="gfortran" />
+		<Build>
+			<Target title="Debug">
+				<Option output="bin/Debug/static_solver" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Debug/" />
+				<Option type="1" />
+				<Option compiler="gfortran" />
+				<Compiler>
+					<Add option="-g" />
+				</Compiler>
+			</Target>
+			<Target title="Release">
+				<Option output="bin/Release/static_solver" prefix_auto="1" extension_auto="1" />
+				<Option object_output="obj/Release/" />
+				<Option type="1" />
+				<Option compiler="gfortran" />
+				<Compiler>
+					<Add option="-O2" />
+				</Compiler>
+				<Linker>
+					<Add option="-s" />
+				</Linker>
+			</Target>
+		</Build>
+		<Compiler>
+			<Add option="-Wall" />
+		</Compiler>
+		<Unit filename="../src/Compute_Ax.F90" />
+		<Unit filename="../src/check_mesh_quality_CUBIT_Abaqus/check_mesh_quality_CUBIT_Abaqus.f90" />
+		<Unit filename="../src/check_mesh_quality_CUBIT_Abaqus/constants.h" />
+		<Unit filename="../src/check_mesh_quality_CUBIT_Abaqus/convert_skewness_to_angle.f90" />
+		<Unit filename="../src/check_mesh_quality_CUBIT_Abaqus/multiply_CUBIT_Abaqus_mesh_by_1000.f90" />
+		<Unit filename="../src/cuda/mesh_constants_cuda.h" />
+		<Unit filename="../src/cuda/prepare_constants_cuda.h" />
+		<Unit filename="../src/cuda/save_and_compare_cpu_vs_gpu.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/cuda/specfem3D_gpu_cuda_method_stubs.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/constants_decompose_mesh.h" />
+		<Unit filename="../src/decompose_mesh/decompose_mesh.F90" />
+		<Unit filename="../src/decompose_mesh/fault_scotch.f90" />
+		<Unit filename="../src/decompose_mesh/part_decompose_mesh.f90" />
+		<Unit filename="../src/decompose_mesh/program_decompose_mesh.f90" />
+		<Unit filename="../src/decompose_mesh/scotch/examples/scotch_example_1.f" />
+		<Unit filename="../src/decompose_mesh/scotch/examples/scotch_example_2.f90" />
+		<Unit filename="../src/decompose_mesh/scotch/include/metis.h" />
+		<Unit filename="../src/decompose_mesh/scotch/include/scotch.h" />
+		<Unit filename="../src/decompose_mesh/scotch/include/scotchf.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_build.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_build.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_cmplt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_cmplt.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_cmpltw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_cmpltw.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_deco.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_deco.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_hcub.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_hcub.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_mesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_mesh.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_tleaf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_tleaf.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_torus.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_torus.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_vcmplt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_vcmplt.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_vhcub.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/arch_vhcub.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_bd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_bd.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_df.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_df.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_ex.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_ex.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_sq.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_sq.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_zr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_bipart_zr.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_gather_all.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bdgraph_store.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_bd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_bd.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_df.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_df.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_ex.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_ex.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_fm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_fm.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_gg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_gg.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_gp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_gp.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_zr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_bipart_zr.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/bgraph_store.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/comm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/comm.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common_file.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common_file.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common_file_compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common_file_compress.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common_file_uncompress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common_integer.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common_memory.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common_sort.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common_string.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/common_stub.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_allreduce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_allreduce.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_band.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_build.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_build.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_build_grid3d.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_build_grid3d.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_build_hcub.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_coarsen.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_coarsen.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_coarsen_edge.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_fold.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_fold.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_fold_comm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_fold_comm.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_fold_dup.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_fold_dup.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_gather.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_gather_all.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_ghst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_ghst.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_halo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_halo.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_halo_fill.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_induce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_io_load.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_io_load.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_io_save.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_match.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_match.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_match_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_match_scan.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_match_sync_coll.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_match_sync_ptop.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_scatter.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dgraph_view.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dmapping.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dmapping.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dmapping_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dorder.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dorder.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dorder_gather.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dorder_gather.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dorder_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dorder_io_block.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dorder_io_tree.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dorder_perm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dorder_perm.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dorder_tree_dist.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/dummysizes.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/gain.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/gain.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/geom.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/geom.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_base.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_coarsen.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_coarsen.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_coarsen_edge.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_induce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_induce.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_io.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_io_chac.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_io_habo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_io_habo.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_io_mmkt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_io_mmkt.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_io_scot.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_io_scot.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_list.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/graph_list.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hall_order_hd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hall_order_hd.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hall_order_hf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hall_order_hf.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hall_order_hx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hall_order_hx.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_fold.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_fold.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_gather.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_induce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_order_nd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_order_nd.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_order_si.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_order_si.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_order_sq.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_order_sq.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_order_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hdgraph_order_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_induce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_induce.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_induce_edge.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_bl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_bl.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_cp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_cp.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_gp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_gp.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_hd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_hd.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_hf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_hf.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_hx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_hx.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_nd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_nd.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_si.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_si.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hgraph_order_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_hgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_hgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_induce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_induce.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_mesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_bl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_bl.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_cp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_cp.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_gp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_gp.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_gr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_gr.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_hd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_hd.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_hf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_hf.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_hx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_hx.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_nd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_nd.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_si.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_si.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/hmesh_order_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kdgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kdgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kdgraph_map_rb.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kdgraph_map_rb.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kdgraph_map_rb_map.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kdgraph_map_rb_map.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kdgraph_map_rb_part.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kdgraph_map_rb_part.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kdgraph_map_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kdgraph_map_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph_map_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph_map_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph_map_rb.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph_map_rb.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph_map_rb_map.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph_map_rb_map.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph_map_rb_part.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph_map_rb_part.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph_map_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/kgraph_map_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/last_resort/parser_ll.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/last_resort/parser_ly.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/last_resort/parser_yy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_arch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_arch_build.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_arch_build_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_arch_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_build.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_build_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_build_grid3d.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_build_grid3d_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_check_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_coarsen.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_coarsen_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_gather.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_gather_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_halo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_halo_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_io_load.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_io_load_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_io_save.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_io_save_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_map.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_map_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_map_view.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_map_view_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order_gather.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order_gather_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order_io_block.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order_io_block_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order_io_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order_perm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order_perm_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order_tree_dist.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_order_tree_dist_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_scatter.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_scatter_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_stat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_stat.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dgraph_stat_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dmapping.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dmapping.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_dorder.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_error.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_error_exit.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_geom.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_geom_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_base.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_base_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_check_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_coarsen.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_coarsen_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_io_chac.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_io_chac_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_io_habo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_io_habo_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_io_mmkt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_io_mmkt_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_io_scot.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_io_scot_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_map.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_map_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_map_view.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_map_view.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_map_view_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_graph_order_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mapping.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mapping.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mesh_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mesh_graph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mesh_graph_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mesh_io_habo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mesh_io_habo_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mesh_io_scot.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mesh_io_scot_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mesh_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_mesh_order_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_order.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_parser_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_random.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_random_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_strat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_version.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/library_version_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/libraryf.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mapping.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mapping.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mapping_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mapping_io.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh_coarsen.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh_coarsen.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh_graph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh_graph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh_induce_sepa.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh_induce_sepa.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh_io.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh_io_habo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/mesh_io_scot.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/module.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/order.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/order_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/order_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/parser.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/parser_ll.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/parser_ll.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/parser_ly.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/parser_yy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/parser_yy.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/scotch.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/scotchf.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_gather_all.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_bd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_bd.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_df.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_df.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_sq.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_sq.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_zr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_separate_zr.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vdgraph_store.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_bd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_bd.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_es.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_es.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_fm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_fm.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_gg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_gg.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_gp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_gp.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_th.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_th.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_vw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_vw.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_zr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_separate_zr.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vgraph_store.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_fm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_fm.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_gg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_gg.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_gr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_gr.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_zr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_separate_zr.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotch/vmesh_store.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotchmetis/metis.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotchmetis/metis_graph_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotchmetis/metis_graph_order_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotchmetis/metis_graph_part.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotchmetis/metis_graph_part_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotchmetis/parmetis.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotchmetis/parmetis_dgraph_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotchmetis/parmetis_dgraph_order_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotchmetis/parmetis_dgraph_part.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/libscotchmetis/parmetis_dgraph_part_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/acpl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/acpl.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_ccc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_ccc.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_fft2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_fft2.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_grf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_grf.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_hy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_hy.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_m2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_m2.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_p2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/amk_p2.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/atst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/atst.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/dggath.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/dggath.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/dgmap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/dgmap.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/dgord.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/dgord.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/dgscat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/dgscat.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/dgtst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/dgtst.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gbase.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gbase.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gcv.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gcv.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmap.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmk_hy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmk_hy.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmk_m2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmk_m2.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmk_m3.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmk_m3.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmk_msh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmk_msh.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmk_ub2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmk_ub2.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmtst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gmtst.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gord.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gord.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gotst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gotst.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gout_c.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gout_c.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gout_o.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gout_o.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gscat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gscat.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gtst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/gtst.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/mcv.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/mcv.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/mmk_m2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/mmk_m2.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/mmk_m3.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/mmk_m3.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/mord.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/mord.h" />
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/mtst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch/src/scotch/mtst.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/examples/scotch_example_1.f" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/examples/scotch_example_2.f90" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/include/metis.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/include/scotch.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/include/scotchf.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_build.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_build.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_cmplt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_cmplt.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_cmpltw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_cmpltw.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_deco.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_deco.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_hcub.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_hcub.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_mesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_mesh.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_tleaf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_tleaf.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_torus.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_torus.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_vcmplt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_vcmplt.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_vhcub.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/arch_vhcub.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_bd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_bd.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_df.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_df.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_ex.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_ex.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_sq.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_sq.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_zr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_bipart_zr.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_gather_all.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bdgraph_store.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_bd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_bd.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_df.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_df.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_ex.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_ex.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_fm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_fm.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_gg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_gg.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_gp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_gp.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_zr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_bipart_zr.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/bgraph_store.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/comm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/comm.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common_file.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common_file.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common_file_compress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common_file_compress.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common_file_uncompress.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common_integer.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common_memory.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common_sort.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common_string.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/common_stub.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_allreduce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_allreduce.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_band.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_build.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_build.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_build_grid3d.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_build_grid3d.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_build_hcub.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_coarsen.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_coarsen.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_coarsen_edge.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_fold.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_fold.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_fold_comm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_fold_comm.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_fold_dup.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_fold_dup.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_gather.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_gather_all.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_ghst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_ghst.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_halo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_halo.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_halo_fill.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_induce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_io_load.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_io_load.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_io_save.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_match.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_match.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_match_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_match_scan.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_match_sync_coll.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_match_sync_ptop.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_scatter.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dgraph_view.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dmapping.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dmapping.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dmapping_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dorder.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dorder.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dorder_gather.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dorder_gather.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dorder_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dorder_io_block.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dorder_io_tree.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dorder_perm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dorder_perm.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dorder_tree_dist.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/dummysizes.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/gain.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/gain.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/geom.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/geom.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_base.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_coarsen.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_coarsen.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_coarsen_edge.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_induce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_induce.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_io.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_io_chac.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_io_habo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_io_habo.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_io_mmkt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_io_mmkt.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_io_scot.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_io_scot.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_list.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/graph_list.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hall_order_hd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hall_order_hd.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hall_order_hf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hall_order_hf.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hall_order_hx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hall_order_hx.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_fold.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_fold.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_gather.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_induce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_order_nd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_order_nd.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_order_si.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_order_si.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_order_sq.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_order_sq.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_order_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hdgraph_order_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_induce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_induce.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_induce_edge.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_bl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_bl.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_cp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_cp.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_gp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_gp.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_hd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_hd.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_hf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_hf.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_hx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_hx.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_nd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_nd.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_si.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_si.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hgraph_order_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_hgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_hgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_induce.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_induce.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_mesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_bl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_bl.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_cp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_cp.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_gp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_gp.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_gr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_gr.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_hd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_hd.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_hf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_hf.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_hx.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_hx.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_nd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_nd.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_si.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_si.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/hmesh_order_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kdgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kdgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kdgraph_map_rb.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kdgraph_map_rb.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kdgraph_map_rb_map.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kdgraph_map_rb_map.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kdgraph_map_rb_part.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kdgraph_map_rb_part.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kdgraph_map_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kdgraph_map_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph_map_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph_map_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph_map_rb.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph_map_rb.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph_map_rb_map.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph_map_rb_map.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph_map_rb_part.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph_map_rb_part.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph_map_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/kgraph_map_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/last_resort/parser_ll.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/last_resort/parser_ly.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/last_resort/parser_yy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_arch.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_arch_build.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_arch_build_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_arch_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_build.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_build_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_build_grid3d.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_build_grid3d_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_check_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_coarsen.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_coarsen_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_gather.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_gather_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_halo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_halo_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_io_load.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_io_load_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_io_save.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_io_save_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_map.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_map_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_map_view.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_map_view_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order_gather.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order_gather_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order_io_block.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order_io_block_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order_io_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order_perm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order_perm_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order_tree_dist.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_order_tree_dist_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_scatter.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_scatter_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_stat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_stat.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dgraph_stat_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dmapping.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dmapping.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_dorder.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_error.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_error_exit.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_geom.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_geom_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_base.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_base_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_check_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_coarsen.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_coarsen_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_io_chac.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_io_chac_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_io_habo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_io_habo_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_io_mmkt.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_io_mmkt_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_io_scot.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_io_scot_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_map.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_map_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_map_view.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_map_view.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_map_view_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_graph_order_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mapping.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mapping.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mesh_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mesh_graph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mesh_graph_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mesh_io_habo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mesh_io_habo_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mesh_io_scot.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mesh_io_scot_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mesh_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_mesh_order_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_order.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_parser_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_random.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_random_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_strat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_version.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/library_version_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/libraryf.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mapping.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mapping.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mapping_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mapping_io.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh_coarsen.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh_coarsen.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh_graph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh_graph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh_induce_sepa.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh_induce_sepa.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh_io.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh_io_habo.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/mesh_io_scot.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/module.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/order.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/order_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/order_io.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/parser.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/parser.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/parser_ll.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/parser_ll.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/parser_ly.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/parser_yy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/parser_yy.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/scotch.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/scotchf.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_gather_all.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_bd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_bd.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_df.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_df.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_sq.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_sq.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_zr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_separate_zr.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vdgraph_store.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_bd.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_bd.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_es.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_es.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_fm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_fm.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_gg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_gg.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_gp.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_gp.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_th.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_th.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_vw.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_vw.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_zr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_separate_zr.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vgraph_store.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_check.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_fm.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_fm.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_gg.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_gg.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_gr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_gr.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_ml.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_ml.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_st.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_st.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_zr.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_separate_zr.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotch/vmesh_store.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis/metis.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis/metis_graph_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis/metis_graph_order_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis/metis_graph_part.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis/metis_graph_part_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis/parmetis.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis/parmetis_dgraph_order.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis/parmetis_dgraph_order_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis/parmetis_dgraph_part.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis/parmetis_dgraph_part_f.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/acpl.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/acpl.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_ccc.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_ccc.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_fft2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_fft2.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_grf.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_grf.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_hy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_hy.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_m2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_m2.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_p2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/amk_p2.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/atst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/atst.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/dggath.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/dggath.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/dgmap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/dgmap.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/dgord.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/dgord.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/dgscat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/dgscat.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/dgtst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/dgtst.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gbase.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gbase.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gcv.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gcv.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmap.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmap.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmk_hy.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmk_hy.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmk_m2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmk_m2.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmk_m3.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmk_m3.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmk_msh.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmk_msh.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmk_ub2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmk_ub2.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmtst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gmtst.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gord.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gord.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gotst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gotst.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gout_c.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gout_c.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gout_o.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gout_o.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gscat.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gscat.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gtst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/gtst.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/mcv.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/mcv.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/mmk_m2.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/mmk_m2.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/mmk_m3.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/mmk_m3.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/mord.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/mord.h" />
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/mtst.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/decompose_mesh/scotch_5.1.12b/src/scotch/mtst.h" />
+		<Unit filename="../src/generate_databases/calc_jacobian.f90" />
+		<Unit filename="../src/generate_databases/create_mass_matrices.f90" />
+		<Unit filename="../src/generate_databases/create_regions_mesh.f90" />
+		<Unit filename="../src/generate_databases/fault_generate_databases.f90" />
+		<Unit filename="../src/generate_databases/finalize_databases.f90" />
+		<Unit filename="../src/generate_databases/generate_databases.f90" />
+		<Unit filename="../src/generate_databases/generate_databases_adios_stubs.f90" />
+		<Unit filename="../src/generate_databases/generate_databases_par.f90" />
+		<Unit filename="../src/generate_databases/get_MPI.f90" />
+		<Unit filename="../src/generate_databases/get_absorbing_boundary.f90" />
+		<Unit filename="../src/generate_databases/get_coupling_surfaces.f90" />
+		<Unit filename="../src/generate_databases/get_global.f90" />
+		<Unit filename="../src/generate_databases/get_model.f90" />
+		<Unit filename="../src/generate_databases/get_perm_color.f90" />
+		<Unit filename="../src/generate_databases/memory_eval.f90" />
+		<Unit filename="../src/generate_databases/model_1d_cascadia.f90" />
+		<Unit filename="../src/generate_databases/model_1d_layer.f90" />
+		<Unit filename="../src/generate_databases/model_1d_prem.f90" />
+		<Unit filename="../src/generate_databases/model_1d_socal.f90" />
+		<Unit filename="../src/generate_databases/model_1d_tpv31.f90" />
+		<Unit filename="../src/generate_databases/model_aniso.f90" />
+		<Unit filename="../src/generate_databases/model_default.f90" />
+		<Unit filename="../src/generate_databases/model_external_values.f90" />
+		<Unit filename="../src/generate_databases/model_gll.f90" />
+		<Unit filename="../src/generate_databases/model_gll_adios.F90" />
+		<Unit filename="../src/generate_databases/model_ipati.f90" />
+		<Unit filename="../src/generate_databases/model_ipati_adios.F90" />
+		<Unit filename="../src/generate_databases/model_salton_trough.f90" />
+		<Unit filename="../src/generate_databases/model_tomography.f90" />
+		<Unit filename="../src/generate_databases/pml_set_local_dampingcoeff.f90" />
+		<Unit filename="../src/generate_databases/program_generate_databases.f90" />
+		<Unit filename="../src/generate_databases/read_partition_files.f90" />
+		<Unit filename="../src/generate_databases/read_partition_files_adios.F90" />
+		<Unit filename="../src/generate_databases/save_arrays_solver.f90" />
+		<Unit filename="../src/generate_databases/save_arrays_solver_adios.F90" />
+		<Unit filename="../src/generate_databases/save_moho_adios.F90" />
+		<Unit filename="../src/generate_databases/setup_color_perm.f90" />
+		<Unit filename="../src/generate_databases/setup_mesh.f90" />
+		<Unit filename="../src/generate_databases/tomography_par.f90" />
+		<Unit filename="../src/meshfem3D/check_mesh_quality.f90" />
+		<Unit filename="../src/meshfem3D/compute_parameters.f90" />
+		<Unit filename="../src/meshfem3D/constants_meshfem3D.h" />
+		<Unit filename="../src/meshfem3D/create_name_database.f90" />
+		<Unit filename="../src/meshfem3D/create_regions_mesh.f90" />
+		<Unit filename="../src/meshfem3D/create_visual_files.f90" />
+		<Unit filename="../src/meshfem3D/define_subregions.f90" />
+		<Unit filename="../src/meshfem3D/define_subregions_heuristic.f90" />
+		<Unit filename="../src/meshfem3D/define_superbrick.f90" />
+		<Unit filename="../src/meshfem3D/get_MPI_cutplanes_eta.f90" />
+		<Unit filename="../src/meshfem3D/get_MPI_cutplanes_xi.f90" />
+		<Unit filename="../src/meshfem3D/get_flags_boundaries.f90" />
+		<Unit filename="../src/meshfem3D/get_global.f90" />
+		<Unit filename="../src/meshfem3D/get_value_parameters.f90" />
+		<Unit filename="../src/meshfem3D/meshfem3D.f90" />
+		<Unit filename="../src/meshfem3D/meshfem3D_adios_stubs.f90" />
+		<Unit filename="../src/meshfem3D/program_meshfem3D.f90" />
+		<Unit filename="../src/meshfem3D/read_mesh_parameter_file.f90" />
+		<Unit filename="../src/meshfem3D/read_value_mesh_parameters.f90" />
+		<Unit filename="../src/meshfem3D/save_databases.f90" />
+		<Unit filename="../src/meshfem3D/save_databases_adios.F90" />
+		<Unit filename="../src/meshfem3D/store_boundaries.f90" />
+		<Unit filename="../src/meshfem3D/store_coords.f90" />
+		<Unit filename="../src/shared/adios_helpers.f90" />
+		<Unit filename="../src/shared/adios_helpers_definitions.f90" />
+		<Unit filename="../src/shared/adios_helpers_writers.f90" />
+		<Unit filename="../src/shared/adios_manager.F90" />
+		<Unit filename="../src/shared/adios_manager_stubs.f90" />
+		<Unit filename="../src/shared/assemble_MPI_scalar.f90" />
+		<Unit filename="../src/shared/check_mesh_resolution.f90" />
+		<Unit filename="../src/shared/combine_surf_data.f90" />
+		<Unit filename="../src/shared/combine_vol_data.f90" />
+		<Unit filename="../src/shared/constants.h" />
+		<Unit filename="../src/shared/convolve_source_timefunction.f90" />
+		<Unit filename="../src/shared/create_movie_shakemap_AVS_DX_GMT.f90" />
+		<Unit filename="../src/shared/create_name_database.f90" />
+		<Unit filename="../src/shared/create_serial_name_database.f90" />
+		<Unit filename="../src/shared/define_derivation_matrices.f90" />
+		<Unit filename="../src/shared/define_derivation_matrices2.f90" />
+		<Unit filename="../src/shared/detect_surface.f90" />
+		<Unit filename="../src/shared/exit_mpi.f90" />
+		<Unit filename="../src/shared/force_ftz.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/shared/get_attenuation_model.f90" />
+		<Unit filename="../src/shared/get_cmt.f90" />
+		<Unit filename="../src/shared/get_element_face.f90" />
+		<Unit filename="../src/shared/get_force.f90" />
+		<Unit filename="../src/shared/get_jacobian_boundaries.f90" />
+		<Unit filename="../src/shared/get_shape2D.f90" />
+		<Unit filename="../src/shared/get_shape3D.f90" />
+		<Unit filename="../src/shared/get_value_parameters.f90" />
+		<Unit filename="../src/shared/gll_library.f90" />
+		<Unit filename="../src/shared/hex_nodes.f90" />
+		<Unit filename="../src/shared/lagrange_poly.f90" />
+		<Unit filename="../src/shared/netlib_specfun_erf.f90" />
+		<Unit filename="../src/shared/parallel.f90" />
+		<Unit filename="../src/shared/param_reader.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/shared/precision.h" />
+		<Unit filename="../src/shared/prepare_assemble_MPI.f90" />
+		<Unit filename="../src/shared/read_parameter_file.f90" />
+		<Unit filename="../src/shared/read_topo_bathy_file.f90" />
+		<Unit filename="../src/shared/read_value_parameters.f90" />
+		<Unit filename="../src/shared/recompute_jacobian.f90" />
+		<Unit filename="../src/shared/safe_alloc_mod.f90" />
+		<Unit filename="../src/shared/save_header_file.f90" />
+		<Unit filename="../src/shared/serial.f90" />
+		<Unit filename="../src/shared/smooth_vol_data.f90" />
+		<Unit filename="../src/shared/sort_array_coordinates.f90" />
+		<Unit filename="../src/shared/sum_kernels.f90" />
+		<Unit filename="../src/shared/utm_geo.f90" />
+		<Unit filename="../src/shared/write_VTK_data.f90" />
+		<Unit filename="../src/shared/write_c_binary.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="../src/specfem3D/assemble_MPI_vector.f90" />
+		<Unit filename="../src/specfem3D/check_stability.f90" />
+		<Unit filename="../src/specfem3D/cojugate_gradient_method.f90" />
+		<Unit filename="../src/specfem3D/comp_source_time_function.f90" />
+		<Unit filename="../src/specfem3D/compute_AX.f90" />
+		<Unit filename="../src/specfem3D/compute_AX2.f90" />
+		<Unit filename="../src/specfem3D/compute_Diagonal.f90" />
+		<Unit filename="../src/specfem3D/compute_Diagonal2.f90" />
+		<Unit filename="../src/specfem3D/compute_add_sources_acoustic.f90" />
+		<Unit filename="../src/specfem3D/compute_add_sources_poroelastic.f90" />
+		<Unit filename="../src/specfem3D/compute_add_sources_viscoelastic.f90" />
+		<Unit filename="../src/specfem3D/compute_adj_source_frechet.f90" />
+		<Unit filename="../src/specfem3D/compute_arrays_source.f90" />
+		<Unit filename="../src/specfem3D/compute_boundary_kernel.f90" />
+		<Unit filename="../src/specfem3D/compute_coupling_acoustic_el.f90" />
+		<Unit filename="../src/specfem3D/compute_coupling_acoustic_po.f90" />
+		<Unit filename="../src/specfem3D/compute_coupling_poroelastic_ac.f90" />
+		<Unit filename="../src/specfem3D/compute_coupling_poroelastic_el.f90" />
+		<Unit filename="../src/specfem3D/compute_coupling_viscoelastic_ac.f90" />
+		<Unit filename="../src/specfem3D/compute_coupling_viscoelastic_po.f90" />
+		<Unit filename="../src/specfem3D/compute_diagonal_K.f90" />
+		<Unit filename="../src/specfem3D/compute_diagonal_K2.f90" />
+		<Unit filename="../src/specfem3D/compute_forces_acoustic_Dev.F90" />
+		<Unit filename="../src/specfem3D/compute_forces_acoustic_calling_routine.f90" />
+		<Unit filename="../src/specfem3D/compute_forces_acoustic_noDev.f90" />
+		<Unit filename="../src/specfem3D/compute_forces_poro_fluid_part.f90" />
+		<Unit filename="../src/specfem3D/compute_forces_poro_solid_part.f90" />
+		<Unit filename="../src/specfem3D/compute_forces_poroelastic_calling_routine.f90" />
+		<Unit filename="../src/specfem3D/compute_forces_viscoelastic_Dev.F90" />
+		<Unit filename="../src/specfem3D/compute_forces_viscoelastic_calling_routine.F90" />
+		<Unit filename="../src/specfem3D/compute_forces_viscoelastic_noDev.f90" />
+		<Unit filename="../src/specfem3D/compute_forces_viscoelastic_noDev2.f90" />
+		<Unit filename="../src/specfem3D/compute_gradient.f90" />
+		<Unit filename="../src/specfem3D/compute_interpolated_dva.f90" />
+		<Unit filename="../src/specfem3D/compute_kernels.f90" />
+		<Unit filename="../src/specfem3D/compute_stacey_acoustic.f90" />
+		<Unit filename="../src/specfem3D/compute_stacey_poroelastic.f90" />
+		<Unit filename="../src/specfem3D/compute_stacey_viscoelastic.f90" />
+		<Unit filename="../src/specfem3D/compute_symmetric_boundary_consitions.f90" />
+		<Unit filename="../src/specfem3D/compute_total_energy.f90" />
+		<Unit filename="../src/specfem3D/conjugate_gradient_method.f90" />
+		<Unit filename="../src/specfem3D/constants.h" />
+		<Unit filename="../src/specfem3D/create_color_image.f90" />
+		<Unit filename="../src/specfem3D/detect_mesh_surfaces.f90" />
+		<Unit filename="../src/specfem3D/fault_solver_common.f90" />
+		<Unit filename="../src/specfem3D/fault_solver_dynamic.f90" />
+		<Unit filename="../src/specfem3D/fault_solver_kinematic.f90" />
+		<Unit filename="../src/specfem3D/fault_solver_qd.f90" />
+		<Unit filename="../src/specfem3D/fault_solver_qs.f90" />
+		<Unit filename="../src/specfem3D/finalize_simulation.f90" />
+		<Unit filename="../src/specfem3D/gravity_perturbation.f90" />
+		<Unit filename="../src/specfem3D/initialize_simulation.f90" />
+		<Unit filename="../src/specfem3D/iterate_time.F90" />
+		<Unit filename="../src/specfem3D/iterate_time_static_solver.F90" />
+		<Unit filename="../src/specfem3D/iterate_time_static_solver2.F90" />
+		<Unit filename="../src/specfem3D/locate_receivers.f90" />
+		<Unit filename="../src/specfem3D/locate_source.f90" />
+		<Unit filename="../src/specfem3D/make_gravity.f90" />
+		<Unit filename="../src/specfem3D/model_1d_layer.f90" />
+		<Unit filename="../src/specfem3D/model_1d_tpv31.f90" />
+		<Unit filename="../src/specfem3D/model_update.f90" />
+		<Unit filename="../src/specfem3D/multiply_arrays_source.f90" />
+		<Unit filename="../src/specfem3D/noise_tomography.f90" />
+		<Unit filename="../src/specfem3D/older_not_maintained_partial_OpenMP_port/older_not_maintained_compute_forces_viscoelastic_Dev_openmp.f90" />
+		<Unit filename="../src/specfem3D/pml_allocate_arrays.f90" />
+		<Unit filename="../src/specfem3D/pml_compute_accel_contribution.f90" />
+		<Unit filename="../src/specfem3D/pml_compute_memory_variables.f90" />
+		<Unit filename="../src/specfem3D/pml_output_VTKs.f90" />
+		<Unit filename="../src/specfem3D/pml_par.f90" />
+		<Unit filename="../src/specfem3D/prepare_timerun.F90" />
+		<Unit filename="../src/specfem3D/program_specfem3D.f90" />
+		<Unit filename="../src/specfem3D/read_forward_arrays_adios.F90" />
+		<Unit filename="../src/specfem3D/read_mesh_databases.F90" />
+		<Unit filename="../src/specfem3D/read_mesh_databases_adios.F90" />
+		<Unit filename="../src/specfem3D/restriction.f90" />
+		<Unit filename="../src/specfem3D/restriction2.f90" />
+		<Unit filename="../src/specfem3D/restriction_call.f90" />
+		<Unit filename="../src/specfem3D/save_adjoint_kernels.f90" />
+		<Unit filename="../src/specfem3D/save_external_bin_m_up.f90" />
+		<Unit filename="../src/specfem3D/save_forward_arrays_adios.F90" />
+		<Unit filename="../src/specfem3D/save_kernel.f90" />
+		<Unit filename="../src/specfem3D/save_kernels_adios.F90" />
+		<Unit filename="../src/specfem3D/setup_GLL_points.f90" />
+		<Unit filename="../src/specfem3D/setup_GLL_points2.f90" />
+		<Unit filename="../src/specfem3D/setup_movie_meshes.f90" />
+		<Unit filename="../src/specfem3D/setup_sources_receivers.f90" />
+		<Unit filename="../src/specfem3D/smoother.f90" />
+		<Unit filename="../src/specfem3D/specfem3D.f90" />
+		<Unit filename="../src/specfem3D/specfem3D_adios_stubs.f90" />
+		<Unit filename="../src/specfem3D/specfem3D_par.f90" />
+		<Unit filename="../src/specfem3D/update_displacement_scheme.f90" />
+		<Unit filename="../src/specfem3D/write_movie_output.f90" />
+		<Unit filename="../src/specfem3D/write_output_ASCII.f90" />
+		<Unit filename="../src/specfem3D/write_output_SU.f90" />
+		<Unit filename="../src/specfem3D/write_seismograms.f90" />
+		<Unit filename="main.f90" />
+		<Extensions>
+			<envvars />
+			<code_completion />
+			<lib_finder disable_auto="1" />
+			<debugger />
+		</Extensions>
+	</Project>
+</CodeBlocks_project_file>

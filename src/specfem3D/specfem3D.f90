@@ -10,6 +10,7 @@
 
   ! reads in parameters
   call initialize_simulation()
+  write(*,*) 'start reading databases1'
 
   ! reads in external mesh
   if (ADIOS_FOR_MESH) then
@@ -19,6 +20,7 @@
   endif
     !call read_mesh_databases()
     !call read_mesh_databases_adios()
+  write(*,*) 'finish getting databases!'
 
 
 ! sets up reference element GLL points/weights/derivatives
@@ -27,12 +29,13 @@
   call setup_GLL_points2()
 
 
+  write(*,*) 'finish reading databases!'
 ! detects surfaces
   call detect_mesh_surfaces()
 
 
 ! prepares sources and receivers
-!  call setup_sources_receivers()
+  call setup_sources_receivers()
 
 
 ! sets up and precomputes simulation arrays

@@ -47,7 +47,7 @@ FCFLAGS_f90 =
 # ADIOS
 # with configure: ./configure --with-adios ADIOS_CONFIG=..
 
-MPI_INCLUDES = 
+MPI_INCLUDES =  -I/opt/intel/impi/5.0.0.028/include64
 ADIOS_INC =  -I../../
 ADIOS_LINK = 
 
@@ -68,7 +68,7 @@ RANLIB = ranlib
 
 # extra defines for the Pyrized version
 #MPICC = mpicc
-#FCLIBS =  -L/opt/intel/composer_xe_2011_sp1.6.233/compiler/lib/intel64 -L/usr/lib/gcc/x86_64-redhat-linux/4.1.2 -L/usr/lib/gcc/x86_64-redhat-linux/4.1.2/../../../../lib64 -L/usr/lib/gcc/x86_64-redhat-linux/4.1.2/../../.. -L/lib64 -L/lib -L/usr/lib64 -L/usr/lib -lifport -lifcore -limf -lsvml -lm -lipgo -lirc -lpthread -lirc_s -ldl
+#FCLIBS =  -L/opt/intel/composer_xe_2011_sp1.6.233/compiler/lib/intel64 -L/opt/gcc/4.8.0/lib/gcc/x86_64-unknown-linux-gnu/4.8.0 -L/opt/gcc/4.8.0/lib/gcc/x86_64-unknown-linux-gnu/4.8.0/../../../../lib64 -L/lib/../lib64 -L/usr/lib/../lib64 -L/opt/gcc/4.8.0/lib/gcc/x86_64-unknown-linux-gnu/4.8.0/../../.. -L/lib64 -L/lib -L/usr/lib64 -L/usr/lib -lifport -lifcore -limf -lsvml -lm -lipgo -lirc -lpthread -lirc_s -ldl
 #PYTHON = 
 #PYTHON_CFLAGS = $(PYTHON_EGG_CFLAGS) $(PYTHON_CPPFLAGS)
 #PYTHON_CPPFLAGS = $(PYTHON_EGG_CPPFLAGS) -I

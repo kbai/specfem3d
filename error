@@ -1,0 +1,626 @@
+mkdir -p bin
+mkdir -p lib
+mkdir -p obj
+(cd obj; mkdir -p dec)
+(cd obj; mkdir -p mesh)
+(cd obj; mkdir -p gen)
+(cd obj; mkdir -p spec)
+make -C src/decompose_mesh
+make -C src/meshfem3D
+make -C src/generate_databases generate_databases
+make -C src/specfem3D specfem3D
+make[1]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh'
+echo "Using bundled Scotch"
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/ -c -o ../../obj/dec/part_decompose_mesh.o part_decompose_mesh.f90 -I"scotch/include"
+Using bundled Scotch
+make -C scotch/src
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/ -c -o ../../obj/dec/fault_scotch.o fault_scotch.f90 -I"scotch/include"
+make[1]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/generate_databases'
+mpiifort -c -o ../../obj/gen/adios_manager_stubs.shared_noadios.o ../shared//adios_manager_stubs.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/ -c -o ../../obj/dec/get_value_parameters.shared.o ../shared/get_value_parameters.f90
+make[1]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/meshfem3D'
+mpiifort -c -o ../../obj/mesh/adios_manager_stubs.shared_noadios.o ../shared//adios_manager_stubs.f90
+gcc -c -g -O2 -I/usr/include/scotch -DWITH_MPI -I/opt/intel/impi/5.0.0.028/include64 -o ../../obj/dec/param_reader.cc.o ../shared/../shared/param_reader.c -I../../
+make[1]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/specfem3D'
+mpiifort -c -o ../../obj/spec/adios_manager_stubs.shared_noadios.o ../shared//adios_manager_stubs.f90
+make[2]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src'
+(cd libscotch ;      make VERSION=5 RELEASE=1 PATCHLEVEL=12 scotch && make install)
+make[3]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotch'
+make CC="gcc" CCD="gcc"	\
+					scotch.h				\
+					scotchf.h				\
+					libscotch.a				\
+					libscotcherr.a			\
+					libscotcherrexit.a
+make[4]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotch'
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -DSCOTCH_VERSION=5 -DSCOTCH_RELEASE=1 -DSCOTCH_PATCHLEVEL=12 dummysizes.c -o dummysizes -lz -lm -lrt 
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage  -I../shared/ -c -o ../../obj/spec/specfem3D_par.o specfem3D_par.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/program_meshfem3D.o program_meshfem3D.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage  -I../shared/ -c -o ../../obj/spec/pml_par.o pml_par.f90
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/tomography_par.o tomography_par.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/read_value_mesh_parameters.o read_value_mesh_parameters.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/get_value_parameters.o get_value_parameters.f90
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/safe_alloc_mod.shared.o ../shared/safe_alloc_mod.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/store_coords.o store_coords.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/assemble_MPI_scalar.shared.o ../shared/assemble_MPI_scalar.f90
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/calc_jacobian.o calc_jacobian.f90
+make[1]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/specfem3D'
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/fault_generate_databases.o fault_generate_databases.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/check_mesh_resolution.shared.o ../shared/check_mesh_resolution.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/ -c -o ../../obj/dec/read_parameter_file.shared.o ../shared/read_parameter_file.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c arch.c -o arch.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/ -c -o ../../obj/dec/read_value_parameters.shared.o ../shared/read_value_parameters.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c arch_build.c -o arch_build.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/create_name_database.shared.o ../shared/create_name_database.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/read_mesh_parameter_file.o read_mesh_parameter_file.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/check_mesh_quality.o check_mesh_quality.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/compute_parameters.o compute_parameters.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/create_name_database.o create_name_database.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c arch_cmplt.c -o arch_cmplt.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c arch_cmpltw.c -o arch_cmpltw.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/create_regions_mesh.o create_regions_mesh.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/create_visual_files.o create_visual_files.f90
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/create_mass_matrices.o create_mass_matrices.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c arch_deco.c -o arch_deco.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c arch_hcub.c -o arch_hcub.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c arch_mesh.c -o arch_mesh.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/create_regions_mesh.o create_regions_mesh.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/define_subregions.o define_subregions.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c arch_tleaf.c -o arch_tleaf.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/create_serial_name_database.shared.o ../shared/create_serial_name_database.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c arch_torus.c -o arch_torus.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/define_subregions_heuristic.o define_subregions_heuristic.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c arch_vcmplt.c -o arch_vcmplt.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/define_superbrick.o define_superbrick.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c arch_vhcub.c -o arch_vhcub.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph.c -o bgraph.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph_bipart_bd.c -o bgraph_bipart_bd.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph_bipart_df.c -o bgraph_bipart_df.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/exit_mpi.o ../shared//exit_mpi.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/define_derivation_matrices.shared.o ../shared/define_derivation_matrices.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/detect_surface.shared.o ../shared/detect_surface.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/exit_mpi.shared.o ../shared/exit_mpi.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/get_MPI_cutplanes_eta.o get_MPI_cutplanes_eta.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph_bipart_ex.c -o bgraph_bipart_ex.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/get_MPI_cutplanes_xi.o get_MPI_cutplanes_xi.f90
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/finalize_databases.o finalize_databases.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph_bipart_fm.c -o bgraph_bipart_fm.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/generate_databases.o generate_databases.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/ -c -o ../../obj/dec/decompose_mesh.o decompose_mesh.F90 -I"scotch/include"
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/get_flags_boundaries.o get_flags_boundaries.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/get_global.o get_global.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph_bipart_gg.c -o bgraph_bipart_gg.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph_bipart_gp.c -o bgraph_bipart_gp.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/store_boundaries.o store_boundaries.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/hex_nodes.o ../shared//hex_nodes.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph_bipart_ml.c -o bgraph_bipart_ml.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_absorbing_boundary.o get_absorbing_boundary.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_attenuation_model.shared.o ../shared/get_attenuation_model.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph_bipart_st.c -o bgraph_bipart_st.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph_bipart_zr.c -o bgraph_bipart_zr.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph_check.c -o bgraph_check.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/meshfem3D.o meshfem3D.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c bgraph_store.c -o bgraph_store.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c common.c -DSCOTCH_COMMON_RENAME -o common.o
+gcc -c -g -O2 -I/usr/include/scotch -DWITH_MPI -I/opt/intel/impi/5.0.0.028/include64 -o ../../obj/mesh/param_reader.cc.o ../shared/../shared/param_reader.c -I../../
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/read_parameter_file.shared.o ../shared/read_parameter_file.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c common_file.c -DSCOTCH_COMMON_RENAME -o common_file.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c common_file_compress.c -DSCOTCH_COMMON_RENAME -o common_file_compress.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_cmt.shared.o ../shared/get_cmt.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c common_file_uncompress.c -DSCOTCH_COMMON_RENAME -o common_file_uncompress.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c common_integer.c -DSCOTCH_COMMON_RENAME -o common_integer.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_coupling_surfaces.o get_coupling_surfaces.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/read_topo_bathy_file.o ../shared//read_topo_bathy_file.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c common_memory.c -DSCOTCH_COMMON_RENAME -o common_memory.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c common_string.c -DSCOTCH_COMMON_RENAME -o common_string.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/read_value_parameters.shared.o ../shared/read_value_parameters.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c common_stub.c -DSCOTCH_COMMON_RENAME -o common_stub.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c gain.c -o gain.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_element_face.shared.o ../shared/get_element_face.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c geom.c -o geom.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c graph.c -o graph.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c graph_base.c -o graph_base.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c graph_check.c -o graph_check.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/save_databases.o save_databases.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c graph_coarsen.c -o graph_coarsen.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/utm_geo.o ../shared//utm_geo.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_force.shared.o ../shared/get_force.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c graph_induce.c -o graph_induce.o
+ifort -c -o ../../obj/mesh/meshfem3D_adios_stubs.noadios.o meshfem3D_adios_stubs.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c graph_io.c -o graph_io.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_global.o get_global.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_jacobian_boundaries.shared.o ../shared/get_jacobian_boundaries.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c graph_io_chac.c -o graph_io_chac.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/mesh/parallel.o ../shared//parallel.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c graph_io_habo.c -o graph_io_habo.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c graph_io_mmkt.c -o graph_io_mmkt.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_model.o get_model.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c graph_io_scot.c -o graph_io_scot.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_MPI.o get_MPI.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c graph_list.c -o graph_list.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_perm_color.o get_perm_color.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hall_order_hd.c -o hall_order_hd.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hall_order_hf.c -o hall_order_hf.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hall_order_hx.c -o hall_order_hx.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph.c -o hgraph.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_shape2D.shared.o ../shared/get_shape2D.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_shape3D.shared.o ../shared/get_shape3D.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph_check.c -o hgraph_check.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph_induce.c -o hgraph_induce.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/get_value_parameters.shared.o ../shared/get_value_parameters.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/gll_library.shared.o ../shared/gll_library.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/hex_nodes.shared.o ../shared/hex_nodes.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph_order_bl.c -o hgraph_order_bl.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/lagrange_poly.shared.o ../shared/lagrange_poly.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph_order_cp.c -o hgraph_order_cp.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/model_1d_cascadia.o model_1d_cascadia.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph_order_gp.c -o hgraph_order_gp.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/model_1d_prem.o model_1d_prem.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph_order_hd.c -o hgraph_order_hd.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/model_1d_socal.o model_1d_socal.f90
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/model_1d_layer.o model_1d_layer.f90
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/model_aniso.o model_aniso.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph_order_hf.c -o hgraph_order_hf.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/model_default.o model_default.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph_order_hx.c -o hgraph_order_hx.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/model_external_values.o model_external_values.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph_order_nd.c -o hgraph_order_nd.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/model_ipati.o model_ipati.f90
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/model_gll.o model_gll.f90
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/model_salton_trough.o model_salton_trough.f90
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/model_tomography.o model_tomography.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph_order_si.c -o hgraph_order_si.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/netlib_specfun_erf.shared.o ../shared/netlib_specfun_erf.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hgraph_order_st.c -o hgraph_order_st.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh.c -o hmesh.o
+gcc -c -g -O2 -I/usr/include/scotch -DWITH_MPI -I/opt/intel/impi/5.0.0.028/include64 -o ../../obj/gen/param_reader.cc.o ../shared/../shared/param_reader.c -I../../
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_check.c -o hmesh_check.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/pml_set_local_dampingcoeff.o pml_set_local_dampingcoeff.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/prepare_assemble_MPI.shared.o ../shared/prepare_assemble_MPI.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_hgraph.c -o hmesh_hgraph.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_induce.c -o hmesh_induce.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/read_topo_bathy_file.shared.o ../shared/read_topo_bathy_file.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_mesh.c -o hmesh_mesh.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_order_bl.c -o hmesh_order_bl.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_order_cp.c -o hmesh_order_cp.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_order_gr.c -o hmesh_order_gr.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/read_parameter_file.shared.o ../shared/read_parameter_file.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_order_gp.c -o hmesh_order_gp.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_order_hd.c -o hmesh_order_hd.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/read_partition_files.o read_partition_files.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_order_hf.c -o hmesh_order_hf.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_order_hx.c -o hmesh_order_hx.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_order_nd.c -o hmesh_order_nd.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/read_value_parameters.shared.o ../shared/read_value_parameters.f90
+rm -f ../../lib/libmeshfem.a
+ar cru ../../lib/libmeshfem.a ../../obj/mesh/safe_alloc_mod.shared.o ../../obj/mesh/store_coords.o ../../obj/mesh/read_mesh_parameter_file.o ../../obj/mesh/check_mesh_quality.o ../../obj/mesh/compute_parameters.o ../../obj/mesh/create_name_database.o ../../obj/mesh/create_regions_mesh.o ../../obj/mesh/create_visual_files.o ../../obj/mesh/define_subregions.o ../../obj/mesh/define_subregions_heuristic.o ../../obj/mesh/define_superbrick.o ../../obj/mesh/exit_mpi.o ../../obj/mesh/get_MPI_cutplanes_eta.o ../../obj/mesh/get_MPI_cutplanes_xi.o ../../obj/mesh/get_flags_boundaries.o ../../obj/mesh/get_global.o ../../obj/mesh/store_boundaries.o ../../obj/mesh/get_value_parameters.o ../../obj/mesh/hex_nodes.o ../../obj/mesh/meshfem3D.o ../../obj/mesh/param_reader.cc.o ../../obj/mesh/read_parameter_file.shared.o ../../obj/mesh/read_topo_bathy_file.o ../../obj/mesh/read_value_mesh_parameters.o ../../obj/mesh/read_value_parameters.shared.o ../../obj/mesh/save_databases.o ../../obj/mesh/utm_geo.o 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_order_si.c -o hmesh_order_si.o
+ranlib ../../lib/libmeshfem.a
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c hmesh_order_st.c -o hmesh_order_st.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -o ../../bin/xmeshfem3D ../../obj/mesh/adios_manager_stubs.shared_noadios.o ../../obj/mesh/program_meshfem3D.o ../../obj/mesh/read_value_mesh_parameters.o ../../obj/mesh/get_value_parameters.o ../../lib/libmeshfem.a ../../obj/mesh/meshfem3D_adios_stubs.noadios.o ../../obj/mesh/parallel.o   ../../obj/mesh/safe_alloc_mod.shared.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/recompute_jacobian.shared.o ../shared/recompute_jacobian.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c kgraph.c -o kgraph.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c kgraph_check.c -o kgraph_check.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c kgraph_map_ml.c -o kgraph_map_ml.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/save_arrays_solver.o save_arrays_solver.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/save_header_file.shared.o ../shared/save_header_file.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c kgraph_map_rb.c -o kgraph_map_rb.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c kgraph_map_rb_map.c -o kgraph_map_rb_map.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c kgraph_map_rb_part.c -o kgraph_map_rb_part.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c kgraph_map_st.c -o kgraph_map_st.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c mapping.c -o mapping.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/setup_color_perm.o setup_color_perm.f90
+make[1]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/meshfem3D'
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/setup_mesh.o setup_mesh.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c mapping_io.c -o mapping_io.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c mesh.c -o mesh.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c mesh_check.c -o mesh_check.o
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/sort_array_coordinates.shared.o ../shared/sort_array_coordinates.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/utm_geo.shared.o ../shared/utm_geo.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/write_VTK_data.shared.o ../shared/write_VTK_data.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c mesh_coarsen.c -o mesh_coarsen.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/memory_eval.o memory_eval.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c mesh_graph.c -o mesh_graph.o
+ifort -c -o ../../obj/gen/generate_databases_adios_stubs.noadios.o generate_databases_adios_stubs.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c mesh_induce_sepa.c -o mesh_induce_sepa.o
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/parallel.o ../shared/parallel.f90
+ifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -c -o ../../obj/gen/program_generate_databases.o program_generate_databases.f90
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c mesh_io.c -o mesh_io.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c mesh_io_habo.c -o mesh_io_habo.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c mesh_io_scot.c -o mesh_io_scot.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c order.c -o order.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c order_check.c -o order_check.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c order_io.c -o order_io.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c parser.c -o parser.o
+(bison -y -pscotchyy -b y -d -v parser_yy.y &&		\
+					 mv y.tab.c parser_yy.c &&		\
+					 mv y.tab.h parser_ly.h) ||		\
+					cp last_resort/parser_ly.h last_resort/parser_yy.c .
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph.c -o vgraph.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_check.c -o vgraph_check.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_separate_bd.c -o vgraph_separate_bd.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_separate_es.c -o vgraph_separate_es.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_separate_fm.c -o vgraph_separate_fm.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_separate_gg.c -o vgraph_separate_gg.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_separate_gp.c -o vgraph_separate_gp.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_separate_ml.c -o vgraph_separate_ml.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_separate_st.c -o vgraph_separate_st.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_separate_th.c -o vgraph_separate_th.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_separate_vw.c -o vgraph_separate_vw.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_separate_zr.c -o vgraph_separate_zr.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vgraph_store.c -o vgraph_store.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vmesh.c -o vmesh.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vmesh_check.c -o vmesh_check.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vmesh_separate_fm.c -o vmesh_separate_fm.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vmesh_separate_gg.c -o vmesh_separate_gg.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vmesh_separate_gr.c -o vmesh_separate_gr.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vmesh_separate_ml.c -o vmesh_separate_ml.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vmesh_separate_zr.c -o vmesh_separate_zr.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vmesh_separate_st.c -o vmesh_separate_st.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c vmesh_store.c -o vmesh_store.o
+./dummysizes library.h scotch.h
+./dummysizes libraryf.h scotchf.h
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c parser_yy.c -o parser_yy.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_arch.c -o library_arch.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_arch_f.c -o library_arch_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_arch_build.c -o library_arch_build.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_arch_build_f.c -o library_arch_build_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_geom.c -o library_geom.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_geom_f.c -o library_geom_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph.c -o library_graph.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_f.c -o library_graph_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_base.c -o library_graph_base.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_base_f.c -o library_graph_base_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_check.c -o library_graph_check.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_check_f.c -o library_graph_check_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_coarsen.c -o library_graph_coarsen.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_coarsen_f.c -o library_graph_coarsen_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_io_chac.c -o library_graph_io_chac.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_io_chac_f.c -o library_graph_io_chac_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_io_habo.c -o library_graph_io_habo.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_io_habo_f.c -o library_graph_io_habo_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_io_mmkt.c -o library_graph_io_mmkt.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_io_mmkt_f.c -o library_graph_io_mmkt_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_io_scot.c -o library_graph_io_scot.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_io_scot_f.c -o library_graph_io_scot_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_map.c -o library_graph_map.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_map_f.c -o library_graph_map_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_map_view.c -o library_graph_map_view.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_map_view_f.c -o library_graph_map_view_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_order.c -o library_graph_order.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_graph_order_f.c -o library_graph_order_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_mapping.c -o library_mapping.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_mesh.c -o library_mesh.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_mesh_f.c -o library_mesh_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_mesh_graph.c -o library_mesh_graph.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_mesh_graph_f.c -o library_mesh_graph_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_mesh_io_habo.c -o library_mesh_io_habo.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_mesh_io_habo_f.c -o library_mesh_io_habo_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_mesh_io_scot.c -o library_mesh_io_scot.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_mesh_io_scot_f.c -o library_mesh_io_scot_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_mesh_order.c -o library_mesh_order.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_mesh_order_f.c -o library_mesh_order_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_order.c -o library_order.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_parser.c -o library_parser.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_parser_f.c -o library_parser_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_random.c -o library_random.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_random_f.c -o library_random_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_strat.c -o library_strat.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_version.c -o library_version.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_version_f.c -o library_version_f.o
+(flex -Pscotchyy -olex.yy.c parser_ll.l &&			\
+					 mv lex.yy.c parser_ll.c) ||		\
+					cp last_resort/parser_ll.c . 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_error.c -o library_error.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c library_error_exit.c -o library_error_exit.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -c parser_ll.c -o parser_ll.o
+ar -ruv libscotcherr.a library_error.o
+a - library_error.o
+ranlib libscotcherr.a
+ar -ruv libscotcherrexit.a library_error_exit.o
+a - library_error_exit.o
+ranlib libscotcherrexit.a
+ar -ruv libscotch.a arch.o arch_build.o arch_cmplt.o arch_cmpltw.o arch_deco.o arch_hcub.o arch_mesh.o arch_tleaf.o arch_torus.o arch_vcmplt.o arch_vhcub.o bgraph.o bgraph_bipart_bd.o bgraph_bipart_df.o bgraph_bipart_ex.o bgraph_bipart_fm.o bgraph_bipart_gg.o bgraph_bipart_gp.o bgraph_bipart_ml.o bgraph_bipart_st.o bgraph_bipart_zr.o bgraph_check.o bgraph_store.o common.o common_file.o common_file_compress.o common_file_uncompress.o common_integer.o common_memory.o common_string.o common_stub.o gain.o geom.o graph.o graph_base.o graph_check.o graph_coarsen.o graph_induce.o graph_io.o graph_io_chac.o graph_io_habo.o graph_io_mmkt.o graph_io_scot.o graph_list.o hall_order_hd.o hall_order_hf.o hall_order_hx.o hgraph.o hgraph_check.o hgraph_induce.o hgraph_order_bl.o hgraph_order_cp.o hgraph_order_gp.o hgraph_order_hd.o hgraph_order_hf.o hgraph_order_hx.o hgraph_order_nd.o hgraph_order_si.o hgraph_order_st.o hmesh.o hmesh_check.o hmesh_hgraph.o hmesh_induce.o hmesh_mesh.o hmesh_order_bl.o hmesh_order_cp.o hmesh_order_gr.o hmesh_order_gp.o hmesh_order_hd.o hmesh_order_hf.o hmesh_order_hx.o hmesh_order_nd.o hmesh_order_si.o hmesh_order_st.o kgraph.o kgraph_check.o kgraph_map_ml.o kgraph_map_rb.o kgraph_map_rb_map.o kgraph_map_rb_part.o kgraph_map_st.o library_arch.o library_arch_f.o library_arch_build.o library_arch_build_f.o library_geom.o library_geom_f.o library_graph.o library_graph_f.o library_graph_base.o library_graph_base_f.o library_graph_check.o library_graph_check_f.o library_graph_coarsen.o library_graph_coarsen_f.o library_graph_io_chac.o library_graph_io_chac_f.o library_graph_io_habo.o library_graph_io_habo_f.o library_graph_io_mmkt.o library_graph_io_mmkt_f.o library_graph_io_scot.o library_graph_io_scot_f.o library_graph_map.o library_graph_map_f.o library_graph_map_view.o library_graph_map_view_f.o library_graph_order.o library_graph_order_f.o library_mapping.o library_mesh.o library_mesh_f.o library_mesh_graph.o library_mesh_graph_f.o library_mesh_io_habo.o library_mesh_io_habo_f.o library_mesh_io_scot.o library_mesh_io_scot_f.o library_mesh_order.o library_mesh_order_f.o library_order.o library_parser.o library_parser_f.o library_random.o library_random_f.o library_strat.o library_version.o library_version_f.o mapping.o mapping_io.o mesh.o mesh_check.o mesh_coarsen.o mesh_graph.o mesh_induce_sepa.o mesh_io.o mesh_io_habo.o mesh_io_scot.o order.o order_check.o order_io.o parser.o parser_ll.o parser_yy.o vgraph.o vgraph_check.o vgraph_separate_bd.o vgraph_separate_es.o vgraph_separate_fm.o vgraph_separate_gg.o vgraph_separate_gp.o vgraph_separate_ml.o vgraph_separate_st.o vgraph_separate_th.o vgraph_separate_vw.o vgraph_separate_zr.o vgraph_store.o vmesh.o vmesh_check.o vmesh_separate_fm.o vmesh_separate_gg.o vmesh_separate_gr.o vmesh_separate_ml.o vmesh_separate_zr.o vmesh_separate_st.o vmesh_store.o
+a - arch.o
+a - arch_build.o
+a - arch_cmplt.o
+a - arch_cmpltw.o
+a - arch_deco.o
+a - arch_hcub.o
+a - arch_mesh.o
+a - arch_tleaf.o
+a - arch_torus.o
+a - arch_vcmplt.o
+a - arch_vhcub.o
+a - bgraph.o
+a - bgraph_bipart_bd.o
+a - bgraph_bipart_df.o
+a - bgraph_bipart_ex.o
+a - bgraph_bipart_fm.o
+a - bgraph_bipart_gg.o
+a - bgraph_bipart_gp.o
+a - bgraph_bipart_ml.o
+a - bgraph_bipart_st.o
+a - bgraph_bipart_zr.o
+a - bgraph_check.o
+a - bgraph_store.o
+a - common.o
+a - common_file.o
+a - common_file_compress.o
+a - common_file_uncompress.o
+a - common_integer.o
+a - common_memory.o
+a - common_string.o
+a - common_stub.o
+a - gain.o
+a - geom.o
+a - graph.o
+a - graph_base.o
+a - graph_check.o
+a - graph_coarsen.o
+a - graph_induce.o
+a - graph_io.o
+a - graph_io_chac.o
+a - graph_io_habo.o
+a - graph_io_mmkt.o
+a - graph_io_scot.o
+a - graph_list.o
+a - hall_order_hd.o
+a - hall_order_hf.o
+a - hall_order_hx.o
+a - hgraph.o
+a - hgraph_check.o
+a - hgraph_induce.o
+a - hgraph_order_bl.o
+a - hgraph_order_cp.o
+a - hgraph_order_gp.o
+a - hgraph_order_hd.o
+a - hgraph_order_hf.o
+a - hgraph_order_hx.o
+a - hgraph_order_nd.o
+a - hgraph_order_si.o
+a - hgraph_order_st.o
+a - hmesh.o
+a - hmesh_check.o
+a - hmesh_hgraph.o
+a - hmesh_induce.o
+a - hmesh_mesh.o
+a - hmesh_order_bl.o
+a - hmesh_order_cp.o
+a - hmesh_order_gr.o
+a - hmesh_order_gp.o
+a - hmesh_order_hd.o
+a - hmesh_order_hf.o
+a - hmesh_order_hx.o
+a - hmesh_order_nd.o
+a - hmesh_order_si.o
+a - hmesh_order_st.o
+a - kgraph.o
+a - kgraph_check.o
+a - kgraph_map_ml.o
+a - kgraph_map_rb.o
+a - kgraph_map_rb_map.o
+a - kgraph_map_rb_part.o
+a - kgraph_map_st.o
+a - library_arch.o
+a - library_arch_f.o
+a - library_arch_build.o
+a - library_arch_build_f.o
+a - library_geom.o
+a - library_geom_f.o
+a - library_graph.o
+a - library_graph_f.o
+a - library_graph_base.o
+a - library_graph_base_f.o
+a - library_graph_check.o
+a - library_graph_check_f.o
+a - library_graph_coarsen.o
+a - library_graph_coarsen_f.o
+a - library_graph_io_chac.o
+a - library_graph_io_chac_f.o
+a - library_graph_io_habo.o
+a - library_graph_io_habo_f.o
+a - library_graph_io_mmkt.o
+a - library_graph_io_mmkt_f.o
+a - library_graph_io_scot.o
+a - library_graph_io_scot_f.o
+a - library_graph_map.o
+a - library_graph_map_f.o
+a - library_graph_map_view.o
+a - library_graph_map_view_f.o
+a - library_graph_order.o
+a - library_graph_order_f.o
+a - library_mapping.o
+a - library_mesh.o
+a - library_mesh_f.o
+a - library_mesh_graph.o
+a - library_mesh_graph_f.o
+a - library_mesh_io_habo.o
+a - library_mesh_io_habo_f.o
+a - library_mesh_io_scot.o
+a - library_mesh_io_scot_f.o
+a - library_mesh_order.o
+a - library_mesh_order_f.o
+a - library_order.o
+a - library_parser.o
+a - library_parser_f.o
+a - library_random.o
+a - library_random_f.o
+a - library_strat.o
+a - library_version.o
+a - library_version_f.o
+a - mapping.o
+a - mapping_io.o
+a - mesh.o
+a - mesh_check.o
+a - mesh_coarsen.o
+a - mesh_graph.o
+a - mesh_induce_sepa.o
+a - mesh_io.o
+a - mesh_io_habo.o
+a - mesh_io_scot.o
+a - order.o
+a - order_check.o
+a - order_io.o
+a - parser.o
+a - parser_ll.o
+a - parser_yy.o
+a - vgraph.o
+a - vgraph_check.o
+a - vgraph_separate_bd.o
+a - vgraph_separate_es.o
+a - vgraph_separate_fm.o
+a - vgraph_separate_gg.o
+a - vgraph_separate_gp.o
+a - vgraph_separate_ml.o
+a - vgraph_separate_st.o
+a - vgraph_separate_th.o
+a - vgraph_separate_vw.o
+a - vgraph_separate_zr.o
+a - vgraph_store.o
+a - vmesh.o
+a - vmesh_check.o
+a - vmesh_separate_fm.o
+a - vmesh_separate_gg.o
+a - vmesh_separate_gr.o
+a - vmesh_separate_ml.o
+a - vmesh_separate_zr.o
+a - vmesh_separate_st.o
+a - vmesh_store.o
+ranlib libscotch.a
+make[4]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotch'
+make[3]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotch'
+make[3]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotch'
+cp libscotch.a ../../lib
+cp libscotcherr.a ../../lib
+cp libscotcherrexit.a ../../lib
+cp scotch.h ../../include
+cp scotchf.h ../../include
+make[3]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotch'
+(cd scotch ;         make VERSION=5 RELEASE=1 PATCHLEVEL=12 scotch && make install)
+make[3]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/scotch'
+make CC="gcc" SCOTCHLIB=scotch	\
+					acpl				\
+					amk_ccc				\
+					amk_fft2				\
+					amk_grf				\
+					amk_hy				\
+					amk_m2				\
+					amk_p2				\
+					atst				\
+					gbase				\
+					gcv				\
+					gmap				\
+					gmk_hy				\
+					gmk_m2				\
+					gmk_m3				\
+					gmk_msh				\
+					gmk_ub2				\
+					gmtst				\
+					gord				\
+					gotst				\
+					gout				\
+					gpart				\
+					gscat				\
+					gtst				\
+					mcv				\
+					mmk_m2				\
+					mmk_m3				\
+					mord				\
+					mtst
+make[4]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/scotch'
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch acpl.c -o acpl -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch amk_ccc.c -o amk_ccc -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch amk_fft2.c -o amk_fft2 -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch amk_grf.c -o amk_grf -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch amk_hy.c -o amk_hy -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch amk_m2.c -o amk_m2 -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch amk_p2.c -o amk_p2 -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch atst.c -o atst -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gbase.c -o gbase -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gcv.c -o gcv -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gmap.c -o gmap -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gmk_hy.c -o gmk_hy -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gmk_m2.c -o gmk_m2 -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gmk_m3.c -o gmk_m3 -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gmk_msh.c -o gmk_msh -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gmk_ub2.c -o gmk_ub2 -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gmtst.c -o gmtst -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gord.c -o gord -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gotst.c -o gotst -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../libscotch -I../../include gout_c.c gout_o.c -o gout -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gmap.c -DSCOTCH_COMPILE_PART -o gpart -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gscat.c -o gscat -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch gtst.c -o gtst -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch mcv.c -o mcv -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch mmk_m2.c -o mmk_m2 -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch mmk_m3.c -o mmk_m3 -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch mord.c -o mord -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread -I../../include -I../libscotch mtst.c -o mtst -L../../lib -lscotch -lscotcherrexit -lz -lm -lrt 
+make[4]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/scotch'
+make[3]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/scotch'
+make[3]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/scotch'
+cp acpl ../../bin/acpl
+cp amk_ccc ../../bin/amk_ccc
+cp amk_fft2 ../../bin/amk_fft2
+cp amk_grf ../../bin/amk_grf
+cp amk_hy ../../bin/amk_hy
+cp amk_m2 ../../bin/amk_m2
+cp amk_p2 ../../bin/amk_p2
+cp atst ../../bin/atst
+cp gbase ../../bin/gbase
+cp gcv ../../bin/gcv
+cp gmap ../../bin/gmap
+cp gmk_hy ../../bin/gmk_hy
+cp gmk_m2 ../../bin/gmk_m2
+cp gmk_m3 ../../bin/gmk_m3
+cp gmk_msh ../../bin/gmk_msh
+cp gmk_ub2 ../../bin/gmk_ub2
+cp gmtst ../../bin/gmtst
+cp gord ../../bin/gord
+cp gotst ../../bin/gotst
+cp gout ../../bin/gout
+cp gscat ../../bin/gscat
+cp gtst ../../bin/gtst
+cp mcv ../../bin/mcv
+cp mmk_m2 ../../bin/mmk_m2
+cp mmk_m3 ../../bin/mmk_m3
+cp mord ../../bin/mord
+cp mtst ../../bin/mtst
+rm -f ../../bin/gpart
+ln ../../bin/gmap ../../bin/gpart
+cp dggath dgmap dgord dgpart dgscat dgtst ../../bin
+make[3]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/scotch'
+(cd libscotchmetis ; make                                                                scotch && make install)
+make[3]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis'
+make CC="gcc" SCOTCHLIB=ptscotch						\
+					libscotchmetis.a
+make[4]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis'
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -I../../include -I../libscotch -c metis_graph_order.c -o metis_graph_order.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -I../../include -I../libscotch -c metis_graph_order_f.c -o metis_graph_order_f.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -I../../include -I../libscotch -c metis_graph_part.c -o metis_graph_part.o
+gcc -O3 -DCOMMON_FILE_COMPRESS_GZ -DCOMMON_PTHREAD -DCOMMON_RANDOM_FIXED_SEED -DSCOTCH_RENAME -DSCOTCH_RENAME_PARSER -DSCOTCH_PTHREAD -Drestrict=__restrict -pthread  -I../../include -I../libscotch -c metis_graph_part_f.c -o metis_graph_part_f.o
+ar -ruv libscotchmetis.a metis_graph_order.o metis_graph_order_f.o metis_graph_part.o metis_graph_part_f.o
+a - metis_graph_order.o
+a - metis_graph_order_f.o
+a - metis_graph_part.o
+a - metis_graph_part_f.o
+ranlib libscotchmetis.a
+make[4]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis'
+make[3]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis'
+make[3]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis'
+make CC="gcc" SCOTCHLIB=ptscotch						\
+					libscotchmetis.a
+make[4]: Entering directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis'
+make[4]: `libscotchmetis.a' is up to date.
+make[4]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis'
+cp metis.h ../../include
+cp libscotchmetis.a ../../lib
+make[3]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src/libscotchmetis'
+make[2]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh/scotch_5.1.12b/src'
+make[1]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/decompose_mesh'
+rm -f ../../lib/libgendatabases.a
+ar cru ../../lib/libgendatabases.a ../../obj/gen/generate_databases_par.o ../../obj/gen/tomography_par.o ../../obj/gen/assemble_MPI_scalar.shared.o ../../obj/gen/calc_jacobian.o ../../obj/gen/fault_generate_databases.o ../../obj/gen/check_mesh_resolution.shared.o ../../obj/gen/create_name_database.shared.o ../../obj/gen/create_mass_matrices.o ../../obj/gen/create_regions_mesh.o ../../obj/gen/create_serial_name_database.shared.o ../../obj/gen/define_derivation_matrices.shared.o ../../obj/gen/detect_surface.shared.o ../../obj/gen/exit_mpi.shared.o ../../obj/gen/finalize_databases.o ../../obj/gen/generate_databases.o ../../obj/gen/get_absorbing_boundary.o ../../obj/gen/get_attenuation_model.shared.o ../../obj/gen/get_cmt.shared.o ../../obj/gen/get_coupling_surfaces.o ../../obj/gen/get_element_face.shared.o ../../obj/gen/get_force.shared.o ../../obj/gen/get_global.o ../../obj/gen/get_jacobian_boundaries.shared.o ../../obj/gen/get_model.o ../../obj/gen/get_MPI.o ../../obj/gen/get_perm_color.o ../../obj/gen/get_shape2D.shared.o ../../obj/gen/get_shape3D.shared.o ../../obj/gen/get_value_parameters.shared.o ../../obj/gen/gll_library.shared.o ../../obj/gen/hex_nodes.shared.o ../../obj/gen/lagrange_poly.shared.o ../../obj/gen/model_1d_cascadia.o ../../obj/gen/model_1d_prem.o ../../obj/gen/model_1d_socal.o ../../obj/gen/model_1d_layer.o ../../obj/gen/model_aniso.o ../../obj/gen/model_default.o ../../obj/gen/model_external_values.o ../../obj/gen/model_ipati.o ../../obj/gen/model_gll.o ../../obj/gen/model_salton_trough.o ../../obj/gen/model_tomography.o ../../obj/gen/netlib_specfun_erf.shared.o ../../obj/gen/param_reader.cc.o ../../obj/gen/pml_set_local_dampingcoeff.o ../../obj/gen/prepare_assemble_MPI.shared.o ../../obj/gen/read_topo_bathy_file.shared.o ../../obj/gen/read_parameter_file.shared.o ../../obj/gen/read_partition_files.o ../../obj/gen/read_value_parameters.shared.o ../../obj/gen/recompute_jacobian.shared.o ../../obj/gen/save_arrays_solver.o ../../obj/gen/save_header_file.shared.o ../../obj/gen/setup_color_perm.o ../../obj/gen/setup_mesh.o ../../obj/gen/sort_array_coordinates.shared.o ../../obj/gen/utm_geo.shared.o ../../obj/gen/write_VTK_data.shared.o ../../obj/gen/memory_eval.o 
+ranlib ../../lib/libgendatabases.a
+mpiifort  -O3 -DFORCE_VECTORIZATION -check nobounds -xHost -ftz -assume buffered_io -assume byterecl -align sequence -vec-report0 -std03 -diag-disable 6477 -implicitnone -warn truncated_source -warn argument_checking -warn unused -warn declarations -warn alignments -warn ignore_loc -warn usage -I../shared/  -o ../../bin/xgenerate_databases ../../obj/gen/program_generate_databases.o ../../obj/gen/parallel.o ../../obj/gen/adios_manager_stubs.shared_noadios.o ../../lib/libgendatabases.a ../../obj/gen/generate_databases_adios_stubs.noadios.o  
+make[1]: Leaving directory `/global/home/kbai/GIT_repo/specfem3d_fault/src/generate_databases'

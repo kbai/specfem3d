@@ -189,6 +189,7 @@ subroutine initialize_fault (bc,IIN_BIN)
     ! T_stick = Z*Vfree traction as if the fault was stuck (no displ discontinuity)
     ! NOTE: same Bi on both sides, see note above
     bc%Z = 1.e0_CUSTOM_REAL/(0.5e0_CUSTOM_REAL*bc%dt * bc%B*(bc%invM1+bc%invM2) )
+    !bc%Z = 1.0e0_CUSTOM_REAL/bc%B
     ! WARNING: In non-split nodes at fault edges M is assembled across the fault.
     ! hence invM1+invM2=2/(M1+M2) instead of 1/M1+1/M2
     ! In a symmetric mesh (M1=M2) Z will be twice its intended value

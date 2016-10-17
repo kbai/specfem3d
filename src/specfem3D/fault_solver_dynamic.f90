@@ -71,6 +71,7 @@ module fault_solver_dynamic
 
   !Number of time steps defined by the user : NTOUT
   integer, save                :: NTOUT,NSNAP
+  integer, save                 :: Nfaults
 
   logical, save :: SIMULATION_TYPE_DYN = .false.
   ! this parameter is read from Par_file
@@ -90,7 +91,7 @@ module fault_solver_dynamic
   real(kind=CUSTOM_REAL), allocatable, save :: Kelvin_Voigt_eta(:)
 !  integer, allocatable, save :: KV_direction(:)
 
-  public :: BC_DYNFLT_init, BC_DYNFLT_set3d_all, Kelvin_Voigt_eta, SIMULATION_TYPE_DYN,faults
+  public :: faults,BC_DYNFLT_init, BC_DYNFLT_set3d_all, Kelvin_Voigt_eta, SIMULATION_TYPE_DYN,   transfer_faultdata_GPU, rsf_GPU_init, synchronize_GPU
 
 
 contains
@@ -164,6 +165,8 @@ subroutine BC_DYNFLT_init(prname,DTglobal,myrank)
   read(IIN_PAR,*) V_RUPT
 
   read(IIN_BIN) nbfaults ! should be the same as in IIN_PAR
+  Nfaults = nbfaults
+
   allocate( faults(nbfaults) )
   dt = real(DTglobal)
   do iflt=1,nbfaults
@@ -195,6 +198,27 @@ subroutine BC_DYNFLT_init(prname,DTglobal,myrank)
   ! WARNING TO DO: should be an MPI abort
 
 end subroutine BC_DYNFLT_init
+
+subroutine transfer_faultdata_GPU()
+   use specfem_par ,only: Fault_pointer
+
+   integer :: ifault,nspec,nglob
+
+   call initialize_fault_solver(Fault_pointer,Nfaults,V_HEALING,V_RUPT)
+   call initialize_fault_data(Fault_pointer,faults(1)%dataT%iglob, faults(1)%dataT%npoin, 500)
+
+   do ifault = 1,Nfaults
+
+    nspec = faults(ifault)%nspec
+    nglob = faults(ifault)%nglob
+
+   call transfer_todevice_fault_data(Fault_pointer,ifault-1,nspec,nglob,faults(ifault)%D,&
+   faults(ifault)%T0,faults(ifault)%T,faults(ifault)%B,faults(ifault)%R,faults(ifault)%V,&
+   faults(ifault)%Z,faults(ifault)%invM1,faults(ifault)%invM2,faults(ifault)%ibulk1,faults(ifault)%ibulk2)
+
+   enddo
+end subroutine transfer_faultdata_GPU
+
 
 !---------------------------------------------------------------------
 subroutine find_fault_node(bc,myrank)
@@ -926,6 +950,31 @@ function swf_mu(f) result(mu)
   mu = f%mus -(f%mus-f%mud)* min(f%theta/f%dc, 1e0_CUSTOM_REAL)
 
 end function swf_mu
+!=====================================================================
+subroutine rsf_GPU_init()
+
+   use specfem_par, only : Fault_pointer
+   implicit none
+   type(rsf_type),pointer :: f
+   type(swf_type),pointer :: g
+   integer :: ifault
+
+   do ifault = 1,Nfaults
+   f => faults(ifault)%rsf
+   g => faults(ifault)%swf
+
+   if (associated(f)) then  ! rate and state friction simulation
+    call transfer_todevice_rsf_data(Fault_pointer,faults(ifault)%nglob,ifault-1 &
+    ,f%V0,f%f0,f%V_init,f%a,f%b,f%L,f%theta,f%T,f%C,f%fw,f%Vw)
+    ! ifault - 1 because in C language, array index start from 0
+   else if(associated(g)) then  ! slip weakening friction simulation
+    call transfer_todevice_swf_data(Fault_pointer,faults(ifault)%nglob,ifault-1 &
+    ,g%Dc,g%mus,g%mud,g%T,g%C,g%theta)
+   endif
+   enddo
+
+end subroutine rsf_GPU_init
+
 
 !=====================================================================
 function twf_mu(f,time) result(mu)
@@ -1599,6 +1648,28 @@ function rtsafe(funcd,x1,x2,xacc,tStick,Seff,Z,f0,V0,a,b,L,theta,statelaw)
 
 end function rtsafe
 
+subroutine synchronize_GPU(it)
+
+use specfem_par,only: Fault_pointer,myrank
+
+integer :: it,ifault
+
+do ifault=1,Nfaults
+
+call transfer_tohost_fault_data(Fault_pointer,ifault-1,faults(ifault)%nspec,&
+faults(ifault)%nglob,faults(ifault)%D,faults(ifault)%V,faults(ifault)%T)
+call transfer_tohost_datat(Fault_pointer, faults(ifault)%dataT%dat, it)
+
+call gather_dataXZ(faults(ifault))
+call SCEC_write_dataT(faults(ifault)%dataT)
+
+if(myrank == 0 )call write_dataXZ(faults(ifault)%dataXZ_all,it,ifault)
+
+enddo
+
+end subroutine synchronize_GPU
+
+
 !=====================================================================
 !---------------------------------------------------------------------
 !Kangchen Bai---------------------------------------------------------
@@ -1725,7 +1796,5 @@ Sigma_TPV29(6)*bc%R(3,1,ij)+Sigma_TPV29(5)*bc%R(3,2,ij)+Sigma_TPV29(3)*bc%R(3,3,
   bc%T0 =bc%T0+ Traction
 
 end subroutine init_fault_traction
-
-
 
 end module fault_solver_dynamic

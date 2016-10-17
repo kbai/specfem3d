@@ -51,47 +51,47 @@
     print*,'path: ',prname(1:len_trim(prname))//'external_mesh.bin'
     call exit_mpi(myrank,'error opening database')
   endif
-  open(unit=28,file=prname(1:len_trim(prname))//'external_mesh2.bin',status='old',&
-      action='read',form='unformatted',iostat=ier)
-  if( ier /= 0 ) then
-    print*,'error: could not open database '
-    print*,'path: ',prname(1:len_trim(prname))//'external_mesh2.bin'
-    call exit_mpi(myrank,'error opening database')
-  endif
+  !open(unit=28,file=prname(1:len_trim(prname))//'external_mesh2.bin',status='old',&
+  !    action='read',form='unformatted',iostat=ier)
+  !if( ier /= 0 ) then
+  !  print*,'error: could not open database '
+  !  print*,'path: ',prname(1:len_trim(prname))//'external_mesh2.bin'
+  !  call exit_mpi(myrank,'error opening database')
+  !endif
 
 
   read(27) NSPEC_AB
-  read(28)
+  !read(28)
   read(27) NGLOB_AB
-  read(28)
+  !read(28)
   read(27) ibool
-  read(28)
+  !read(28)
   read(27) xstore
-  read(28)
+  !read(28)
   read(27) ystore
-  read(28)
+  !read(28)
   read(27) zstore
-  read(28)
+  !read(28)
   read(27) xix
-  read(28) xix2
+!  read(28) xix2
   read(27) xiy
-  read(28) xiy2
+!  read(28) xiy2
   read(27) xiz
-  read(28) xiz2
+!  read(28) xiz2
   read(27) etax
-  read(28) etax2
+!  read(28) etax2
   read(27) etay
-  read(28) etay2
+!  read(28) etay2
   read(27) etaz
-  read(28) etaz2
+!  read(28) etaz2
   read(27) gammax
-  read(28) gammax2
+!  read(28) gammax2
   read(27) gammay
-  read(28) gammay2
+!  read(28) gammay2
   read(27) gammaz
-  read(28) gammaz2
+!  read(28) gammaz2
   read(27) jacobian
-  read(28) jacobian2
+!  read(28) jacobian2
 
   read(27) kappastore
   read(27) mustore
@@ -99,6 +99,7 @@
   read(27) ispec_is_acoustic
   read(27) ispec_is_elastic
   read(27) ispec_is_poroelastic
+  write(*,*) 'finish reading 1-6'
 
   ! acoustic
   ! number of acoustic elements in this partition

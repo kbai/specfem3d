@@ -66,6 +66,8 @@ module specfem_par
 
 ! CUDA mesh pointer<->integer wrapper
   integer(kind=8) :: Mesh_pointer
+  integer(kind=8) :: CG_pointer
+  integer(kind=8) :: Fault_pointer
 
 ! Global GPU toggle. Set in Par_file
   logical :: GPU_MODE

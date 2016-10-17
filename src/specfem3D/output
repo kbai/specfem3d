@@ -1,0 +1,591 @@
+11c11
+< module fault_solver_qstatic
+---
+> module fault_solver_dynamic
+73a74
+>   integer, save                 :: Nfaults
+93c94
+<   public :: BC_QSTATICFLT_init, BC_QSTATICFLT_set3d_all, Kelvin_Voigt_eta, SIMULATION_TYPE_DYN,faults
+---
+>   public :: faults,BC_DYNFLT_init, BC_DYNFLT_set3d_all, Kelvin_Voigt_eta, SIMULATION_TYPE_DYN,   transfer_faultdata_GPU, rsf_GPU_init, synchronize_GPU
+105c106
+< subroutine BC_QSTATICFLT_init(prname,DTglobal,myrank)
+---
+> subroutine BC_DYNFLT_init(prname,DTglobal,myrank)
+120c121
+< 
+---
+>    
+166a168,169
+>   Nfaults = nbfaults
+> 
+197c200,221
+< end subroutine BC_QSTATICFLT_init
+---
+> end subroutine BC_DYNFLT_init
+> 
+> subroutine transfer_faultdata_GPU()
+>    use specfem_par ,only: Fault_pointer
+> 
+>    integer :: ifault,nspec,nglob
+> 
+>    call initialize_fault_solver(Fault_pointer,Nfaults,V_HEALING,V_RUPT)
+>    call initialize_fault_data(Fault_pointer,faults(1)%dataT%iglob, faults(1)%dataT%npoin, 500)
+> 
+>    do ifault = 1,Nfaults
+> 
+>     nspec = faults(ifault)%nspec
+>     nglob = faults(ifault)%nglob
+> 
+>    call transfer_todevice_fault_data(Fault_pointer,ifault-1,nspec,nglob,faults(ifault)%D,&
+>    faults(ifault)%T0,faults(ifault)%T,faults(ifault)%B,faults(ifault)%R,faults(ifault)%V,&
+>    faults(ifault)%Z,faults(ifault)%invM1,faults(ifault)%invM2,faults(ifault)%ibulk1,faults(ifault)%ibulk2)
+> 
+>    enddo
+> end subroutine transfer_faultdata_GPU
+> 
+207,208c231,232
+<   if(bc%nglob>0) then
+< 
+---
+>   if(bc%nglob>0) then 
+>   error = abs(bc%coord(1,:)-488.9_CUSTOM_REAL)+abs(bc%coord(2,:)-0._CUSTOM_REAL)+abs(bc%coord(3,:)+7807.0_CUSTOM_REAL)
+216,218c240,242
+< 
+< 
+< 
+---
+>    
+>   
+>   
+240c264
+< 
+---
+>   
+271,274c295,298
+< !     if (BALOCHI) then
+< !       call make_frictional_stress
+< !       call load_stress_drop
+< !     endif
+---
+>      if (BALOCHI) then
+>        call make_frictional_stress
+>        call load_stress_drop
+>      endif
+276c300
+< 
+---
+>      
+292c316
+< !      if (TPV16) call TPV16_init(iflt) !WARNING: ad hoc, initializes T0 and swf
+---
+>       if (TPV16) call TPV16_init(iflt) !WARNING: ad hoc, initializes T0 and swf
+309c333
+<   endif
+---
+>   endif  
+324c348
+< 
+---
+>  
+335a360,385
+> subroutine make_frictional_stress
+>     real(kind=CUSTOM_REAL),dimension(bc%nglob) :: T1tmp, T2tmp
+>     T1tmp=sign(abs(bc%T0(3,:)*0.3*abs(bc%T0(1,:))/sqrt(bc%T0(1,:)*bc%T0(1,:)+bc%T0(2,:)*bc%T0(2,:))),bc%T0(1,:))
+>     T2tmp=sign(abs(bc%T0(3,:)*0.3*abs(bc%T0(2,:))/sqrt(bc%T0(1,:)*bc%T0(1,:)+bc%T0(2,:)*bc%T0(2,:))),bc%T0(2,:))
+> bc%T0(1,:)=T1tmp
+> bc%T0(2,:)=T2tmp
+> end  subroutine make_frictional_stress
+> 
+> subroutine load_stress_drop   !added by kangchen this is specially made for Balochistan Simulation
+> 
+>    use specfem_par, only:prname
+> 
+>    real(kind=CUSTOM_REAL),dimension(bc%nglob) :: T1tmp, T2tmp
+>    character(len=70) :: filename
+>    integer :: IIN_STR,ier 
+>    filename = prname(1:len_trim(prname))//'fault_prestr.bin'
+>    open(unit=IIN_STR,file=trim(filename),status='old',action='read',form='unformatted',iostat=ier)
+>    read(IIN_STR) T1tmp
+>    read(IIN_STR) T2tmp
+>    close(IIN_STR)
+>    bc%T0(1,:)=bc%T0(1,:)-T1tmp
+>    bc%T0(2,:)=bc%T0(2,:)-T2tmp
+> 
+> 
+> end subroutine load_stress_drop
+> 
+350,351c400,401
+< 
+< 
+---
+>     
+>     
+354a405,450
+> subroutine TPV16_init(iflt)
+> 
+>   integer :: ier, ipar ,iflt
+>   integer, parameter :: IIN_NUC =270 ! WARNING: not safe, should look for an available unit
+>   real(kind=CUSTOM_REAL), dimension(bc%nglob) :: loc_str,loc_dip,sigma0,tau0_str,tau0_dip,Rstress_str,Rstress_dip,static_fc, &
+>        dyn_fc,swcd,cohes,tim_forcedRup
+>   integer, dimension(bc%nglob) :: inp_nx,inp_nz
+>   real(kind=CUSTOM_REAL) :: minX, siz_str,siz_dip, hypo_loc_str,hypo_loc_dip,rad_T_str,rad_T_dip
+>   integer :: relz_num,sub_relz_num, num_cell_str,num_cell_dip, hypo_cell_str,hypo_cell_dip
+>   integer :: i
+>   character(len=70) :: fn  
+> 
+>   write(fn,"('../DATA/input_file_fault',I0,'.txt')") iflt
+> !  write(*,*) fn
+>   open(unit=IIN_NUC,file=trim(fn),status='old',iostat=ier)
+>   if(ier/=0) stop('error open input_file_fault')
+>   read(IIN_NUC,*) relz_num,sub_relz_num
+>   read(IIN_NUC,*) num_cell_str,num_cell_dip,siz_str,siz_dip
+>   read(IIN_NUC,*) hypo_cell_str,hypo_cell_dip,hypo_loc_str,hypo_loc_dip,rad_T_str,rad_T_dip
+>   do ipar=1,bc%nglob
+>     read(IIN_NUC,*) inp_nx(ipar),inp_nz(ipar),loc_str(ipar),loc_dip(ipar),sigma0(ipar),tau0_str(ipar),tau0_dip(ipar), &
+>          Rstress_str(ipar),Rstress_dip(ipar),static_fc(ipar),dyn_fc(ipar),swcd(ipar),cohes(ipar),tim_forcedRup(ipar)
+>   enddo
+>   close(IIN_NUC)
+> 
+>   minX = minval(bc%coord(1,:))
+> 
+>   do i=1,bc%nglob
+> 
+>    ! WARNING: nearest neighbor interpolation
+>     ipar = minloc( (minX+loc_str(:)-bc%coord(1,i))**2 + (-loc_dip(:)-bc%coord(3,i))**2 , 1)
+>    !loc_dip is negative of Z-coord
+> 
+>     bc%T0(3,i) = bc%T0(3,i)-sigma0(ipar);
+>     bc%T0(1,i) = bc%T0(1,i)+tau0_str(ipar)
+>     bc%T0(2,i) = bc%T0(2,i)+tau0_dip(ipar)
+>     write(IMAIN,*) bc%coord(1,i) , sigma0(ipar)
+>     bc%swf%mus(i) = static_fc(ipar)
+>     bc%swf%mud(i) = dyn_fc(ipar)
+>     bc%swf%Dc(i) = swcd(ipar)
+>     bc%swf%C(i) = cohes(ipar)
+>     bc%swf%T(i) = tim_forcedRup(ipar)
+> 
+>   enddo
+> 
+> end subroutine TPV16_init
+410c506
+< 
+---
+>     
+415c511
+<        elsewhere
+---
+>        elsewhere 
+423c519
+<     endwhere
+---
+>     endwhere     
+430,431c526,527
+<     endwhere
+< 
+---
+>     endwhere     
+>     
+437c533
+< 
+---
+>  
+457c553
+< 
+---
+>             
+476c572
+<            heaviside((lz/2._CUSTOM_REAL)-abs(coord(3,:)-zc)+SMALLVAL)  * &
+---
+>            heaviside((lz/2._CUSTOM_REAL)-abs(coord(3,:)-zc)+SMALLVAL)  * & 
+527c623
+< subroutine bc_QSTATICFLT_set3d_all(F,V,D)
+---
+> subroutine bc_dynflt_set3d_all(F,V,D)
+529,530c625,626
+<   real(kind=CUSTOM_REAL), dimension(:,:), intent(in) :: F,D
+<   real(kind=CUSTOM_REAL), dimension(:,:), intent(inout) :: V
+---
+>   real(kind=CUSTOM_REAL), dimension(:,:), intent(in) :: V,D
+>   real(kind=CUSTOM_REAL), dimension(:,:), intent(inout) :: F
+536c632
+<     call BC_QSTATICFLT_set3d(faults(i),F,V,D,i)
+---
+>     call BC_DYNFLT_set3d(faults(i),F,V,D,i)
+539c635
+< end subroutine bc_QSTATICFLT_set3d_all
+---
+> end subroutine bc_dynflt_set3d_all
+542c638
+< subroutine BC_QSTATICFLT_set3d(bc,MxA,V,D,iflt)
+---
+> subroutine BC_DYNFLT_set3d(bc,MxA,V,D,iflt)
+546c642
+<   real(kind=CUSTOM_REAL), intent(inout) :: V(:,:)
+---
+>   real(kind=CUSTOM_REAL), intent(inout) :: MxA(:,:)
+548c644
+<   real(kind=CUSTOM_REAL), intent(in) :: D(:,:),MxA(:,:)
+---
+>   real(kind=CUSTOM_REAL), intent(in) :: V(:,:),D(:,:)
+556a653
+>  
+558,560c655,656
+< 
+< 
+< 
+---
+>      
+>     
+567c663,667
+< 
+---
+>     dD = get_dis1(bc,D)
+>     bc%dbg3=dD(3,:)
+>     
+>     dD = get_dis2(bc,D)
+>     bc%dbg4=dD(3,:)
+571c671,677
+< !    bc%dbg2=dA(3,:);
+---
+> !    bc%dbg2=dA(3,:); 
+>     
+>     dA=get_acceleration1(bc,MxA)
+>     bc%dbg1=dA(3,:)
+>     dA=get_acceleration2(bc,MxA)
+>     
+>     bc%dbg2=dA(3,:) 
+576,577c682,683
+< 
+< 
+---
+>  
+>      
+588,592c694,696
+<     T(1,:) = bc%Z * (bc%dt* dA(1,:) )
+<     T(2,:) = bc%Z * (bc%dt* dA(2,:) )
+<     T(3,:) = bc%Z * (bc%dt* dA(3,:) )
+<     write(*,*) 'max acceleration:',maxval(abs(dA(1,:)))
+<    write(*,*) 'min acceleration:',minval(abs(dA(1,:)))
+---
+>     T(1,:) = bc%Z * ( dV(1,:) + half_dt*dA(1,:) )
+>     T(2,:) = bc%Z * ( dV(2,:) + half_dt*dA(2,:) )
+>     T(3,:) = bc%Z * ( dV(3,:) + half_dt*dA(3,:) )
+606,607d709
+<     bc%T = T
+<     bc%D = dD
+614a717,730
+>     if (RATE_AND_STATE) then
+>       TxExt = 0._CUSTOM_REAL
+>       TLoad = 1.0_CUSTOM_REAL
+>       DTau0 = 45e6_CUSTOM_REAL
+>       time = it*bc%dt !time will never be zero. it starts from 1
+>       if (time <= TLoad) then
+>         GLoad = exp( (time-TLoad)*(time-Tload) / (time*(time-2.0_CUSTOM_REAL*TLoad)) )
+>       else
+>         GLoad = 1.0_CUSTOM_REAL
+>       endif
+>     !  TxExt = DTau0 * bc%Fload * GLoad
+>       TxExt = bc%Fload * GLoad
+>       T(1,:) = T(1,:) + TxExt
+>     endif
+618,620c734,751
+<     call store_dataXZ(bc%dataXZ, strength, theta_old, theta_new, dc, &
+<         Vf_old, Vf_new, it*bc%dt,bc%dt)
+<   ! write dataXZ every NSNAP time step
+---
+>     if (.not. RATE_AND_STATE) then   ! Update slip weakening friction:
+>       ! Update slip state variable
+>       ! WARNING: during opening the friction state variable should not evolve
+>       theta_old = bc%swf%theta
+>       call swf_update_state(bc%D,dD,bc%V,bc%swf)
+> 
+>       ! Update friction coeficient
+>       bc%MU = swf_mu(bc%swf)
+> 
+>       ! combined with time-weakening for nucleation
+>       !  if (associated(bc%twf)) bc%MU = min( bc%MU, twf_mu(bc%twf,bc%coord,time) )
+>       if (TPV29) then
+>       bc%MU = min( bc%MU, twf_mu(bc%swf,it*bc%dt) )
+>       endif
+> 
+>       if (TPV16) then
+>         where (bc%swf%T <= it*bc%dt) bc%MU = bc%swf%mud
+>       endif
+622c753,754
+< ! dirty implementation
+---
+>       ! Update strength
+>       strength = -bc%MU * min(T(3,:),0.e0_CUSTOM_REAL) + bc%swf%C
+624c756,760
+<          !JPA the solver below can be refactored into a loop with two passes
+---
+>       ! Solve for shear stress
+>       tnew = min(tStick,strength)
+> 
+>     else  ! Update rate and state friction:
+>       !JPA the solver below can be refactored into a loop with two passes
+628,632c764,768
+<  !     call rsf_update_state(Vf_old,bc%dt,bc%rsf)
+<  !     do i=1,bc%nglob
+<  !       Vf_new(i)=rtsafe(funcd,0.0_CUSTOM_REAL,Vf_old(i)+5.0_CUSTOM_REAL,1e-5_CUSTOM_REAL,tStick(i),-T(3,i),bc%Z(i),bc%rsf%f0(i), &
+<  !                        bc%rsf%V0(i),bc%rsf%a(i),bc%rsf%b(i),bc%rsf%L(i),bc%rsf%theta(i),bc%rsf%StateLaw)
+<  !     enddo
+---
+>       call rsf_update_state(Vf_old,bc%dt,bc%rsf)
+>       do i=1,bc%nglob
+>         Vf_new(i)=rtsafe(funcd,0.0_CUSTOM_REAL,Vf_old(i)+5.0_CUSTOM_REAL,1e-5_CUSTOM_REAL,tStick(i),-T(3,i),bc%Z(i),bc%rsf%f0(i), &
+>                          bc%rsf%V0(i),bc%rsf%a(i),bc%rsf%b(i),bc%rsf%L(i),bc%rsf%theta(i),bc%rsf%StateLaw)
+>       enddo
+635,642c771,778
+<  !     bc%rsf%theta = theta_old
+<  !     call rsf_update_state(0.5e0_CUSTOM_REAL*(Vf_old + Vf_new),bc%dt,bc%rsf)
+<  !     do i=1,bc%nglob
+<  !       Vf_new(i)=rtsafe(funcd,0.0_CUSTOM_REAL,Vf_old(i)+5.0_CUSTOM_REAL,1e-5_CUSTOM_REAL,tStick(i),-T(3,i),bc%Z(i),bc%rsf%f0(i), &
+<  !                        bc%rsf%V0(i),bc%rsf%a(i),bc%rsf%b(i),bc%rsf%L(i),bc%rsf%theta(i),bc%rsf%StateLaw)
+<  !     enddo
+< 
+<  !     tnew = tStick - bc%Z*Vf_new
+---
+>       bc%rsf%theta = theta_old
+>       call rsf_update_state(0.5e0_CUSTOM_REAL*(Vf_old + Vf_new),bc%dt,bc%rsf)
+>       do i=1,bc%nglob
+>         Vf_new(i)=rtsafe(funcd,0.0_CUSTOM_REAL,Vf_old(i)+5.0_CUSTOM_REAL,1e-5_CUSTOM_REAL,tStick(i),-T(3,i),bc%Z(i),bc%rsf%f0(i), &
+>                          bc%rsf%V0(i),bc%rsf%a(i),bc%rsf%b(i),bc%rsf%L(i),bc%rsf%theta(i),bc%rsf%StateLaw)
+>       enddo
+> 
+>       tnew = tStick - bc%Z*Vf_new
+643a780
+>     endif
+645,647c782,784
+< !    tStick = max(tStick,1e0_CUSTOM_REAL) ! to avoid division by zero
+< !    T(1,:) = tnew * T(1,:)/tStick
+< !    T(2,:) = tnew * T(2,:)/tStick
+---
+>     tStick = max(tStick,1e0_CUSTOM_REAL) ! to avoid division by zero
+>     T(1,:) = tnew * T(1,:)/tStick
+>     T(2,:) = tnew * T(2,:)/tStick
+650c787
+< !    bc%T = T
+---
+>     bc%T = T
+652a790
+>     
+654,655c792,793
+< 
+<       !JPA: this eliminates the effect of TxExt on the equations of motion. Why is it needed?
+---
+>     if (RATE_AND_STATE) T(1,:) = T(1,:) - TxExt
+>     !JPA: this eliminates the effect of TxExt on the equations of motion. Why is it needed?
+658,660c796,798
+< !    dA(1,:) = dA(1,:) - T(1,:)/(bc%Z*half_dt)
+< !    dA(2,:) = dA(2,:) - T(2,:)/(bc%Z*half_dt)
+< !    dA(3,:) = dA(3,:) - T(3,:)/(bc%Z*half_dt)
+---
+>     dA(1,:) = dA(1,:) - T(1,:)/(bc%Z*half_dt)
+>     dA(2,:) = dA(2,:) - T(2,:)/(bc%Z*half_dt)
+>     dA(3,:) = dA(3,:) - T(3,:)/(bc%Z*half_dt)
+663,664c801,802
+< !    bc%D = dD
+< !    bc%V = dV + half_dt*dA
+---
+>     bc%D = dD
+>     bc%V = dV + half_dt*dA
+667c805
+< !    T = rotate(bc,T,-1)
+---
+>     T = rotate(bc,T,-1)
+670c808
+<  !  call add_BT(bc,MxA,T)  ! kbai comment out this temporarily
+---
+>    call add_BT(bc,MxA,T)  ! kbai comment out this temporarily
+673,674c811,815
+<  !   Vf_new = sqrt(bc%V(1,:)*bc%V(1,:)+bc%V(2,:)*bc%V(2,:))
+< 
+---
+>     Vf_new = sqrt(bc%V(1,:)*bc%V(1,:)+bc%V(2,:)*bc%V(2,:))
+>     if(.not. RATE_AND_STATE) then
+>       theta_new = bc%swf%theta
+>       dc = bc%swf%dc
+>     else
+677,686c818
+< 
+< 
+<     bc%V(1,:) = vf_new * T(1,:)/tstick
+<     bc%V(2,:) = vf_new * T(2,:)/tstick
+< 
+<    V(1,bc%ibulk2) =  0.5e0_CUSTOM_REAL*bc%V(1,:)
+<    V(1,bc%ibulk1) =  -0.5e0_CUSTOM_REAL*bc%V(1,:)
+<    V(2,bc%ibulk2) =  0.5e0_CUSTOM_REAL*bc%V(2,:)
+<    V(2,bc%ibulk1) =  -0.5e0_CUSTOM_REAL*bc%V(2,:)
+< 
+---
+>     endif
+689,699c821
+<         Vf_old, Vf_new, it*bc%dt,bc%dt)
+< 
+< 
+<  if ( mod(it,NSNAP) == 0) then
+<    if (.NOT. PARALLEL_FAULT) then
+<      if (bc%nspec > 0) call write_dataXZ(bc%dataXZ,it,iflt)
+<    else
+<      call gather_dataXZ(bc)
+<      if (myrank==0) call write_dataXZ(bc%dataXZ_all,it,iflt)
+<    endif
+<  endif
+---
+>          Vf_old, Vf_new, it*bc%dt,bc%dt)
+701,702c823
+< 
+<   !  call store_dataT(bc%dataT,bc%D,bc%V,bc%T,it)
+---
+>     call store_dataT(bc%dataT,bc%D,bc%V,bc%T,it)
+716,724d836
+<  if ( mod(it,NSNAP) == 0) then
+<    if (.NOT. PARALLEL_FAULT) then
+<      if (bc%nspec > 0) call write_dataXZ(bc%dataXZ,it,iflt)
+<    else
+<      call gather_dataXZ(bc)
+<      if (myrank==0) call write_dataXZ(bc%dataXZ_all,it,iflt)
+<    endif
+<  endif
+< 
+727,747c839,859
+<  ! if ( mod(it,NSNAP) == 0) then
+<  !   if (.NOT. PARALLEL_FAULT) then
+<  !     if (bc%nspec > 0) call write_dataXZ(bc%dataXZ,it,iflt)
+<  !   else
+<  !     call gather_dataXZ(bc)
+<  !     if (myrank==0) call write_dataXZ(bc%dataXZ_all,it,iflt)
+<  !   endif
+<  ! endif
+< 
+<  ! if ( it == NSTEP) then
+<  !   if (.NOT. PARALLEL_FAULT) then
+<  !     call SCEC_Write_RuptureTime(bc%dataXZ,iflt)
+<  !   else
+<  !       call gather_dataXZ(bc)
+<  !     if (myrank==0) then
+< 
+<  !            call SCEC_Write_RuptureTime(bc%dataXZ_all,iflt)
+<  !     endif     ! Kangchen added it
+<  !
+<  !   endif
+<  ! endif
+---
+>   if ( mod(it,NSNAP) == 0) then
+>     if (.NOT. PARALLEL_FAULT) then
+>       if (bc%nspec > 0) call write_dataXZ(bc%dataXZ,it,iflt)
+>     else
+>       call gather_dataXZ(bc)
+>       if (myrank==0) call write_dataXZ(bc%dataXZ_all,it,iflt)
+>     endif
+>   endif
+> 
+>   if ( it == NSTEP) then
+>     if (.NOT. PARALLEL_FAULT) then
+>       call SCEC_Write_RuptureTime(bc%dataXZ,iflt)
+>     else
+>         call gather_dataXZ(bc)
+>       if (myrank==0) then
+>            
+>              call SCEC_Write_RuptureTime(bc%dataXZ_all,iflt)
+>       endif     ! Kangchen added it 
+>          
+>     endif
+>   endif
+751,752c863,864
+< 
+< end subroutine BC_QSTATICFLT_set3d
+---
+>          
+> end subroutine BC_DYNFLT_set3d
+805c917
+< 
+---
+>  
+840a953,977
+> !=====================================================================
+> subroutine rsf_GPU_init()
+> 
+>    use specfem_par, only : Fault_pointer
+>    implicit none
+>    type(rsf_type),pointer :: f
+>    type(swf_type),pointer :: g
+>    integer :: ifault
+> 
+>    do ifault = 1,Nfaults
+>    f => faults(ifault)%rsf
+>    g => faults(ifault)%swf
+> 
+>    if (associated(f)) then  ! rate and state friction simulation
+>     call transfer_todevice_rsf_data(Fault_pointer,faults(ifault)%nglob,ifault-1 &
+>     ,f%V0,f%f0,f%V_init,f%a,f%b,f%L,f%theta,f%T,f%C,f%fw,f%Vw)
+>     ! ifault - 1 because in C language, array index start from 0
+>    else if(associated(g)) then  ! slip weakening friction simulation
+>     call transfer_todevice_swf_data(Fault_pointer,faults(ifault)%nglob,ifault-1 &
+>     ,g%Dc,g%mus,g%mud,g%T,g%C,g%theta)
+>    endif
+>    enddo
+> 
+> end subroutine rsf_GPU_init
+> 
+1513a1651,1672
+> subroutine synchronize_GPU(it)
+> 
+> use specfem_par,only: Fault_pointer,myrank
+> 
+> integer :: it,ifault
+> 
+> do ifault=1,Nfaults
+> 
+> call transfer_tohost_fault_data(Fault_pointer,ifault-1,faults(ifault)%nspec,&
+> faults(ifault)%nglob,faults(ifault)%D,faults(ifault)%V,faults(ifault)%T)
+> call transfer_tohost_datat(Fault_pointer, faults(ifault)%dataT%dat, it)
+> 
+> call gather_dataXZ(faults(ifault))
+> call SCEC_write_dataT(faults(ifault)%dataT)
+> 
+> if(myrank == 0 )call write_dataXZ(faults(ifault)%dataXZ_all,it,ifault)
+> 
+> enddo
+> 
+> end subroutine synchronize_GPU
+> 
+> 
+1550c1709
+< !  Traction = rotate(bc,Traction,1)
+---
+> !  Traction = rotate(bc,Traction,1)    
+1561c1720
+<       if(Depth<=17000.0) then
+---
+>       if(Depth<=17000.0) then 
+1579c1738
+< 
+---
+>  
+1586c1745
+< 
+---
+>  
+1590c1749
+< 
+---
+>  
+1595c1754
+< 
+---
+>  
+1609c1768
+< 
+---
+>  
+1611c1770
+<   endif
+---
+>   endif 
+1643c1802
+< end module fault_solver_qstatic
+---
+> end module fault_solver_dynamic

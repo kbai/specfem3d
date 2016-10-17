@@ -17,7 +17,7 @@ module conjugate_gradient
   type CG_data
     logical :: COARSE
     real(kind=CUSTOM_REAL), dimension(:,:), pointer :: X=>null(),L=>null()
-    real(kind=CUSTOM_REAL), dimension(:,:), pointer :: Residue=>null() , Pdirection=>null(), M=>null(), M2=>null()
+    real(kind=CUSTOM_REAL), dimension(:,:), pointer :: Residue=>null() , Pdirection=>null(), M=>null(), M2=>null(), record =>null()
     logical , dimension(:,:), pointer :: MASKX=>null() , MASKAX=>null()
 !
     type(CG_Vector) :: CG_size !the dimensions and element numbers in the vector
@@ -26,8 +26,9 @@ module conjugate_gradient
 
   end type CG_data
 !!!!! DK DK  private
-  logical,dimension(:),ALLOCATABLE  :: MPI_repeat
 
+    logical,dimension(:),ALLOCATABLE  :: MPI_repeat
+    real(kind = CUSTOM_REAL),dimension(:),ALLOCATABLE :: restri_op
 
 
 contains
@@ -64,23 +65,24 @@ subroutine CG_initialize(CG,CG_dim,Displ,Load,MG,X_setfalse,AX_setfalse)
   allocate(CG%Residue(CG%CG_size%NDIM,CG%CG_size%NELE))
   allocate(CG%M(CG%CG_size%NDIM,CG%CG_size%NELE))
   allocate(CG%M2(CG%CG_size%NDIM,CG%CG_size%NELE))
+  allocate(CG%record(CG%CG_size%NDIM,CG%CG_size%NELE))
 !  allocate(CG%MPI_repeat(CG%CG_size%NELE))
 !  call CG_mask(CG,X_setfalse,AX_setfalse)
   CG%COARSE = MG
 
-  write(*,*) 'maxX:',maxval(abs(CG%X))
+!  write(*,*) 'maxX:',maxval(abs(CG%X))
   call Axx(W,CG%X,CG%MASKX,CG%MASKAX,CG%COARSE)
-  write(*,*) 'check right:',maxval(abs(W)),maxval(abs(Load))
+!  write(*,*) 'check right:',maxval(abs(W)),maxval(abs(Load))
   CG%Residue = Load - W
   CG%Pdirection= CG%Residue
   CG%M(:,:)=1.0_CUSTOM_REAL
-!  call Prepare_MPI(CG%MPI_repeat)
+  
   call Vector_Multiplication_Weight(CG%Norm_old,CG%Residue,CG%Residue,CG%M)
   call compute_diagonal2(CG%M2)
  ! call P(tmp,CG%Residue,CG%MASKX,CG%MASKAX,CG%M2)
   !call Vector_Multiplication(CG%Norm_old,CG%Residue,tmp)
   !CG%Pdirection= tmp
-  write(*,*) "normold:",CG%Norm_old
+!  write(*,*) "normold:",CG%Norm_old
 end subroutine CG_initialize
 !=================================================================
 subroutine Prepare_MPI()
@@ -88,7 +90,6 @@ subroutine Prepare_MPI()
 
     use specfem_par
     implicit none
-
     integer :: iinterface, ipoin
 
      allocate(MPI_repeat(NGLOB_AB))
@@ -101,9 +102,28 @@ subroutine Prepare_MPI()
       enddo
       endif
     enddo
-    write(*,*) MPI_repeat
+!    write(*,*) MPI_repeat
 end subroutine Prepare_MPI
 
+
+subroutine Prepare_restri()
+
+
+    use specfem_par
+    implicit none
+    integer :: iinterface, ipoin
+
+     allocate(restri_op(NGLOB_AB))
+     restri_op(:) = 1.0
+      ! partition border copy into the buffer
+    do iinterface = 1, num_interfaces_ext_mesh
+      do ipoin = 1, nibool_interfaces_ext_mesh(iinterface)
+        restri_op(ibool_interfaces_ext_mesh(ipoin,iinterface)) = &
+            restri_op(ibool_interfaces_ext_mesh(ipoin,iinterface)) + 1.0 
+      enddo
+    enddo
+!    write(*,*) MPI_repeat
+end subroutine Prepare_restri
 
 
 subroutine CG_initialize_preconditioner(CG,Mx,My,Mz)
@@ -115,7 +135,8 @@ subroutine CG_initialize_preconditioner(CG,Mx,My,Mz)
   CG%M(3,:) = Mz
   call Vector_Multiplication_Weight(CG%Norm_old,CG%Residue,CG%Residue,CG%M)
   CG%Pdirection = CG%Pdirection * CG%M
-  write(*,*) "precon:" , CG%Norm_old
+  CG%record = CG%Pdirection
+!  write(*,*) "precon:" , CG%Norm_old
 end subroutine CG_initialize_preconditioner
 !========================================================
 
@@ -146,9 +167,9 @@ subroutine Jacobi_method(CG)
 
    z = CG%Residue*CG%M
 
-   write(*,*)  "minM:",maxval(abs(CG%M)) ,maxloc(abs(CG%M))
-   write(*,*)  "minmaxR",maxval(abs(CG%Residue)),maxval(abs(CG%Residue))
-   write(*,*)  "maxDx:",maxval(abs(Dx)) , maxloc(abs(Dx))
+!   write(*,*)  "minM:",maxval(abs(CG%M)) ,maxloc(abs(CG%M))
+!   write(*,*)  "minmaxR",maxval(abs(CG%Residue)),maxval(abs(CG%Residue))
+!   write(*,*)  "maxDx:",maxval(abs(Dx)) , maxloc(abs(Dx))
 
    call Axx(q,z,CG%MASKX,CG%MASKAX,CG%COARSE)
    call Vector_Multiplication(rz,CG%Residue,z)
@@ -170,38 +191,52 @@ subroutine update_value_direction(CG)
   real(kind=CUSTOM_REAL),dimension(:,:),allocatable :: W,tmp
   type(CG_data),intent(inout) :: CG
 
+  integer :: ii
     allocate(W(CG%CG_size%NDIM,CG%CG_size%NELE))
     allocate(tmp(CG%CG_size%NDIM,CG%CG_size%NELE))
-   ! write(*,*) size(W),size(CG%Pdirection)
+    
+!    write(*,*) size(W),size(CG%Pdirection)
     call Axx(W,CG%Pdirection,CG%MASKX,CG%MASKAX,CG%COARSE)
-   ! write(*,*) maxval(W),minval(W)
+!    write(*,*) maxval(W),minval(W)
 
+!    CG%record = W
+
+!    if(myrank == 4) then
+!        ii = 51748
+!     write(*,*) "CPUvalue:",3*ii-3 ,":", CG%Pdirection(1,ii),W(1,ii)
+!     write(*,*) "CPUvalue:",3*ii-2 ,":", CG%Pdirection(2,ii),W(2,ii)
+!     write(*,*) "CPUvalue:",3*ii-1 ,":", CG%Pdirection(3,ii),W(3,ii)
+!    endif
     call Vector_Multiplication(PTW,CG%Pdirection,W)
 !    write(*,*) PTW,CG%Norm_old
+
+    if(myrank == 0) write(*,*) "PTW:",PTW,"normold",CG%Norm_old 
     alpha = CG%Norm_old/PTW
 
-    write(*,*) "alpha=",alpha
+    if(myrank == 0) write(*,*) "alpha=",alpha
     CG%X(:,:) = CG%X(:,:) + alpha * CG%Pdirection
 
     CG%Residue(:,:) = CG%Residue(:,:) - alpha*W(:,:)
 
     call Vector_Multiplication_Weight(Norm_new,CG%Residue,CG%Residue,CG%M)
-    write(*,*) "nmn:",Norm_new
+!    write(*,*) "nmn:",Norm_new
    ! write(*,*) "mpirepeat:",CG%MPI_repeat
   !  call P(tmp,CG%Residue,CG%MASKX,CG%MASKAX,CG%M2)
 
    ! call Vector_Multiplication(Norm_new,CG%Residue,tmp)
 
     beta = Norm_new/CG%Norm_old
+    if(myrank == 0) write(*,*) "beta=",beta 
 
     CG%Norm_old = Norm_new
 
+    if(myrank == 0) write(*,*) "Norm old", Norm_new
     CG%Pdirection = CG%Residue*CG%M + beta * CG%Pdirection
    ! CG%Pdirection = tmp + beta * CG%Pdirection
 
-    call Axx(W,CG%X,CG%MASKX,CG%MASKAX,CG%COARSE)
+!    call Axx(W,CG%X,CG%MASKX,CG%MASKAX,CG%COARSE)
 
-    W=-W+CG%L
+!    W=-W+CG%L
 
 !call Vector_Multiplication(Norm_old,W,W)
 
@@ -248,10 +283,12 @@ implicit none
     SUM_ALL = 0.0_CUSTOM_REAL
     do i=1,3
       do j=1,NGLOB_AB
-        if(MPI_repeat(j)) SUM = SUM + A(i,j)*B(i,j)
+       ! if(MPI_repeat(j))
+        SUM = SUM + A(i,j)*B(i,j)
       enddo
     enddo
 
+    if(myrank == 4) write(*,*) "sum proc4:",SUM 
     call sum_all_all_cr(SUM,SUM_ALL)
 
 end subroutine Vector_Multiplication
@@ -271,7 +308,8 @@ implicit none
     SUM_ALL = 0.0_CUSTOM_REAL
     do i=1,3
       do j=1,NGLOB_AB
-        if(MPI_repeat(j)) SUM = SUM + A(i,j)*B(i,j)*Weight(i,j)
+        !if(MPI_repeat(j)) 
+        SUM = SUM + A(i,j)*B(i,j)*Weight(i,j)
       enddo
     enddo
 

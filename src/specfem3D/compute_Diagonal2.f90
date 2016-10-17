@@ -57,7 +57,7 @@ subroutine compute_Diagonal2(AX)
                         NSPEC_BOUN, &
                        num_phase_ispec_elastic,nspec_inner_elastic,nspec_outer_elastic, &
                         phase_ispec_inner_elastic)
-   write(*,*) "Diagonal finished!"
+!   write(*,*) "Diagonal finished!"
    if (phase_is_inner .eqv. .false.) then
        ! sends accel values to corresponding MPI interface neighbors
        call assemble_MPI_vector_async_send(NPROC,NGLOB_AB,AX, &

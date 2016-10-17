@@ -41,7 +41,7 @@
 
 ! set to SIZE_REAL to run in single precision
 ! set to SIZE_DOUBLE to run in double precision (increases memory size by 2)
-  integer, parameter :: CUSTOM_REAL = SIZE_DOUBLE
+  integer, parameter :: CUSTOM_REAL = SIZE_REAL
 
 !----------- parameters that can be changed by the user -----------
 
